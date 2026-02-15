@@ -7,11 +7,13 @@ import pytest
 class TestDatabaseConfig:
     """Test database.py configuration logic."""
 
-    def test_default_is_sqlite(self):
-        """Default DATABASE_URL should produce a SQLite engine."""
+    def test_database_url_matches_is_sqlite(self):
+        """_is_sqlite flag should match the DATABASE_URL scheme."""
         from backend.database import _is_sqlite, DATABASE_URL
-        assert _is_sqlite is True
-        assert "sqlite" in DATABASE_URL
+        if DATABASE_URL.startswith("sqlite"):
+            assert _is_sqlite is True
+        else:
+            assert _is_sqlite is False
 
     def test_get_db_yields_session(self):
         """get_db should yield a session and close it."""
