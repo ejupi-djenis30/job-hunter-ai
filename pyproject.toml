@@ -1,0 +1,30 @@
+[project]
+name = "job-hunter-ai"
+version = "1.0.0"
+description = "AI-powered Swiss job search platform with automated scraping, LLM analysis, and smart search scheduling"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "live: marks tests that hit live external APIs (deselect with '-m \"not live\"')",
+    "slow: marks tests as slow-running",
+]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

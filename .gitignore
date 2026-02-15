@@ -1,0 +1,71 @@
+# ═══════════════════════════════════════
+# Job Hunter AI — .gitignore
+# ═══════════════════════════════════════
+
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ─── Virtual Environments ───
+venv/
+.venv/
+env/
+ENV/
+
+# ─── Environment & Secrets ───
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# ─── Database ───
+*.db
+*.sqlite3
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.code-workspace
+*.iml
+*.swp
+*.swo
+*~
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ─── Node.js ───
+node_modules/
+frontend/dist/
+
+# ─── Testing & Coverage ───
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+coverage.xml
+
+# ─── Logs & Temp ───
+logs/
+*.log
+tmp/
+*.tmp
+
+# ─── Poetry / packaging ───
+poetry.lock
+
+# ─── Gemini ───
+.gemini/

@@ -1,0 +1,25 @@
+body {
+  background-color: #1a1d23;
+  min-height: 100vh;
+}
+
+.score-high {
+  color: #198754;
+}
+
+.score-mid {
+  color: #ffc107;
+}
+
+.score-low {
+  color: #dc3545;
+}
+
+.btn-search {
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
+  border: none;
+}
+
+.btn-search:hover {
+  background: linear-gradient(135deg, #0b5ed7, #520dc2);
+}
