@@ -206,11 +206,11 @@ python -m pytest tests/ --run-live -v
 | Layer | Technology |
 |-------|-----------|
 | **Backend** | FastAPI, SQLAlchemy, Alembic, APScheduler |
-| **Frontend** | React 18, Vite, Bootstrap |
+| **Frontend** | React 19, Vite, Bootstrap, Bootstrap Icons |
 | **Scraping** | httpx (HTTP/2), tenacity |
-| **AI/LLM** | OpenAI-compatible (Groq, DeepSeek) |
-| **Database** | SQLite (dev) / PostgreSQL (production) |
-| **Auth** | JWT (PyJWT), PBKDF2-SHA256 |
+| **AI/LLM** | Gemini (Google), OpenAI-compatible (Groq, DeepSeek) |
+| **Database** | SQLite (dev) / PostgreSQL (production/Supabase) |
+| **Auth** | Supabase Auth (optional) or Local JWT (PBKDF2) |
 | **Deploy** | Docker, gunicorn + uvicorn |
 | **Testing** | pytest, pytest-asyncio |
 

@@ -9,7 +9,21 @@ from backend.services.auth import (
     hash_password, verify_password, create_access_token,
 )
 
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.get("/config")
+def get_auth_config():
+    """Return public auth configuration."""
+    import os
+    provider = os.environ.get("AUTH_PROVIDER", "simple").lower()
+    return {
+        "provider": provider,
+        "supabase_url": os.environ.get("SUPABASE_URL") if provider == "supabase" else None,
+        "supabase_key": os.environ.get("SUPABASE_KEY") if provider == "supabase" else None,
+    }
+
 
 
 @router.post("/register", response_model=schemas.Token)

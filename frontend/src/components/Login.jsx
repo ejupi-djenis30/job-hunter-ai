@@ -39,8 +39,9 @@ export function Login({ onLogin }) {
                 <div className="card-body p-4">
                     {/* Logo */}
                     <div className="text-center mb-4">
-                        <h2 className="fw-bold text-light mb-1">
-                            🎯 JobHunter<span className="text-primary">.ai</span>
+                        <h2 className="fw-bold text-light mb-1 d-flex align-items-center justify-content-center">
+                            <i className="bi bi-crosshair me-2 text-primary"></i>
+                            JobHunter<span className="text-primary">.ai</span>
                         </h2>
                         <p className="text-secondary small mb-0">
                             {mode === "login" ? "Welcome back" : "Create your account"}
@@ -87,7 +88,7 @@ export function Login({ onLogin }) {
                             {loading ? (
                                 <span className="spinner-border spinner-border-sm me-2" />
                             ) : null}
-                            {mode === "login" ? "🔑 Sign In" : "🚀 Create Account"}
+                            {mode === "login" ? <><i className="bi bi-box-arrow-in-right me-2"></i>Sign In</> : <><i className="bi bi-rocket-takeoff me-2"></i>Create Account</>}
                         </button>
                     </form>
 

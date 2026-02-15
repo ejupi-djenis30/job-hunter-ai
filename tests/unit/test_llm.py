@@ -119,7 +119,7 @@ class TestBuildParams:
 class TestGenerateSearchKeywords:
     """Test keyword generation with mocked LLM."""
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_returns_searches(self, mock_create):
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -139,7 +139,7 @@ class TestGenerateSearchKeywords:
         assert len(result) == 2
         assert result[0]["type"] == "keyword"
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_strips_seniority_from_occupation(self, mock_create):
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -159,7 +159,7 @@ class TestGenerateSearchKeywords:
         assert result[0]["value"] == "Software Engineer"
         assert result[1]["occupation"] == "Developer"
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_handles_error_gracefully(self, mock_create):
         mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = Exception("API error")
@@ -172,7 +172,7 @@ class TestGenerateSearchKeywords:
 class TestCheckTitleRelevance:
     """Test title relevance pre-filter with mocked LLM."""
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_relevant_title(self, mock_create):
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -188,7 +188,7 @@ class TestCheckTitleRelevance:
         result = check_title_relevance("Backend Developer", "Python developer")
         assert result["relevant"] is True
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_irrelevant_title(self, mock_create):
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -204,7 +204,7 @@ class TestCheckTitleRelevance:
         result = check_title_relevance("Logistiker", "Python developer")
         assert result["relevant"] is False
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_error_defaults_to_relevant(self, mock_create):
         mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = Exception("API error")
@@ -217,7 +217,7 @@ class TestCheckTitleRelevance:
 class TestAnalyzeJobAffinity:
     """Test job affinity analysis with mocked LLM."""
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_returns_analysis(self, mock_create):
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -240,7 +240,7 @@ class TestAnalyzeJobAffinity:
         assert result["affinity_score"] == 75
         assert result["worth_applying"] is True
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_clamps_score_to_bounds(self, mock_create):
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -258,7 +258,7 @@ class TestAnalyzeJobAffinity:
         result = analyze_job_affinity({}, {})
         assert result["affinity_score"] == 100
 
-    @patch("backend.services.llm._create_client")
+    @patch("backend.services.llm._create_openai_client")
     def test_error_returns_zero_score(self, mock_create):
         mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = Exception("fail")

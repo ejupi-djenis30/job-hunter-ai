@@ -70,8 +70,10 @@ export function Schedules() {
     return (
         <div>
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0 text-light">⏰ Scheduled Searches</h5>
-                <button onClick={loadProfiles} className="btn btn-sm btn-outline-secondary">🔄 Refresh</button>
+                <h5 className="mb-0 text-light"><i className="bi bi-clock-history me-2"></i>Scheduled Searches</h5>
+                <button onClick={loadProfiles} className="btn btn-sm btn-outline-secondary">
+                    <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+                </button>
             </div>
 
             <div className="row g-3">
@@ -96,7 +98,7 @@ export function Schedules() {
 
                                 <div className="mb-2">
                                     <small className="text-secondary d-block">
-                                        📍 {p.location_filter || "Any"}
+                                        <i className="bi bi-geo-alt me-1"></i> {p.location_filter || "Any"}
                                     </small>
                                     <small className="text-secondary d-block" style={{
                                         overflow: "hidden",
@@ -104,7 +106,7 @@ export function Schedules() {
                                         whiteSpace: "nowrap",
                                         maxWidth: "100%"
                                     }}>
-                                        🎯 {p.role_description ? p.role_description.substring(0, 60) + (p.role_description.length > 60 ? '...' : '') : "No description"}
+                                        <i className="bi bi-crosshair me-1"></i> {p.role_description ? p.role_description.substring(0, 60) + (p.role_description.length > 60 ? '...' : '') : "No description"}
                                     </small>
                                 </div>
 
@@ -128,7 +130,7 @@ export function Schedules() {
 
                                 <div className="d-flex justify-content-between align-items-center">
                                     <small className={p.schedule_enabled ? "text-success" : "text-secondary"}>
-                                        {p.schedule_enabled ? "🟢 Active" : "⚪ Inactive"}
+                                        {p.schedule_enabled ? <><i className="bi bi-circle-fill me-1"></i>Active</> : <><i className="bi bi-circle me-1"></i>Inactive</>}
                                     </small>
                                     {p.last_scheduled_run && (
                                         <small className="text-secondary">
@@ -140,7 +142,7 @@ export function Schedules() {
                                         onClick={() => handleDelete(p.id)}
                                         title="Delete profile"
                                     >
-                                        🗑️
+                                        <i className="bi bi-trash"></i>
                                     </button>
                                 </div>
                             </div>

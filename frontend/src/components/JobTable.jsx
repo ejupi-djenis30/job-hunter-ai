@@ -22,7 +22,8 @@ export function JobTable({ jobs, onToggleApplied }) {
 
     return (
         <div className="card bg-dark border-secondary">
-            <div className="table-responsive">
+            {/* Desktop Table View */}
+            <div className="table-responsive d-none d-md-block">
                 <table className="table table-dark table-hover mb-0 align-middle">
                     <thead>
                         <tr className="text-secondary small text-uppercase">
@@ -51,7 +52,7 @@ export function JobTable({ jobs, onToggleApplied }) {
                                             className="badge bg-info text-dark ms-1"
                                             title="This job might be worth applying for despite the score"
                                         >
-                                            💡 Worth it
+                                            <i className="bi bi-lightbulb-fill me-1"></i> Worth it
                                         </span>
                                     )}
                                     {job.affinity_analysis && (
@@ -75,7 +76,7 @@ export function JobTable({ jobs, onToggleApplied }) {
                                         onClick={() => onToggleApplied(job)}
                                         className={`btn btn-sm ${job.applied ? 'btn-success' : 'btn-outline-secondary'}`}
                                     >
-                                        {job.applied ? '✅ Applied' : '⬜ Apply'}
+                                        {job.applied ? <><i className="bi bi-check-circle-fill me-1"></i> Applied</> : <><i className="bi bi-circle me-1"></i> Apply</>}
                                     </button>
                                 </td>
                                 <td>
@@ -89,7 +90,7 @@ export function JobTable({ jobs, onToggleApplied }) {
                                                     className="btn btn-sm btn-outline-primary"
                                                     title="External job posting"
                                                 >
-                                                    🔗 Job
+                                                    <i className="bi bi-box-arrow-up-right"></i>
                                                 </a>
                                             )}
                                             {job.jobroom_url && (
@@ -100,7 +101,7 @@ export function JobTable({ jobs, onToggleApplied }) {
                                                     className="btn btn-sm btn-outline-info"
                                                     title="View on Job-Room.ch"
                                                 >
-                                                    🏛️ JobRoom
+                                                    <i className="bi bi-building"></i>
                                                 </a>
                                             )}
                                         </div>
@@ -110,9 +111,8 @@ export function JobTable({ jobs, onToggleApplied }) {
                                                 className="btn btn-sm btn-outline-warning"
                                                 title={`Send application to ${job.application_email}`}
                                             >
-                                                📧 {job.application_email.length > 20
-                                                    ? job.application_email.substring(0, 20) + '...'
-                                                    : job.application_email}
+                                                <i className="bi bi-envelope me-1"></i>
+                                                Email
                                             </a>
                                         )}
                                     </div>
@@ -121,6 +121,61 @@ export function JobTable({ jobs, onToggleApplied }) {
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="d-md-none">
+                {jobs.map((job) => (
+                    <div key={job.id} className="p-3 border-bottom border-secondary">
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div className="fw-bold text-light">{job.title}</div>
+                                <div className="small text-secondary">{job.company}</div>
+                            </div>
+                            <ScoreBadge score={job.affinity_score || 0} />
+                        </div>
+
+                        <div className="mb-2">
+                            <div className="small text-secondary"><i className="bi bi-geo-alt me-1"></i>{job.location || 'Unknown'}</div>
+                            {job.workload && <div className="small text-secondary"><i className="bi bi-briefcase me-1"></i>{job.workload}</div>}
+                            <div className="small text-secondary"><i className="bi bi-calendar3 me-1"></i>{job.publication_date ? new Date(job.publication_date).toLocaleDateString() : '-'}</div>
+                        </div>
+
+                        {job.worth_applying && (
+                            <div className="mb-2">
+                                <span className="badge bg-info text-dark">
+                                    <i className="bi bi-lightbulb-fill me-1"></i> Worth applying
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="d-flex justify-content-between align-items-center mt-3">
+                            <div className="btn-group">
+                                {job.url && (
+                                    <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary">
+                                        <i className="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                )}
+                                {job.jobroom_url && (
+                                    <a href={job.jobroom_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-info">
+                                        <i className="bi bi-building"></i>
+                                    </a>
+                                )}
+                                {job.application_email && (
+                                    <a href={`mailto:${job.application_email}`} className="btn btn-sm btn-outline-warning">
+                                        <i className="bi bi-envelope"></i>
+                                    </a>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => onToggleApplied(job)}
+                                className={`btn btn-sm ${job.applied ? 'btn-success' : 'btn-outline-secondary'}`}
+                            >
+                                {job.applied ? <><i className="bi bi-check-circle-fill me-1"></i> Applied</> : <><i className="bi bi-circle me-1"></i> Apply</>}
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

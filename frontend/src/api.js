@@ -1,7 +1,34 @@
+import { createClient } from '@supabase/supabase-js';
+
 const API_BASE = "http://localhost:8000";
+let supabase = null;
+let authConfig = { provider: 'simple' };
+
+// ─── Init ───
+export async function initAuth() {
+    try {
+        const res = await fetch(`${API_BASE}/auth/config`);
+        authConfig = await res.json();
+        if (authConfig.provider === 'supabase' && authConfig.supabase_url && authConfig.supabase_key) {
+            supabase = createClient(authConfig.supabase_url, authConfig.supabase_key);
+            console.log("Supabase client initialized");
+        }
+    } catch (e) {
+        console.error("Failed to fetch auth config", e);
+    }
+}
+
 
 // ─── Token Management ───
 function getToken() {
+    if (authConfig.provider === 'supabase' && supabase) {
+        // We might not need to store it manually if using supabaseclient, 
+        // but for compatibility with our API calls, we need the access token.
+        // Supabase client manages session in local storage automatically.
+        const session = JSON.parse(localStorage.getItem(`sb-${new URL(authConfig.supabase_url).hostname.split('.')[0]}-auth-token`));
+        // Fallback or just return what we have if we saved it manually
+        return localStorage.getItem("jh_token");
+    }
     return localStorage.getItem("jh_token");
 }
 
@@ -16,7 +43,23 @@ function authHeaders() {
 
 export const api = {
     // ─── Auth ───
+    // ─── Auth ───
+    init: initAuth,
     register: async (username, password) => {
+        if (authConfig.provider === 'supabase' && supabase) {
+            // Supabase requires email
+            const { data, error } = await supabase.auth.signUp({
+                email: username, // Assuming username is email
+                password: password,
+            });
+            if (error) throw error;
+            // Map to our expected response format
+            if (data.session) {
+                localStorage.setItem("jh_token", data.session.access_token);
+                localStorage.setItem("jh_username", data.user.email);
+            }
+            return { username: data.user.email }; // Supabase might verify email first
+        }
         const res = await fetch(`${API_BASE}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -33,6 +76,16 @@ export const api = {
     },
 
     login: async (username, password) => {
+        if (authConfig.provider === 'supabase' && supabase) {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: username,
+                password: password,
+            });
+            if (error) throw error;
+            localStorage.setItem("jh_token", data.session.access_token);
+            localStorage.setItem("jh_username", data.user.email);
+            return { username: data.user.email, access_token: data.session.access_token };
+        }
         const res = await fetch(`${API_BASE}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -48,10 +101,14 @@ export const api = {
         return data;
     },
 
-    logout: () => {
+    logout: async () => {
+        if (authConfig.provider === 'supabase' && supabase) {
+            await supabase.auth.signOut();
+        }
         localStorage.removeItem("jh_token");
         localStorage.removeItem("jh_username");
     },
+
 
     getUsername: () => localStorage.getItem("jh_username"),
     isLoggedIn: () => !!getToken(),

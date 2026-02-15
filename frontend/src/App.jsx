@@ -10,6 +10,10 @@ import './App.css';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(api.isLoggedIn());
   const [username, setUsername] = useState(api.getUsername() || "");
+
+  useEffect(() => {
+    api.init();
+  }, []);
   const [view, setView] = useState('jobs'); // jobs | new | progress | schedules
   const [jobs, setJobs] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -104,55 +108,63 @@ function App() {
   return (
     <div className="min-vh-100">
       {/* Navbar */}
-      <nav className="navbar navbar-dark bg-dark border-bottom border-secondary sticky-top">
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary sticky-top">
         <div className="container">
-          <span className="navbar-brand fw-bold">
-            🎯 JobHunter<span className="text-primary">.ai</span>
+          <span className="navbar-brand fw-bold d-flex align-items-center">
+            <i className="bi bi-crosshair me-2 text-primary"></i>
+            JobHunter<span className="text-primary">.ai</span>
           </span>
-          <div className="d-flex align-items-center gap-2">
-            <div className="btn-group" role="group">
+
+          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span className="navbar-toggler-icon"></span>
+          </button>
+
+          <div className="collapse navbar-collapse" id="navbarNav">
+            <div className="navbar-nav me-auto mb-2 mb-lg-0">
               <button
-                className={`btn btn-sm ${view === 'jobs' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                onClick={() => setView('jobs')}
+                className={`nav-link btn btn-link text-start ${view === 'jobs' ? 'active text-primary' : ''}`}
+                onClick={() => { setView('jobs'); }}
               >
-                📋 Dashboard {totalJobs > 0 && <span className="badge bg-light text-dark ms-1">{totalJobs}</span>}
+                <i className="bi bi-layout-text-sidebar-reverse me-1"></i>
+                Dashboard {totalJobs > 0 && <span className="badge bg-secondary ms-1">{totalJobs}</span>}
               </button>
 
               {/* Persistent search tab */}
               {activeProfileId && (
                 <button
-                  className={`btn btn-sm ${view === 'progress'
-                    ? (searchState === 'done' ? 'btn-success' : searchState === 'error' ? 'btn-danger' : 'btn-warning')
-                    : (searchState === 'done' ? 'btn-outline-success' : searchState === 'error' ? 'btn-outline-danger' : 'btn-outline-warning')
+                  className={`nav-link btn btn-link text-start ${view === 'progress' ? 'active' : ''} ${searchState === 'done' ? 'text-success' : searchState === 'error' ? 'text-danger' : 'text-warning'
                     }`}
                   onClick={() => setView('progress')}
                 >
-                  {searchState === 'running' && '🔄 Searching...'}
-                  {searchState === 'done' && '✅ Searched'}
-                  {searchState === 'error' && '❌ Error'}
+                  {searchState === 'running' && <><i className="bi bi-arrow-clockwise me-1 spinner-border-sm"></i>Searching...</>}
+                  {searchState === 'done' && <><i className="bi bi-check-circle me-1"></i>Searched</>}
+                  {searchState === 'error' && <><i className="bi bi-exclamation-triangle me-1"></i>Error</>}
                 </button>
               )}
 
               <button
-                className={`btn btn-sm ${view === 'schedules' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                className={`nav-link btn btn-link text-start ${view === 'schedules' ? 'active text-primary' : ''}`}
                 onClick={() => setView('schedules')}
               >
-                ⏰ Schedules
+                <i className="bi bi-clock-history me-1"></i> Schedules
               </button>
 
               <button
-                className={`btn btn-sm ${view === 'new' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                className={`nav-link btn btn-link text-start ${view === 'new' ? 'active text-primary' : ''}`}
                 onClick={() => setView('new')}
               >
-                ➕ New Search
+                <i className="bi bi-plus-circle me-1"></i> New Search
               </button>
             </div>
 
             {/* User / Logout */}
-            <div className="d-flex align-items-center gap-2 ms-3">
-              <small className="text-secondary">👤 {username}</small>
+            <div className="d-flex align-items-center gap-3 border-top border-lg-0 pt-2 pt-lg-0 mt-2 mt-lg-0">
+              <div className="d-flex align-items-center text-secondary">
+                <i className="bi bi-person-circle me-2"></i>
+                <small>{username}</small>
+              </div>
               <button className="btn btn-sm btn-outline-danger" onClick={handleLogout}>
-                Logout
+                <i className="bi bi-box-arrow-right me-1"></i> Logout
               </button>
             </div>
           </div>
@@ -197,8 +209,10 @@ function App() {
 
             {/* Results */}
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="mb-0 text-light">Job Results</h5>
-              <button onClick={fetchJobs} className="btn btn-sm btn-outline-secondary">🔄 Refresh</button>
+              <h5 className="mb-0 text-light"><i className="bi bi-list-ul me-2"></i>Job Results</h5>
+              <button onClick={fetchJobs} className="btn btn-sm btn-outline-secondary">
+                <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+              </button>
             </div>
             <JobTable jobs={jobs} onToggleApplied={toggleApplied} />
           </>

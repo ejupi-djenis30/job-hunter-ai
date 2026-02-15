@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from backend import models, schemas
 from backend.database import get_db
-from backend.services.auth import get_current_user
+from backend.database import get_db
+from backend.services.auth_factory import get_current_user
 from backend.services.scheduler import (
     add_schedule, remove_schedule, get_all_schedules,
 )

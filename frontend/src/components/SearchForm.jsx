@@ -50,7 +50,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
             <div className="col-lg-8">
                 <div className="card bg-dark border-secondary">
                     <div className="card-header border-secondary">
-                        <h5 className="mb-0 text-light">🔍 New Search</h5>
+                        <h5 className="mb-0 text-light"><i className="bi bi-search me-2"></i>New Search</h5>
                     </div>
                     <div className="card-body">
                         <form onSubmit={handleSubmit}>
@@ -78,16 +78,16 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                     className="form-control form-control-sm bg-dark text-light border-secondary"
                                 />
                                 {profile.cv_content ? (
-                                    <small className="text-success">✓ CV loaded — AI will use it for keyword generation</small>
+                                    <small className="text-success"><i className="bi bi-check-lg me-1"></i>CV loaded — AI will use it for keyword generation</small>
                                 ) : (
-                                    <small className="text-warning">⚠ Required: AI generates searches from your CV</small>
+                                    <small className="text-warning"><i className="bi bi-exclamation-triangle me-1"></i>Required: AI generates searches from your CV</small>
                                 )}
                             </div>
 
                             <div className="row g-3 mb-3">
                                 {/* Location */}
                                 <div className="col-md-6">
-                                    <label className="form-label text-light">📍 Location</label>
+                                    <label className="form-label text-light"><i className="bi bi-geo-alt me-1"></i>Location</label>
                                     <input
                                         type="text"
                                         name="location_filter"
@@ -100,7 +100,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
                                 {/* Workload */}
                                 <div className="col-md-6">
-                                    <label className="form-label text-light">💼 Workload</label>
+                                    <label className="form-label text-light"><i className="bi bi-briefcase me-1"></i>Workload</label>
                                     <select
                                         name="workload_filter"
                                         value={profile.workload_filter}
@@ -116,7 +116,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
                                 {/* Scrape Mode */}
                                 <div className="col-md-6">
-                                    <label className="form-label text-light">⚡ Scrape Speed</label>
+                                    <label className="form-label text-light"><i className="bi bi-lightning me-1"></i>Scrape Speed</label>
                                     <select
                                         name="scrape_mode"
                                         value={profile.scrape_mode}
@@ -131,7 +131,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
                             {/* AI Strategy */}
                             <div className="mb-3">
-                                <label className="form-label text-light">🤖 AI Strategy</label>
+                                <label className="form-label text-light"><i className="bi bi-robot me-1"></i>AI Strategy</label>
                                 <textarea
                                     name="search_strategy"
                                     value={profile.search_strategy}
@@ -149,7 +149,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                     className="btn btn-sm btn-outline-secondary"
                                     onClick={() => setShowAdvanced(!showAdvanced)}
                                 >
-                                    ⚙️ Advanced Filters {showAdvanced ? '▲' : '▼'}
+                                    <i className="bi bi-gear me-1"></i> Advanced Filters <i className={`bi bi-chevron-${showAdvanced ? 'up' : 'down'} ms-1`}></i>
                                 </button>
                             </div>
 
@@ -216,7 +216,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                             <div className="card bg-black bg-opacity-25 border-secondary mb-3">
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <label className="form-label text-light mb-0">⏰ Auto-Repeat Search</label>
+                                        <label className="form-label text-light mb-0"><i className="bi bi-clock-history me-1"></i>Auto-Repeat Search</label>
                                         <div className="form-check form-switch">
                                             <input
                                                 className="form-check-input"
@@ -247,7 +247,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 <option value="72">Every 72 hours</option>
                                             </select>
                                             <small className="text-info d-block mt-1">
-                                                🔄 This search will run automatically every {profile.schedule_interval_hours}h while the server is running.
+                                                <i className="bi bi-arrow-repeat me-1"></i>This search will run automatically every {profile.schedule_interval_hours}h while the server is running.
                                             </small>
                                         </div>
                                     )}
@@ -266,7 +266,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                         Launching AI Agents...
                                     </>
                                 ) : (
-                                    '▶ Start Intelligent Search'
+                                    <><i className="bi bi-play-fill me-2"></i>Start Intelligent Search</>
                                 )}
                             </button>
                         </form>

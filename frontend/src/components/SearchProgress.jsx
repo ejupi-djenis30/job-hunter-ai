@@ -63,14 +63,14 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                 <div className="card-body">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <h5 className="mb-0 text-light">
-                            {isRunning && "🔄 "}
-                            {isDone && "✅ "}
-                            {isError && "❌ "}
+                            {isRunning && <i className="bi bi-arrow-clockwise me-2 spinner-border-sm"></i>}
+                            {isDone && <i className="bi bi-check-circle-fill me-2 text-success"></i>}
+                            {isError && <i className="bi bi-exclamation-triangle-fill me-2 text-danger"></i>}
                             Search Progress
                         </h5>
                         {(isDone || isError) && (
                             <button className="btn btn-sm btn-outline-secondary" onClick={onClear}>
-                                ✕ Dismiss
+                                <i className="bi bi-x-lg me-1"></i> Dismiss
                             </button>
                         )}
                     </div>
@@ -82,10 +82,10 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                                 state === "done" ? "bg-success" :
                                     "bg-danger"
                             } me-2`}>
-                            {state === "generating" && "🤖 Generating Queries"}
-                            {state === "searching" && `🔍 Searching ${current_search_index}/${total_searches}`}
-                            {state === "done" && "Complete"}
-                            {state === "error" && "Error"}
+                            {state === "generating" && <><i className="bi bi-robot me-1"></i>Generating Queries</>}
+                            {state === "searching" && <><i className="bi bi-search me-1"></i>Searching {current_search_index}/{total_searches}</>}
+                            {state === "done" && <><i className="bi bi-check-circle me-1"></i>Complete</>}
+                            {state === "error" && <><i className="bi bi-exclamation-triangle me-1"></i>Error</>}
                         </span>
                         {isRunning && current_query && (
                             <span className="text-secondary small">{current_query}</span>
@@ -132,7 +132,7 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
             {searches_generated && searches_generated.length > 0 && (
                 <div className="card bg-dark border-secondary mb-3">
                     <div className="card-header border-secondary py-2">
-                        <small className="text-secondary fw-bold">🤖 AI Generated Searches ({searches_generated.length})</small>
+                        <small className="text-secondary fw-bold"><i className="bi bi-robot me-1"></i>AI Generated Searches ({searches_generated.length})</small>
                     </div>
                     <div className="card-body p-2" style={{ maxHeight: "150px", overflowY: "auto" }}>
                         {searches_generated.map((s, i) => {
@@ -141,7 +141,7 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                             return (
                                 <div key={i} className={`d-flex align-items-center gap-2 px-2 py-1 rounded ${isActive ? 'bg-primary bg-opacity-10' : ''}`}>
                                     <span style={{ width: 18, textAlign: "center" }}>
-                                        {isDoneSearch ? "✅" : isActive ? "🔄" : "⏳"}
+                                        {isDoneSearch ? <i className="bi bi-check-lg text-success"></i> : isActive ? <i className="bi bi-arrow-clockwise text-primary"></i> : <i className="bi bi-hourglass text-secondary"></i>}
                                     </span>
                                     <span className="badge bg-secondary" style={{ minWidth: 70 }}>
                                         {s.type}
@@ -162,7 +162,7 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
             {log && log.length > 0 && (
                 <div className="card bg-dark border-secondary">
                     <div className="card-header border-secondary py-2">
-                        <small className="text-secondary fw-bold">📋 Live Log</small>
+                        <small className="text-secondary fw-bold"><i className="bi bi-terminal me-1"></i>Live Log</small>
                     </div>
                     <div className="card-body p-0" style={{ maxHeight: "300px", overflowY: "auto" }}>
                         <div className="p-2 font-monospace" style={{ fontSize: "12px" }}>

@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from backend import models, schemas
 from backend.database import get_db
 from backend.services import scraper
-from backend.services.auth import get_current_user
+from backend.services import scraper
+from backend.services.auth_factory import get_current_user
 from backend.services.utils import extract_text_from_file
 from backend.services.search_status import get_status
 from backend.services.scheduler import add_schedule
