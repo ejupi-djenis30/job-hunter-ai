@@ -62,6 +62,7 @@ def test_engine(test_db_path):
     )
 
     from backend.database import Base
+    import backend.models  # Ensure models are registered
     Base.metadata.create_all(bind=engine)
 
     yield engine
