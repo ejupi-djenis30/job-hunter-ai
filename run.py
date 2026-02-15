@@ -1,9 +1,19 @@
-import uvicorn
+"""Entry point — run with: python run.py"""
+
 import os
 import sys
+import uvicorn
 
-# Add current directory to sys.path to ensure backend package is found
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Ensure project root is importable
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="127.0.0.1", port=8000, reload=True)
+    host = os.environ.get("API_HOST", "127.0.0.1")
+    port = int(os.environ.get("API_PORT", "8000"))
+
+    uvicorn.run(
+        "backend.main:app",
+        host=host,
+        port=port,
+        reload=True,
+    )

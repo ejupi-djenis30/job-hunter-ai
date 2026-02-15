@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 from datetime import datetime
 
 
@@ -44,25 +44,24 @@ class JobCreate(JobBase):
     worth_applying: Optional[bool] = False
 
 class JobUpdate(BaseModel):
-    """Partial update schema - all fields optional"""
+    """Partial update schema — all fields optional."""
     applied: Optional[bool] = None
     title: Optional[str] = None
     company: Optional[str] = None
     description: Optional[str] = None
 
 class Job(JobBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     is_scraped: bool
-    source_query: Optional[str]
-    affinity_score: Optional[float]
-    affinity_analysis: Optional[str]
+    source_query: Optional[str] = None
+    affinity_score: Optional[float] = None
+    affinity_analysis: Optional[str] = None
     worth_applying: Optional[bool] = False
     applied: bool
     created_at: datetime
-    updated_at: Optional[datetime]
-
-    class Config:
-        orm_mode = True
+    updated_at: Optional[datetime] = None
 
 
 # ═══════════════════════════════════════
@@ -89,12 +88,11 @@ class SearchProfileCreate(SearchProfileBase):
     pass
 
 class SearchProfile(SearchProfileBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     last_scheduled_run: Optional[datetime] = None
     created_at: datetime
-
-    class Config:
-        orm_mode = True
 
 class ScheduleToggle(BaseModel):
     """Toggle schedule on/off for a profile."""

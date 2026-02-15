@@ -89,8 +89,8 @@ def db_session(test_engine):
 def client(test_engine, db_session):
     """Create a FastAPI test client with injected test DB."""
     from fastapi.testclient import TestClient
-    from backend.main import app, get_db as main_get_db
-    from backend.database import get_db as db_get_db
+    from backend.main import app
+    from backend.database import get_db
 
     def override_get_db():
         try:
@@ -98,12 +98,9 @@ def client(test_engine, db_session):
         finally:
             pass
 
-    # Override both: main.py's local get_db and database.py's get_db
-    app.dependency_overrides[main_get_db] = override_get_db
-    app.dependency_overrides[db_get_db] = override_get_db
+    app.dependency_overrides[get_db] = override_get_db
 
     with TestClient(app) as c:
         yield c
 
     app.dependency_overrides.clear()
-

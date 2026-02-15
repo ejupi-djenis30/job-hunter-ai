@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # =============================================================================
 # Enums
@@ -81,8 +81,7 @@ class RadiusSearchRequest(BaseModel):
         default=50, ge=1, le=200, description="Search radius in kilometers"
     )
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class LanguageSkillFilter(BaseModel):

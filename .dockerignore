@@ -1,0 +1,40 @@
+# ─── Build & Runtime ───
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ─── Environment & Secrets ───
+.env
+backend/.env
+*.db
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+
+# ─── Version Control ───
+.git/
+.gitignore
+
+# ─── Tests ───
+tests/
+pytest.ini
+.pytest_cache/
+htmlcov/
+.coverage
+
+# ─── Frontend (rebuilt in Docker) ───
+frontend/node_modules/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+
+# ─── Docs ───
+*.md
+LICENSE

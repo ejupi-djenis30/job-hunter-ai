@@ -1,0 +1,52 @@
+# ─────────────────────────────────────
+# Job Hunter AI — Docker Compose
+# ─────────────────────────────────────
+# Quick start:
+#   cp .env.example .env   (fill in your values)
+#   docker-compose up -d
+#
+# Profiles:
+#   default:    App + PostgreSQL
+#   sqlite:     App only (SQLite, no external DB)
+#
+# Usage:
+#   docker-compose up -d                  # PostgreSQL mode
+#   docker-compose up -d app              # SQLite mode (no db service)
+
+services:
+  app:
+    build: .
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://jobhunter:jobhunter@db:5432/jobhunter}
+      - API_HOST=0.0.0.0
+    volumes:
+      - app-data:/app/data # SQLite DB persistence (if using SQLite)
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jobhunter
+      POSTGRES_PASSWORD: jobhunter
+      POSTGRES_DB: jobhunter
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U jobhunter" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  pg-data:

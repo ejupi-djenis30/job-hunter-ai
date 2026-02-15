@@ -8,7 +8,9 @@
   ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
   ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
   ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
   ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+  ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
   ![License](https://img.shields.io/badge/License-MIT-yellow)
 </div>
 
@@ -25,6 +27,8 @@ Job Hunter AI is a full-stack application that automates the Swiss job search pr
 - **⏰ Scheduled Searches** — Set up recurring search profiles that run automatically on your schedule
 - **📊 Dashboard** — React-based UI to manage searches, review results, and track applications
 - **🔐 Authentication** — JWT-based auth with PBKDF2-SHA256 password hashing
+- **🐘 Dual Database** — SQLite for local dev, PostgreSQL for production — auto-detected from `DATABASE_URL`
+- **🐳 Docker Ready** — Optional `docker-compose` deployment with PostgreSQL
 
 ---
 
@@ -33,27 +37,35 @@ Job Hunter AI is a full-stack application that automates the Swiss job search pr
 ```
 job-hunter-ai/
 ├── backend/                    # FastAPI application
-│   ├── main.py                 # API routes & app lifecycle
+│   ├── main.py                 # App setup, middleware, router includes
 │   ├── models.py               # SQLAlchemy ORM models
-│   ├── schemas.py              # Pydantic request/response schemas
-│   ├── database.py             # Database configuration
+│   ├── schemas.py              # Pydantic v2 request/response schemas
+│   ├── database.py             # DB config (SQLite / PostgreSQL auto-detect)
+│   ├── routes/                 # API route modules
+│   │   ├── auth.py             # /auth — register, login
+│   │   ├── jobs.py             # /jobs — CRUD operations
+│   │   ├── search.py           # Search workflow, CV upload, status
+│   │   └── profiles.py        # Profile management, scheduling
 │   ├── services/               # Business logic layer
 │   │   ├── auth.py             # JWT + password hashing
 │   │   ├── llm.py              # LLM integration (OpenAI-compatible)
 │   │   ├── scraper.py          # Search orchestration
-│   │   ├── reference.py        # CV/profile management
+│   │   ├── reference.py        # Occupation code resolution
 │   │   ├── scheduler.py        # APScheduler background jobs
-│   │   └── search_status.py    # Real-time search progress tracking
+│   │   ├── search_status.py    # Real-time search progress tracking
+│   │   └── utils.py            # File processing (PDF, TXT)
 │   └── scraper/                # Embedded scraper engine
 │       ├── core/               # Models, session mgmt, exceptions
 │       └── providers/          # Job portal implementations
 │           └── job_room/       # job-room.ch provider
 ├── frontend/                   # React + Vite application
-├── tests/                      # Comprehensive test suite
+├── alembic/                    # Database migrations
+├── tests/                      # Comprehensive test suite (63 tests)
 │   ├── unit/                   # Model, auth, scraper tests
 │   ├── integration/            # API endpoint tests
 │   └── e2e/                    # Live scraper tests
-├── pyproject.toml              # Python project configuration
+├── Dockerfile                  # Multi-stage production build
+├── docker-compose.yml          # App + PostgreSQL deployment
 ├── requirements.txt            # Python dependencies
 └── .env.example                # Environment variable template
 ```
@@ -74,12 +86,12 @@ The embedded scraper engine (originally a standalone library) provides:
 
 ## Getting Started
 
-### Prerequisites
+### Option 1: Local Development
+
+#### Prerequisites
 
 - **Python 3.11+**
 - **Node.js 18+** (for the frontend)
-
-### Backend Setup
 
 ```bash
 # Clone the repository
@@ -102,9 +114,8 @@ cp .env.example .env
 python run.py
 ```
 
-### Frontend Setup
-
 ```bash
+# Frontend (separate terminal)
 cd frontend
 npm install
 npm run dev
@@ -112,17 +123,47 @@ npm run dev
 
 The frontend will be available at `http://localhost:5173` and the API at `http://localhost:8000`.
 
-### Environment Variables
+### Option 2: Docker Deployment
+
+```bash
+# Clone and configure
+git clone https://github.com/JobGipfel/job-hunter-ai.git
+cd job-hunter-ai
+cp .env.example .env
+# Edit .env with your API keys
+
+# Start with PostgreSQL
+docker-compose up -d
+
+# Or start app only (SQLite mode)
+docker-compose up -d app
+```
+
+### Database Migrations (Alembic)
+
+```bash
+# Generate a new migration after model changes
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+```
+
+---
+
+## Environment Variables
 
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `JWT_SECRET_KEY` | Secret for signing JWT tokens | ✅ |
 | `LLM_PROVIDER` | LLM backend (`groq` or `deepseek`) | ✅ |
-| `LLM_API_KEY` | API key for the LLM provider | ✅ |
-| `DATABASE_URL` | SQLAlchemy database URL | Optional |
-| `API_PORT` | Backend port (default: 8000) | Optional |
+| `GROQ_API_KEY` / `DEEPSEEK_API_KEY` | API key for the chosen provider | ✅ |
+| `DATABASE_URL` | `sqlite:///./job_hunter.db` or `postgresql://...` | Optional |
+| `CORS_ORIGINS` | Comma-separated allowed origins | Optional |
+| `API_HOST` / `API_PORT` | Server bind address (default: `127.0.0.1:8000`) | Optional |
+| `LOG_LEVEL` | Logging level (default: `INFO`) | Optional |
 
-See [`.env.example`](.env.example) for the full list.
+See [`.env.example`](.env.example) for the full list with LLM configuration options.
 
 ---
 
@@ -139,21 +180,21 @@ python -m pytest tests/ --cov=backend --cov-report=term-missing
 python -m pytest tests/ --run-live -v
 ```
 
-**Test Coverage:**
+**Test Coverage (63 tests):**
 
 - 📦 **Scraper Models** — Request validation, listing creation, response pagination
 - 🗺️ **BFS Mapper** — City/postal code resolution, partial matching, error handling
 - 🔐 **Authentication** — Password hashing, JWT creation/verification
 - 🗄️ **Database** — ORM model creation, constraints, defaults
 - 📡 **API Integration** — Auth flow, protected endpoints, CRUD operations
-- 🌐 **E2E Live** — Real scraper searches against job-room.ch (gated)
+- 🌐 **E2E Live** — Real scraper searches against job-room.ch (gated by `--run-live`)
 
 ---
 
 ## How It Works
 
 1. **Create a Profile** — Define your search criteria (role, location, workload, CV)
-2. **Generate Keywords** — The LLM analyzes your profile to create optimized search queries
+2. **Generate Keywords** — The LLM analyzes your profile to create optimized, multilingual search queries
 3. **Scrape Jobs** — The engine searches job-room.ch with each generated query
 4. **Analyze Results** — Each job is scored by the LLM for relevance to your profile
 5. **Review & Apply** — Browse ranked results in the dashboard and track applications
@@ -164,12 +205,13 @@ python -m pytest tests/ --run-live -v
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | FastAPI, SQLAlchemy, APScheduler |
+| **Backend** | FastAPI, SQLAlchemy, Alembic, APScheduler |
 | **Frontend** | React 18, Vite, Bootstrap |
 | **Scraping** | httpx (HTTP/2), tenacity |
 | **AI/LLM** | OpenAI-compatible (Groq, DeepSeek) |
-| **Database** | SQLite |
+| **Database** | SQLite (dev) / PostgreSQL (production) |
 | **Auth** | JWT (PyJWT), PBKDF2-SHA256 |
+| **Deploy** | Docker, gunicorn + uvicorn |
 | **Testing** | pytest, pytest-asyncio |
 
 ---
