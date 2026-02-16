@@ -214,13 +214,13 @@ class TestScheduleRoutes:
         headers = _register_and_auth(client)
         resp = client.get("/api/v1/schedules/", headers=headers)
         assert resp.status_code == 200
-        assert resp.json()["schedules"] == []
+        assert resp.json() == []
 
     def test_scheduler_status(self, client):
         headers = _register_and_auth(client)
         resp = client.get("/api/v1/schedules/status", headers=headers)
         assert resp.status_code == 200
-        assert "active_jobs" in resp.json()
+        assert "jobs_scheduled" in resp.json()
 
     def test_toggle_schedule_nonexistent(self, client):
         headers = _register_and_auth(client)

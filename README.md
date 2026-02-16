@@ -7,7 +7,7 @@
 [![Vite](https://img.shields.io/badge/vite-5.0+-646cff.svg)](https://vitejs.dev/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**Job Hunter AI** is an advanced, self-hosted job search assistant designed to automate the repetitive and tedious aspects of finding a new job. By leveraging the power of Large Language Models (LLMs) and automated web scraping, it acts as a personalized recruiter working 24/7 to find opportunities that match your specific profile.
+**Job Hunter AI** is an advanced, self-hosted job search assistant designed to automate the repetitive and tedious aspects of finding a new job. By leveraging the power of Large Language Models (LLMs) and automated web scraping, it acts as a personal recruiter working 24/7 to find opportunities that match your specific profile.
 
 Unlike standard job boards that rely on simple keyword matching, Job Hunter AI uses **semantic understanding** of your CV and career goals to identify relevant opportunities, even if the phrasing doesn't match exactly. It allows you to aggregate listings from multiple sources into a single, clean dashboard, score them based on fit, and track your application execution.
 
@@ -31,23 +31,17 @@ Unlike standard job boards that rely on simple keyword matching, Job Hunter AI u
     - [Environment Variables](#environment-variables)
     - [LLM Provider Setup](#llm-provider-setup)
 7. [Usage Guide](#-usage-guide)
-    - [User Registration](#2-user-registration)
-    - [Creating a Search Profile](#3-creating-a-search-profile)
-    - [Running a Search](#4-running-a-search)
-    - [Scheduling](#6-scheduling)
+    - [User Registration](#1-user-registration)
+    - [Creating a Search Profile](#2-creating-a-search-profile)
+    - [Running a Search](#3-running-a-search)
+    - [Interpreting Results](#4-interpreting-results)
+    - [Scheduling](#5-scheduling)
 8. [API Documentation](#-api-documentation)
-    - [Authentication](#authentication-endpoints)
-    - [Jobs](#job-endpoints)
-    - [Search](#search-endpoints)
-    - [Profiles](#profile-endpoints)
-9. [Database Schema](#-database-schema)
-10. [Development Guide](#-development-guide)
+9. [Development Guide](#-development-guide)
+    - [Project Structure](#project-structure)
     - [Running Tests](#running-tests)
-    - [Adding New Providers](#adding-new-providers)
-11. [Deployment](#-deployment)
-12. [Troubleshooting](#-troubleshooting)
-13. [Contributing](#-contributing)
-14. [License](#-license)
+10. [Troubleshooting](#-troubleshooting)
+11. [License](#-license)
 
 ---
 
@@ -81,40 +75,32 @@ This project is designed to be **self-hosted**, ensuring your data (CV, search p
   - **DeepSeek** - Cost-effective coding specialist.
   - **Google Gemini** - High context window and reasoning capabilities.
   - **Ollama** (Local) - Run privacy-focused models like Llama 3 locally.
-  - **OpenAI** (GPT-4) - Industry standard for reasoning.
 
 ### 🇨🇭 Optimized for the Swiss Market
 
-- **JobRoom Integration**: Built-in adapter for `job-room.ch` (RAV/Unemployment office database).
+- **JobRoom Integration**: Built-in scraper for `job-room.ch` (RAV/Unemployment office database).
 - **Language Support**: Capable of processing job descriptions in German, French, Italian, and English.
 - **Location Filtering**: Precise radius-based filtering (e.g., "Within 50km of Zurich").
-
-### 🌍 Location Intelligence
-
-- **OpenStreetMap Integration**: Built-in address autocomplete for Swiss locations.
-- **Geolocation**: One-click "Use My Location" to automatically infer coordinates and address.
-- **Radius Filtering**: Precise distance-based filtering from your exact coordinates.
 
 ### ⚡ Automation & Workflow
 
 - **Background Scheduling**: Set up cron-like schedules to run searches every X hours automatically.
+- **Real-Time Progress**: Watch the agent generate queries, scrape sites, and analyze jobs live.
 - **Application Tracking**: Mark jobs as "Applied" to keep track of your progress.
 - **Duplicate Detection**: Intelligent hashing prevents seeing the same job twice, even if reposted.
 
 ### 📊 Modern User Interface
 
 - **Glassmorphism Design**: Premium, translucent UI with interactive gradients and animations.
-- **Mobile-First Experience**: Optimized card-based layouts for job hunting on the go.
-- **Real-time Progress**: Watch the search agent work in real-time with live log streaming.
+- **Responsive Layout**: Optimized 2-column forms and card-based results.
 - **Dark Mode**: Easy on the eyes for late-night job hunting sessions.
 - **Smart Filters**: Filter jobs by Match Score, Distance, or "Worth Applying" status directly on the dashboard.
-- **Distance Calculation**: Automatically calculates distance from your home to the job location (e.g., "15.4 km").
 
 ---
 
 ## 🏗 Architecture & Design
 
-Job Hunter AI follows a **Clean Architecture** approach (also known as Onion or Hexagonal Architecture principles) to ensure maintainability, testability, and independence from external frameworks.
+Job Hunter AI follows a **Clean Architecture** approach to ensure maintainability, testability, and independence from external frameworks.
 
 ### System Overview
 
@@ -145,7 +131,7 @@ The backend corresponds to `backend/` in the source tree and is divided into str
 
 1. **API Layer (`backend/api`)**:
     - **Responsibility**: Handles HTTP requests, input validation (Pydantic), and response formatting.
-    - **Characteristics**: thin, contains no business logic. Delegates immediately to Services.
+    - **Characteristics**: Thin, contains no business logic. Delegates immediately to Services.
     - **Endpoints**: `/auth`, `/jobs`, `/search`, `/profiles`.
 
 2. **Service Layer (`backend/services`)**:
@@ -161,35 +147,18 @@ The backend corresponds to `backend/` in the source tree and is divided into str
 4. **Provider Layer (`backend/providers`)**:
     - **Responsibility**: Interfaces with external worlds.
     - **Details**:
-        - `llm/`: Adapters for OpenAI, Gemini, Groq.
-        - `jobs/`: Adapters for JobRoom, LinkedIn (planned), Indeed (planned).
+        - `llm/`: Adapters for OpenAI, Gemini, Groq, Deepseek.
+        - `jobs/`: Adapters for JobRoom.
     - **Pattern**: Adapter/Strategy Pattern.
 
 ### Frontend Structure
 
 The frontend is a Single Page Application (SPA) built with Vite + React.
 
-- **Components**: Reusable UI elements (`JobTable`, `SearchForm`).
+- **Components**: Reusable UI elements (`JobTable`, `SearchForm`, `SearchProgress`).
 - **Services**: API client wrappers that mirror the backend controllers.
 - **State**: Local state management with React Hooks (`useState`, `useEffect`).
 - **Routing**: Simple view-based routing for Dashboard, Search, and Schedules.
-
-### Data Flow
-
-**Scenario: A User runs a new Search.**
-
-1. **Frontend**: User fills form, uploads CV. `POST /api/v1/search/start` is called.
-2. **API**: `SearchRouter` validates the input JSON. Calls `SearchService.execute_search_async()`.
-3. **Service**:
-    - Calls `ProfileRepository` to save the search configuration.
-    - Calls `LLMProvider` to extract keywords from CV.
-    - Iterates through keywords:
-        - Calls `JobProvider` (e.g., JobRoom) to fetch raw HTML/JSON.
-        - Parses results into standard `Job` objects.
-    - Calls `LLMProvider` again to score each job against the profile.
-    - Calls `JobRepository` to save new jobs (checking for duplicates).
-4. **Frontend**: Polls `/api/v1/search/status/{id}` to show progress bar and logs.
-5. **Database**: Stores final results.
 
 ---
 
@@ -208,7 +177,7 @@ The frontend is a Single Page Application (SPA) built with Vite + React.
 
 ### Frontend
 
-- **Framework**: React 18
+- **Framework**: React 19
 - **Build Tool**: Vite (Next generation frontend tooling)
 - **Styling**: Bootstrap 5 (CSS Framework), Bootstrap Icons
 - **Language**: JavaScript (ES6+)
@@ -234,7 +203,6 @@ Ensure you have the following installed:
 - **Node.js 18** or higher (LTS recommended): [Download Node.js](https://nodejs.org/)
 - **Git**: [Download Git](https://git-scm.com/)
 - **API Key**: You need an API key for Groq, DeepSeek, or Gemini (unless using Ollama).
-- **Ollama**: (Optional) For running local models.
 
 ### Installation
 
@@ -294,15 +262,15 @@ If you wish to use PostgreSQL:
 
 The application is configured using environment variables. This serves as the single source of truth for configuration.
 
-1. Copy the example environment file:
+1. **Create the Environment File**:
 
     ```bash
     cp .env.example .env
     ```
 
-    *(On Windows, copy and rename manually)*
+    *(On Windows, ensure you copy the contents manually if `cp` is not available, or use `copy .env.example .env`)*
 
-2. Open `.env` in your text editor.
+2. **Edit `.env`**: Open the file in your text editor and fill in your secrets.
 
 ### Environment Variables
 
@@ -312,81 +280,40 @@ Here is a detailed explanation of every available configuration option:
 | :--- | :---: | :--- | :--- |
 | **General** | | | |
 | `PROJECT_NAME` | No | Job Hunter AI | Name of the application displayed in Swagger UI. |
-| `API_V1_STR` | No | /api/v1 | Prefix for all API endpoints. Only change if running behind a proxy with path rewriting. |
-| `LOG_LEVEL` | No | INFO | Logging verbosity (DEBUG, INFO, WARNING, ERROR). Use DEBUG for detailed traces. |
+| `API_V1_STR` | No | /api/v1 | Prefix for all API endpoints. |
+| `LOG_LEVEL` | No | INFO | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
 | **Security** | | | |
-| `SECRET_KEY` | **Yes** | *changeme* | Random string used to sign JWT tokens. **CRITICAL**: Change this in production. Run `openssl rand -hex 32` to generate one. |
+| `SECRET_KEY` | **Yes** | *changeme* | Random string used to sign JWT tokens. **CRITICAL**: Use a strong random string (e.g., `openssl rand -hex 32`). |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | 11520 | Token validity in minutes (11520 = 8 days). |
-| `CORS_ORIGINS` | No | * | Comma-separated list of allowed origins (e.g., `http://localhost:5173`). In production, set this to your exact frontend domain. |
+| `CORS_ORIGINS` | No | `http://localhost:5173,http://localhost:8000` | Comma-separated list of allowed origins. **Must match your frontend URL.** |
 | **Database** | | | |
-| `DATABASE_URL` | No | `sqlite:///./job_hunter.db` | Connection string. <br>SQLite: `sqlite:///./file.db`<br>Postgres: `postgresql://user:pass@localhost:5432/db` |
+| `DATABASE_URL` | No | `sqlite:///./job_hunter.db` | Connection string. |
 | **LLM Configuration** | | | |
-| `LLM_PROVIDER` | **Yes** | `groq` | Which AI provider to use. Options: `groq`, `deepseek`, `gemini`, `openai`. |
+| `LLM_PROVIDER` | **Yes** | `groq` | Which AI provider to use. Options: `groq`, `deepseek`, `gemini`.|
 | `LLM_API_KEY` | **Yes** | - | The specific API key for the chosen provider. |
-| `LLM_MODEL` | No | *Provider Default* | Override the specific model name (e.g., `llama3-70b-8192` for Groq, `gemini-pro` for Gemini). |
-| **Job Providers** | | | |
-| `ENABLE_JOBROOM` | No | `true` | Enable/Disable the JobRoom scraper. |
-| `JOBROOM_USER_AGENT` | No | *Generic User Agent* | User Agent string used for scraping requests. Important to identify your bot responsibly. |
+| `LLM_MODEL` | No | *Provider Default* | Override the specific model name (e.g., `llama3-70b-8192` for Groq). |
+| **Scraping** | | | |
+| `JOBROOM_USER_AGENT` | No | *Generic User Agent* | User Agent string used for scraping requests. |
 
 ### LLM Provider Setup
 
 #### Groq (Recommended for Speed)
 
-Groq offers incredibly fast inference speeds, which is great for the interactive nature of search.
-
 - **Sign up**: [console.groq.com](https://console.groq.com)
-- **Env**:
+- **Variable**: `LLM_PROVIDER=groq`
+- **Model**: `llama3-70b-8192` (extremely fast)
 
-    ```ini
-    LLM_PROVIDER=groq
-    LLM_API_KEY=gsk_...
-    LLM_MODEL=llama3-70b-8192
-    ```
-
-#### DeepSeek (Recommended for Cost)
-
-DeepSeek provides excellent reasoning capabilities at a very low cost.
+#### DeepSeek (Recommended for Reasoning/Coding)
 
 - **Sign up**: [deepseek.com](https://platform.deepseek.com)
-- **Env**:
+- **Variable**: `LLM_PROVIDER=deepseek`
+- **Model**: `deepseek-chat` or `deepseek-reasoner`
 
-    ```ini
-    LLM_PROVIDER=deepseek
-    LLM_API_KEY=sk-...
-    LLM_MODEL=deepseek-chat
-    ```
-
-    **Note on Performance**: DeepSeek is highly efficient but complex searches with many results may take >60 seconds to fully analyze. The application runs this in the background, so the UI remains responsive.
-
-#### Google Gemini
-
-Google's Gemini models have massive context windows, useful for very long CVs or job descriptions.
+#### Google Gemini (High Context)
 
 - **Sign up**: [aistudio.google.com](https://aistudio.google.com/)
-- **Env**:
-
-    ```ini
-    LLM_PROVIDER=gemini
-    LLM_API_KEY=AIza...
-    LLM_MODEL=gemini-pro
-    ```
-
-#### Ollama (Local LLM - Privacy Focused)
-
-Run models like Llama 3 locally on your machine.
-
-- **Install**: [ollama.com](https://ollama.com)
-- **Pull Model**: `ollama pull llama3`
-- **Env**:
-
-    ```ini
-    LLM_PROVIDER=ollama
-    # API Key is ignored for Ollama but required by config validation
-    LLM_API_KEY=ollama
-    # Default URL is http://localhost:11434/v1
-    OLLAMA_BASE_URL=http://localhost:11434/v1
-    OLLAMA_MODEL=llama3
-    ```
+- **Variable**: `LLM_PROVIDER=gemini`
+- **Model**: `gemini-1.5-flash`
 
 ---
 
@@ -403,7 +330,7 @@ You need two terminal windows running simultaneously.
 uvicorn backend.main:app --reload
 ```
 
-*The backend will start at `http://localhost:8000`*
+*Backend starts at `http://localhost:8000`*
 
 **Terminal 2 (Frontend):**
 
@@ -412,299 +339,111 @@ cd frontend
 npm run dev
 ```
 
-*The frontend will start at `http://localhost:5173`*
+*Frontend starts at `http://localhost:5173`*
 
 ### 2. User Registration
 
 1. Open `http://localhost:5173`.
-2. You will be greeted by the Login screen.
-3. Click "Don't have an account? Register".
-4. Enter a username and password (min 4 chars).
-5. Click "Create Account". You will be automatically logged in.
+2. Click "Don't have an account? Register".
+3. Enter a username and password (min 4 chars).
+4. Click "Create Account" to log in automatically.
 
 ### 3. Creating a Search Profile
 
-The Search Profile acts as the "Instruction Manual" for the AI.
+The Search Profile is the heart of the application. It tells the AI what to look for.
 
-1. Click **New Search** in the navigation bar.
-2. **Role Description**: Describe what you want in natural language.
-    - *Example: "I am looking for a Senior Frontend Developer role using React and TypeScript. I prefer remote work or hybrid in Zurich. I am interested in Fintech."*
+1. Click **New Search** (nav bar).
+2. **Role Description**: Be specific.
+   - *Example: "Senior Backend Developer in Fintech, prefer Python/FastAPI, remote or Zurich."*
 3. **Upload CV (Required)**:
-    - Job Hunter AI uses your CV to extract technical keywords (e.g., "React", "Docker") that you might forget to mention in the description.
-    - Supported formats: `.pdf`, `.txt`, `.md`.
+   - The AI reads your CV (PDF/Text) to find skills you might have missed (e.g., "PostgreSQL", "Docker").
 4. **Filters**:
-    - **Location**: e.g., "Bern".
-    - **Workload**: e.g., "80-100%".
-    - **Latitude/Longitude**: (Advanced) Used for radius calculation. Defaults to Zurich.
+   - Location (e.g., "Bern"), Workload, Scrape Speed (Sequential vs Immediate).
 5. **AI Strategy**:
-    - Give specific instructions to the AI scoring engine.
-    - *Example: "Downrank consultancy roles. Prioritize product companies. Ignore internships."*
+   - Add custom instructions like "Ignore consultancies" or "Prioritize startups".
 
 ### 4. Running a Search
 
-1. Click **Start Intelligent Search**.
-2. You will be redirected to the **Progress View**.
-3. **Stages**:
-    - **Generating Queries**: AI analyzes your CV + Description to create search permutations (e.g., "React Developer Zurich", "Frontend Engineer Remote").
-    - **Searching**: The system executes these queries against enabled Job Providers (e.g., JobRoom).
-    - **Processing**: Each found job is parsed, de-duplicated, and passed to the AI for scoring.
-4. Watch the **Live Log** to see exactly what the agent is doing.
+Click **Start Job Search**. You will see the **Search Progress** screen:
+
+1. **Generating Queries**: AI converts your profile into search terms (e.g., "Python Developer Zurich").
+2. **Searching**: Scrapers fetch jobs from enabled providers.
+3. **Analyzing**: The AI reads every job description and scores it (0-100%).
+4. **Complete**: Results are saved.
 
 ### 5. Interpreting Results
 
-Once scanning is complete, go to the **Dashboard**.
+Go to the **Job Board** (home screen).
 
-- **Match Score**: A percentage (0-100%) indicating how well the job fits your profile.
-  - <span style="color:green">Green (>75%)</span>: Strong Match.
-  - <span style="color:orange">Yellow (50-75%)</span>: Potential Match.
-  - <span style="color:red">Red (<50%)</span>: Low relevance.
-- **Worth Applying**: A special badge 💡 indicates that even if the score is mediocre, the AI found a compelling reason to apply (e.g., "Perfect stack match despite location mismatch").
+- **Match Score**:
+  - 🟢 **>75%**: Strong match.
+  - 🟡 **50-75%**: Potential match.
+  - 🔴 **<50%**: Low relevance.
+- **"Worth Applying" Badge**: 💡 The AI found a specific reason this job is good, even if the score is lower.
 - **Actions**:
-  - **Apply**: Click to open the original job listing in a new tab.
-  - **Mark Applied**: Toggle the checkmark status to hide it from the "New" list or track your progress.
+  - **Apply**: Opens the job link.
+  - **Checkmark**: Marks as applied/tracking.
 
 ### 6. Scheduling
 
-You can automate the search to run periodically.
+Automate your job hunt!
 
-1. In the "New Search" form, enable **Auto-Repeat Search**.
-2. Select an interval (e.g., "Every 24 hours").
-3. The system will create a background schedule.
-4. View active schedules in the **Schedules** tab.
-    - *Note: The backend server must be running for schedules to execute.*
+- In **New Search**, enable **Auto-Repeat Search**.
+- Choose an interval (e.g., "Every 24 hours").
+- The backend will run the search in the background (as long as the server is running).
+- View active schedules in the **Schedules** tab.
 
 ---
 
 ## 📡 API Documentation
 
-The backend provides a comprehensive Swagger/OpenAPI documentation interface.
+The backend provides interactive documentation via Swagger UI.
 
-- **Interactive Docs (Swagger UI)**: `http://localhost:8000/docs`
+- **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI JSON**: `http://localhost:8000/api/v1/openapi.json`
+- **OpenAPI Spec**: `http://localhost:8000/api/v1/openapi.json`
 
-Below is a detailed reference of the key endpoints.
+Common Endpoints:
 
-### Authentication Endpoints
-
-#### Register
-
-- **URL**: `POST /api/v1/auth/register`
-- **Body**:
-
-    ```json
-    {
-      "username": "user1",
-      "password": "secretpassword"
-    }
-    ```
-
-- **Response**: `200 OK` (returns User object)
-
-#### Login
-
-- **URL**: `POST /api/v1/auth/login`
-- **Content-Type**: `application/x-www-form-urlencoded`
-- **Body**: `username=user1&password=secretpassword`
-- **Response**:
-
-    ```json
-    {
-      "access_token": "ey...",
-      "token_type": "bearer"
-    }
-    ```
-
-### Job Endpoints
-
-#### List Jobs
-
-- **URL**: `GET /api/v1/jobs/`
-- **Params**: `applied` (boolean, optional)
-- **Response**: Array of Job objects.
-
-    ```json
-    [
-      {
-        "id": 123,
-        "title": "Software Engineer",
-        "company": "Tech Corp",
-        "affinity_score": 85,
-        "worth_applying": true,
-        ...
-      }
-    ]
-    ```
-
-#### Update Job
-
-- **URL**: `PATCH /api/v1/jobs/{job_id}`
-- **Body**:
-
-    ```json
-    {
-      "applied": true
-    }
-    ```
-
-- **Response**: Updated Job object.
-
-### Search Endpoints
-
-#### Upload CV
-
-- **URL**: `POST /api/v1/search/upload-cv`
-- **Content-Type**: `multipart/form-data`
-- **File**: `file=@my_cv.pdf`
-- **Response**:
-
-    ```json
-    {
-      "filename": "my_cv.pdf",
-      "text": "Extracted text content from resume..."
-    }
-    ```
-
-#### Start Search
-
-- **URL**: `POST /api/v1/search/start`
-- **Body**:
-
-    ```json
-    {
-      "role_description": "Python Developer",
-      "location_filter": "Zurich",
-      "cv_content": "Extracted text...",
-      "schedule_enabled": false
-    }
-    ```
-
-- **Response**:
-
-    ```json
-    {
-      "profile_id": 42,
-      "message": "Search started"
-    }
-    ```
-
-#### Get Search Status
-
-- **URL**: `GET /api/v1/search/status/{profile_id}`
-- **Response**:
-
-    ```json
-    {
-      "state": "searching",
-      "total_searches": 5,
-      "current_search_index": 2,
-      "jobs_new": 10,
-      "log": [ ... ]
-    }
-    ```
-
-### Profile Endpoints
-
-#### List Profiles
-
-- **URL**: `GET /api/v1/profiles/`
-- **Response**: List of saved search profiles.
-
-#### Delete Profile
-
-- **URL**: `DELETE /api/v1/profiles/{id}`
-- **Response**: `204 No Content`
-
----
-
-## 💾 Database Schema
-
-The generic database schema is defined in typical ORM fashion. Here are the core tables:
-
-### `users`
-
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `id` | Integer (PK) | Unique ID |
-| `username` | String | Unique username |
-| `hashed_password` | String | Bcrypt hash |
-
-### `search_profiles`
-
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `id` | Integer (PK) | Unique ID |
-| `user_id` | Integer (FK) | Owner |
-| `name` | String | Profile name |
-| `role_description` | Text | User's job wish |
-| `search_keywords` | JSON | AI-generated keywords |
-| `schedule_enabled` | Boolean | True if recurring |
-| `schedule_interval_hours` | Integer | Hours between runs |
-| `last_run` | DateTime | Last execution |
-
-### `jobs`
-
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| `id` | Integer (PK) | Unique ID |
-| `provider_id` | String | Ext ID (e.g. from JobRoom) |
-| `title` | String | Job Title |
-| `company` | String | Company Name |
-| `description` | Text | Full HTML/Text description |
-| `url` | String | Link to apply |
-| `affinity_score` | Integer | 0-100 AI Score |
-| `affinity_analysis` | Text | AI reasoning |
-| `applied` | Boolean | Has user applied? |
-| `created_at` | DateTime | Timestamp |
+- `POST /api/v1/auth/login`: Get JWT token.
+- `GET /api/v1/jobs/`: List analyzed jobs.
+- `POST /api/v1/search/start`: Trigger a new search based on profile to run in background.
+- `GET /api/v1/search/status/{id}`: Poll search progress.
 
 ---
 
 ## 💻 Development Guide
 
-### Project Structure (Refactored)
-
-The project structure is organized for scalability:
+### Project Structure
 
 ```text
 job-hunter-ai/
 ├── backend/                  # Python Backend
-│   ├── api/                  # API Routers
-│   │   ├── auth.py           # Login/Register endpoints
-│   │   ├── jobs.py           # Job management endpoints
-│   │   ├── profiles.py       # Profile/Schedule endpoints
-│   │   ├── schedules.py      # Schedule monitoring
-│   │   └── search.py         # Search orchestration
-│   ├── core/                 # App Core
-│   │   ├── config.py         # Pydantic Settings
-│   │   └── exceptions.py     # Custom Exceptions
-│   ├── db/                   # Database
-│   │   ├── base.py           # SQLAlchemy Base
-│   │   └── session.py        # DB Session Management
+│   ├── api/                  # API Routers (auth, jobs, search)
+│   ├── core/                 # Config & Exceptions
+│   ├── db/                   # Database Session & Base
 │   ├── providers/            # External Adapter Layer
-│   │   ├── llm/              # LLM Implementations (Groq, etc.)
-│   │   └── jobs/             # Scraper Implementations
+│   │   ├── llm/              # LLM Implementations
+│   │   └── jobs/             # Job Board Scrapers
 │   ├── repositories/         # DB Access Layer
-│   │   ├── job_repository.py
-│   │   └── ...
-│   ├── services/             # Business Logic Layer
-│   │   ├── search.py         # Search Orchestration
-│   │   └── auth.py           # Auth Logic
-│   ├── schemas.py            # Pydantic Models (DTOs)
+│   ├── services/             # Business Logic (Search, Auth)
+│   ├── schemas.py            # Pydantic Models
 │   ├── models.py             # SQLAlchemy Models
 │   └── main.py               # Application Entry
 ├── frontend/                 # React Frontend
 │   ├── src/
 │   │   ├── components/       # UI Components
 │   │   ├── services/         # API Clients
-│   │   └── ...
-│   └── ...
+│   │   └── App.jsx           # Main Router
 ├── tests/                    # Pytest Suite
-└── ...
+│   ├── unit/                 # Unit Tests (Mocked)
+│   └── integration/          # API Integration Tests
+└── requirements.txt          # Python Dependencies
 ```
 
 ### Running Tests
 
-We use `pytest` for unit and integration testing.
+We use `pytest` for robust testing.
 
 ```bash
 # Run all tests
@@ -719,67 +458,8 @@ pytest tests/unit/test_auth.py
 
 **Test Coverage**:
 
-- **Unit Tests**: Mocked dependencies to test Services and Repositories in isolation.
-- **Integration Tests**: Test the full API flow using a test database (SQLite in-memory).
-
-### Adding New Providers
-
-One of the core design goals is extensibility. Here is how you can add new sources.
-
-#### Adding a new Job Board (Scraper)
-
-1. Create a new file in `backend/providers/jobs/` (e.g., `indeed.py`).
-2. Inherit from the `JobProvider` base class.
-3. Implement the `fetch_jobs(query)` method to return list of dictionaries.
-4. Implement `parse_job(html)` method to return a standard `JobSchema`.
-5. Register the provider in `SearchService`.
-
-#### Adding a new LLM
-
-1. Create a new file in `backend/providers/llm/` (e.g., `claude.py`).
-2. Inherit from `LLMProvider`.
-3. Implement `generate_text()` and `generate_json()`.
-4. Add it to `LLMFactory` in `backend/providers/llm/factory.py` with a new key.
-
----
-
-## 🚢 Deployment
-
-### Docker Compose (Recommended)
-
-The easiest way to run the full stack (Frontend + Backend + Database) is via Docker.
-
-1. **Configure Environment**:
-   - Ensure your `.env` file lists your `LLM_PROVIDER` and `LLM_API_KEY`.
-   - `docker-compose.yml` is pre-configured to read these values.
-
-2. **Run with Docker Compose**:
-
-   ```bash
-   docker-compose up -d --build
-   ```
-
-3. **Access the App**:
-   - Frontend: `http://localhost:5173`
-   - Backend API: `http://localhost:8000/docs`
-
-4. **Stop the App**:
-
-   ```bash
-   docker-compose down
-   ```
-
-### Manual Deployment (Linux/VPS)
-
-1. **Backend**:
-    - Use `systemd` to run `uvicorn` as a service.
-    - Use `nginx` as a reverse proxy to forward `/api` requests to port 8000.
-2. **Frontend**:
-    - Run `npm run build` to generate static files in `dist/`.
-    - Serve `dist/` using Nginx.
-3. **Environment**:
-    - Ensure `.env` is secure and `SECRET_KEY` is strong.
-    - Set `LOG_LEVEL=WARNING` for production.
+- **Unit Tests**: Mocked dependencies to test Services/Repositories.
+- **Integration Tests**: Full API flow tests using an in-memory SQLite database.
 
 ---
 
@@ -787,67 +467,26 @@ The easiest way to run the full stack (Frontend + Backend + Database) is via Doc
 
 ### Common Issues
 
-#### 1. `ModuleNotFoundError: No module named 'backend'`
+#### 1. "Connecting to search agent..." hangs forever
 
-- **Cause**: Python path issue.
-- **Fix**: Run uvicorn from the project root directory, not inside `backend/`.
+**Cause**: The frontend cannot reach the backend, often due to CORS.
+**Fix**:
 
-    ```bash
-    # Defines root as python path
-    python -m uvicorn backend.main:app --reload
-    ```
+- Ensure `CORS_ORIGINS` in `.env` includes your frontend URL (e.g., `http://localhost:5173`).
+- Restart the backend after changing `.env`.
 
-#### 2. `AttributeError: type object 'Settings' has no attribute 'LLM_PROVIDER'`
+#### 2. "Validation Error" on login
 
-- **Cause**: `.env` file is missing or not loaded.
-- **Fix**: Ensure `.env` exists in the root directory and contains `LLM_PROVIDER`.
+**Cause**: Incorrect username/password format or database usage.
+**Fix**: Ensure password is at least 4 characters. If database is corrupted, delete `job_hunter.db` to reset.
 
-#### 3. Frontend shows "Network Error"
+#### 3. LLM API Errors
 
-- **Cause**: Backend is not running or CORS issue.
-- **Fix**: Ensure Backend is running on port 8000. Check `CORS_ORIGINS` in `.env`.
-
-#### 4. "HuggingFace Token not found"
-
-- **Cause**: Only if using local transformers (not default).
-- **Fix**: This project uses remote APIs (Groq/DeepSeek) by default, so this shouldn't happen unless you modified the code to use local models.
-
-#### 5. Search stuck on "Generating Queries"
-
-- **Cause**: LLM API key might be invalid or out of credits.
-- **Fix**: Check backend logs (`uvicorn` terminal) for 401/403 errors from the LLM provider.
-
-#### 6. Search takes a long time (> 60s)
-
-- **Cause**: DeepSeek and other deep-reasoning models take time to analyze each job description.
-- **Fix**: This is normal! The search runs in the background. You can navigate away and check back later. The "Live Log" will show progress.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions from the community!
-
-1. **Fork** the repository.
-2. Create a **Feature Branch** (`git checkout -b feature/AmazingFeature`).
-3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`).
-4. **Push** to the branch (`git push origin feature/AmazingFeature`).
-5. Open a **Pull Request**.
-
-Please make sure to update tests as appropriate.
+**Cause**: Invalid API key or Rate Limiting.
+**Fix**: Check `LLM_API_KEY` in `.env`. Switch to a different provider if rate limited.
 
 ---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
-
----
-
-## 🙏 Acknowledgments
-
-- **FastAPI**: For the amazing speed and Developer Experience (DX).
-- **Vite**: For the lightning-fast frontend tooling.
-- **Groq**: For enabling real-time LLM inference.
-- **JobRoom.ch**: For providing the data source for Swiss job seekers.
-- **React Query / Bootstrap**: For making frontend development sane.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

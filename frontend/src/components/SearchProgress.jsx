@@ -50,7 +50,7 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
     }
 
     const { state, total_searches, current_search_index, current_query, searches_generated, jobs_new, jobs_duplicates, jobs_skipped, errors, log } = status;
-    const isRunning = state === "generating" || state === "searching";
+    const isRunning = state === "generating" || state === "searching" || state === "analyzing";
     const isDone = state === "done";
     const isError = state === "error";
 
@@ -78,12 +78,14 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                     {/* State Badge */}
                     <div className="mb-4">
                         <span className={`badge ${state === "generating" ? "bg-info bg-opacity-25 text-info border border-info border-opacity-25" :
-                            state === "searching" ? "bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" :
-                                state === "done" ? "bg-success bg-opacity-25 text-success border border-success border-opacity-25" :
-                                    "bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25"
+                                state === "searching" ? "bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" :
+                                    state === "analyzing" ? "bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" :
+                                        state === "done" ? "bg-success bg-opacity-25 text-success border border-success border-opacity-25" :
+                                            "bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25"
                             } me-2 py-2 px-3 rounded-pill`}>
                             {state === "generating" && <><i className="bi bi-robot me-2"></i>Generating Queries</>}
                             {state === "searching" && <><i className="bi bi-search me-2"></i>Searching {current_search_index}/{total_searches}</>}
+                            {state === "analyzing" && <><i className="bi bi-cpu me-2"></i>Analyzing Jobs with AI</>}
                             {state === "done" && <><i className="bi bi-check-circle me-2"></i>Complete</>}
                             {state === "error" && <><i className="bi bi-exclamation-triangle me-2"></i>Error</>}
                         </span>

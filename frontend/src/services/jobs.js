@@ -22,12 +22,10 @@ export const JobService = {
         }
         const qs = params.toString();
         const url = qs ? `/jobs/?${qs}` : "/jobs/";
-        const res = await ApiClient.get(url);
-        return res.data;
+        return ApiClient.get(url);
     },
 
     async toggleApplied(jobId, applied) {
-        const res = await ApiClient.patch(`/jobs/${jobId}`, { applied });
-        return res.data;
+        return ApiClient.patch(`/jobs/${jobId}`, { applied });
     },
 };

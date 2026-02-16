@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Job Hunter AI"
     
     # CORS
-    CORS_ORIGINS: Optional[str] = None
+    CORS_ORIGINS: Optional[str] = "http://localhost:5173,http://localhost:8000"
 
     @property
     def cors_origins_list(self) -> List[str]:

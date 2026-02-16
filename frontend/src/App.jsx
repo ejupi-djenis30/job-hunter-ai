@@ -8,7 +8,7 @@ import { Login } from './components/Login';
 import { AuthService } from './services/auth';
 import { JobService } from './services/jobs';
 import { SearchService } from './services/search';
-import './App.css';
+
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(AuthService.isLoggedIn());
@@ -47,7 +47,7 @@ function App() {
   const fetchJobs = async () => {
     try {
       const data = await JobService.getAll(filters);
-      setJobs(data); // Backend handles sorting now
+      setJobs(Array.isArray(data) ? data : []); // Backend handles sorting now
     } catch (error) {
       if (error.message === "UNAUTHORIZED") {
         handleLogout();
@@ -102,7 +102,7 @@ function App() {
 
   const toggleApplied = async (job) => {
     try {
-      const updated = await JobService.update(job.id, { applied: !job.applied });
+      const updated = await JobService.toggleApplied(job.id, !job.applied);
       setJobs(prev => prev.map(j => j.id === job.id ? updated : j));
     } catch (error) {
       if (error.message === "UNAUTHORIZED") { handleLogout(); return; }
@@ -116,9 +116,10 @@ function App() {
   }
 
   // ─── Logged in ───
-  const totalJobs = jobs.length;
-  const appliedCount = jobs.filter(j => j.applied).length;
-  const avgScore = totalJobs > 0 ? Math.round(jobs.reduce((acc, j) => acc + (j.affinity_score || 0), 0) / totalJobs) : 0;
+  const safeJobs = Array.isArray(jobs) ? jobs : [];
+  const totalJobs = safeJobs.length;
+  const appliedCount = safeJobs.filter(j => j.applied).length;
+  const avgScore = totalJobs > 0 ? Math.round(safeJobs.reduce((acc, j) => acc + (j.affinity_score || 0), 0) / totalJobs) : 0;
 
   return (
     <div className="min-vh-100 text-light">
@@ -194,7 +195,7 @@ function App() {
         {view === 'new' ? (
           <div className="animate-fade-in text-center py-5">
             <h2 className="display-5 fw-bold mb-4">Launch New Search</h2>
-            <div className="mx-auto" style={{ maxWidth: 800 }}>
+            <div className="mx-auto">
               <SearchForm onStartSearch={handleStartSearch} isLoading={isSearching} />
             </div>
           </div>
@@ -247,7 +248,7 @@ function App() {
               })}
             />
 
-            <JobTable jobs={jobs} onToggleApplied={toggleApplied} />
+            <JobTable jobs={safeJobs} onToggleApplied={toggleApplied} />
           </div>
         ) : null}
 

@@ -37,8 +37,10 @@ class SearchService:
             "search_strategy": profile.search_strategy or "",
         }
 
+        # Initialize status tracker immediately so frontend sees progress
+        init_status(profile_id)
+
         # ── Step 1: Generate keywords using LLM (run in thread to avoid blocking) ──
-        update_status(profile_id, state="generating")
         add_log(profile_id, "Generating search keywords with AI…")
 
         try:

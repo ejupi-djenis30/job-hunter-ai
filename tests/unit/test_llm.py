@@ -59,7 +59,7 @@ class TestLLMService:
         assert result["relevant"] is True
         assert "Error" in result["reason"]
 
-    def test_analyze_job_affinity(self, llm_service, mock_provider):
+    def test_analyze_job_match(self, llm_service, mock_provider):
         """Should return affinity analysis."""
         mock_provider.generate_json.return_value = {
             "affinity_score": 80,
@@ -67,16 +67,16 @@ class TestLLMService:
             "worth_applying": True
         }
         
-        result = llm_service.analyze_job_affinity({"title": "Job"}, {"role": "Dev"})
+        result = llm_service.analyze_job_match({"title": "Job"}, {"role": "Dev"})
         
         assert result["affinity_score"] == 80
         assert result["worth_applying"] is True
 
-    def test_analyze_job_affinity_error(self, llm_service, mock_provider):
+    def test_analyze_job_match_error(self, llm_service, mock_provider):
         """Should return zero score on error."""
         mock_provider.generate_json.side_effect = Exception("API Error")
         
-        result = llm_service.analyze_job_affinity({}, {})
+        result = llm_service.analyze_job_match({}, {})
         
         assert result["affinity_score"] == 0
         assert result["worth_applying"] is False

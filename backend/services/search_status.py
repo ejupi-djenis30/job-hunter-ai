@@ -2,7 +2,7 @@
 In-memory search status tracker.
 Stores real-time progress of search workflows for frontend polling.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any
 import threading
 
@@ -10,22 +10,22 @@ _lock = threading.Lock()
 _statuses: Dict[int, Dict[str, Any]] = {}
 
 
-def init_status(profile_id: int, total_searches: int, searches: List[Dict]):
-    """Initialize status when search begins."""
+def init_status(profile_id: int, total_searches: int = 0, searches: List[Dict] = None):
+    """Initialize or reset status when search begins."""
     with _lock:
         _statuses[profile_id] = {
-            "state": "generating",  # generating | searching | done | error
+            "state": "generating",
             "total_searches": total_searches,
             "current_search_index": 0,
             "current_query": "",
-            "searches_generated": searches,
+            "searches_generated": searches or [],
             "jobs_found": 0,
             "jobs_new": 0,
             "jobs_duplicates": 0,
             "jobs_skipped": 0,
             "errors": 0,
             "log": [],
-            "started_at": datetime.now().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
             "finished_at": None,
         }
 
@@ -36,7 +36,7 @@ def add_log(profile_id: int, message: str):
         s = _statuses.get(profile_id)
         if s:
             s["log"].append({
-                "time": datetime.now().isoformat(),
+                "time": datetime.now(timezone.utc).isoformat(),
                 "message": message,
             })
             # Keep last 100 entries

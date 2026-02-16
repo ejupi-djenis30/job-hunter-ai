@@ -38,7 +38,7 @@ class LLMService:
             logger.error(f"Error checking relevance: {e}")
             return {"relevant": True, "reason": "Error checking relevance"}
 
-    def analyze_job_affinity(self, job_metadata: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_job_match(self, job_metadata: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
         system_prompt = "You are a helpful assistant that outputs JSON. Be strict and precise."
         user_prompt = f"""Analyze match between profile and job.
         
