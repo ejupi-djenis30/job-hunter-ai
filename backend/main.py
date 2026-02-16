@@ -17,6 +17,19 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# Startup: Ensure Database Tables Exist
+@app.on_event("startup")
+async def startup_db():
+    try:
+        from backend.db.base import Base, engine
+        # Import all models to ensure they are registered with Metadata
+        from backend import models
+        logger.info("Creating database tables if they don't exist...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created/verified.")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+
 # CORS
 if settings.cors_origins_list:
     logger.info(f"Configuring CORS with origins: {settings.cors_origins_list}")
