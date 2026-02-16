@@ -5,15 +5,15 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: jobhunter
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-jobhunter}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,31 +21,25 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     restart: always
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/jobhunter
-      - SECRET_KEY=changeme_in_production_please
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=11520
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-jobhunter}
       - CORS_ORIGINS=http://localhost:5173,http://localhost:80
-      # LLM Configuration for DeepSeek
-      - LLM_PROVIDER=deepseek
-      - LLM_API_KEY=sk-245f3b697a5b430aa70ad45a632221c6
-      - LLM_MODEL=deepseek-reasoner
-      - LLM_BASE_URL=https://api.deepseek.com
-      - LLM_THINKING=true
     ports:
       - "8000:8000"
+    volumes:
+      - app_data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-
 
   frontend:
     build:
@@ -59,3 +53,4 @@ services:
 
 volumes:
   postgres_data:
+  app_data:

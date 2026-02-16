@@ -5,131 +5,262 @@ from datetime import datetime
 from backend.repositories.job_repository import JobRepository
 from backend.repositories.profile_repository import ProfileRepository
 from backend.services.llm_service import llm_service
+from backend.services.utils import haversine_distance
 from backend.providers.jobs.jobroom.client import JobRoomProvider
 from backend.providers.jobs.models import JobSearchRequest, SortOrder
 from backend.models import Job
 from backend.core.config import settings
+from backend.services.search_status import (
+    init_status, add_log, update_status, clear_status,
+)
 
 logger = logging.getLogger(__name__)
+
 
 class SearchService:
     def __init__(self, job_repo: JobRepository, profile_repo: ProfileRepository):
         self.job_repo = job_repo
         self.profile_repo = profile_repo
 
+    # ───────────────────────── public entry point ─────────────────────────
+
     async def run_search(self, profile_id: int):
-        from backend.services.search_status import init_status, update_status, add_log
-        
+        """Run the full search workflow for a saved profile."""
         profile = self.profile_repo.get(profile_id)
         if not profile:
             logger.error(f"Profile {profile_id} not found")
             return
 
-        init_status(profile_id, 0, [])
+        profile_dict = {
+            "cv_content": profile.cv_content or "",
+            "role_description": profile.role_description or "",
+            "search_strategy": profile.search_strategy or "",
+        }
+
+        # ── Step 1: Generate keywords using LLM (run in thread to avoid blocking) ──
         update_status(profile_id, state="generating")
-        add_log(profile_id, "🤖 Generating optimized search queries based on your CV and role description...")
+        add_log(profile_id, "Generating search keywords with AI…")
 
-        # Generate keywords
         try:
-            keywords_data = llm_service.generate_search_keywords({
-                "role_description": profile.role_description,
-                "cv_content": profile.cv_content,
-                "location": profile.location_filter,
-            })
+            searches = await asyncio.to_thread(
+                llm_service.generate_search_keywords, profile_dict
+            )
         except Exception as e:
-            logger.error(f"Generation error: {e}")
-            update_status(profile_id, state="error")
-            add_log(profile_id, f"❌ Engine failure: {str(e)}")
+            logger.error(f"LLM keyword generation failed: {e}")
+            update_status(profile_id, state="error", error=str(e))
             return
-        
-        logger.info(f"Generated {len(keywords_data)} search queries for profile {profile_id}")
-        update_status(profile_id, state="searching", total_searches=len(keywords_data), searches_generated=keywords_data)
-        add_log(profile_id, f"✅ Generated {len(keywords_data)} search queries. Starting job hunt...")
-        
-        async with JobRoomProvider() as provider:
-            for i, query_item in enumerate(keywords_data):
-                keyword = query_item.get("value")
-                if not keyword:
-                    continue
-                
-                update_status(profile_id, current_search_index=i, current_query=keyword)
-                add_log(profile_id, f"🔍 Searching for: {keyword}...")
-                
-                request = JobSearchRequest(
-                    query=keyword,
-                    location=profile.location_filter or "Zürich",
-                    sort=SortOrder.DATE_DESC,
-                    posted_within_days=profile.posted_within_days or 30
+
+        if not searches:
+            add_log(profile_id, "No search keywords generated")
+            update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
+            return
+
+        init_status(profile_id, total_searches=len(searches), searches=searches)
+        add_log(profile_id, f"Generated {len(searches)} search queries")
+
+        # ── Step 2: Execute searches ──
+        update_status(profile_id, state="searching")
+        provider = JobRoomProvider()
+        all_jobs: list = []
+
+        for idx, search in enumerate(searches):
+            query = search.get("query", "")
+            add_log(profile_id, f"Searching: «{query}» ({idx + 1}/{len(searches)})")
+            update_status(profile_id, current_search=idx + 1)
+
+            try:
+                request = self._build_search_request(profile, query)
+                response = await asyncio.to_thread(provider.search, request)
+                all_jobs.extend(response.items)
+                add_log(
+                    profile_id,
+                    f"Found {len(response.items)} jobs for «{query}»",
                 )
-                
+            except Exception as e:
+                logger.warning(f"Search query «{query}» failed: {e}")
+                add_log(profile_id, f"⚠ Search «{query}» failed: {e}")
+
+        if not all_jobs:
+            add_log(profile_id, "No jobs found across all queries")
+            update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
+            return
+
+        add_log(profile_id, f"Total raw results: {len(all_jobs)}")
+
+        # ── Step 3: Deduplicate ──
+        seen_urls: set = set()
+        unique_jobs: list = []
+        existing_urls = {
+            j.url for j in self.job_repo.get_by_user(profile.user_id)
+        }
+
+        for job in all_jobs:
+            url = job.external_url or job.id
+            if url in seen_urls or url in existing_urls:
+                continue
+            seen_urls.add(url)
+            unique_jobs.append(job)
+
+        duplicates = len(all_jobs) - len(unique_jobs)
+        add_log(
+            profile_id,
+            f"After dedup: {len(unique_jobs)} new, {duplicates} duplicates",
+        )
+        update_status(
+            profile_id,
+            state="analyzing",
+            jobs_found=len(all_jobs),
+            jobs_new=len(unique_jobs),
+            jobs_duplicates=duplicates,
+        )
+
+        # ── Step 4: Analyze & save each unique job (Parallel) ──
+        # Process jobs in parallel chunks to speed up LLM analysis
+        # Limit concurrency to avoid rate limits (e.g., 10 concurrent requests)
+        semaphore = asyncio.Semaphore(10)
+
+        async def process_with_limit(job, idx, total):
+            async with semaphore:
+                add_log(profile_id, f"Analyzing {idx + 1}/{total}: {job.title[:60]}")
                 try:
-                    response = await provider.search(request)
-                    logger.info(f"Found {len(response.items)} jobs for '{keyword}'")
-                    add_log(profile_id, f"📦 Found {len(response.items)} potential matches for '{keyword}'")
-                    
-                    for item in response.items:
-                        await self._process_job(item, profile)
-                        
+                    return await self._process_job(job, profile, profile_dict)
                 except Exception as e:
-                    logger.error(f"Error searching for '{keyword}': {e}")
-                    add_log(profile_id, f"⚠️ Error searching '{keyword}': {str(e)}")
+                    logger.warning(f"Failed to process job {job.id}: {e}")
+                    add_log(profile_id, f"⚠ Failed: {job.title[:30]} – {e}")
+                    return False
 
-        update_status(profile_id, state="done", finished_at=datetime.now().isoformat())
-        add_log(profile_id, "✨ Job hunt complete! Review your matches in the dashboard.")
+        tasks = [
+            process_with_limit(job, idx, len(unique_jobs))
+            for idx, job in enumerate(unique_jobs)
+        ]
+        
+        results = await asyncio.gather(*tasks)
+        saved_count = sum(1 for r in results if r)
 
-    async def _process_job(self, job_item: Any, profile: Any):
-        from backend.services.search_status import update_status, add_log
-        # ... existing logic ...
-        try:
-            if not job_item.external_url:
-                return
+        add_log(profile_id, f"✓ Search complete – {saved_count} jobs saved")
+        update_status(
+            profile_id,
+            state="done",
+            jobs_found=len(all_jobs),
+            jobs_new=saved_count,
+            jobs_duplicates=duplicates,
+        )
 
-            existing = self.job_repo.get_by_url(job_item.external_url)
-            if existing:
-                # update status with duplicate count maybe
-                with self.profile_repo.db.no_autoflush: # Prevent flush during status update if needed
-                     s = self.job_repo.db.query(Job).filter(Job.url == job_item.external_url).first()
-                return 
-            
-            # ... rest of the same logic ...
-            
-            # Create job object
-            # Map Pydantic JobListing to DB Job model
-            title = job_item.title
-            company = job_item.company.name if job_item.company else "Unknown"
-            description = job_item.descriptions[0].description if job_item.descriptions else ""
-            location = job_item.location.city if job_item.location else "Unknown"
-            
-            # LLM Analysis
-            analysis = llm_service.analyze_job_affinity(
-                {"title": title, "description": description, "company": company},
-                {"role_description": profile.role_description, "cv_content": profile.cv_content}
+    # ───────────────────────── private helpers ─────────────────────────
+
+    def _build_search_request(self, profile, query: str) -> JobSearchRequest:
+        """Create a JobSearchRequest from profile settings and a keyword query."""
+        workload_min, workload_max = 0, 100
+        if profile.workload_filter:
+            parts = profile.workload_filter.replace("%", "").split("-")
+            try:
+                workload_min = int(parts[0])
+                workload_max = int(parts[1]) if len(parts) > 1 else int(parts[0])
+            except ValueError:
+                pass
+
+        return JobSearchRequest(
+            query=query,
+            location=profile.location_filter or "",
+            posted_within_days=profile.posted_within_days or 30,
+            workload_min=workload_min,
+            workload_max=workload_max,
+            page_size=50,
+            sort=SortOrder.DATE_DESC,
+        )
+
+    async def _process_job(self, listing, profile, profile_dict: dict) -> bool:
+        """Analyse a single job listing via LLM and save it to DB."""
+        # Extract description text
+        desc_text = ""
+        if listing.descriptions:
+            desc_text = listing.descriptions[0].description
+
+        # LLM affinity analysis (in thread)
+        analysis = await asyncio.to_thread(
+            llm_service.analyze_job_match, profile_dict, desc_text, listing.title
+        )
+
+        score = analysis.get("score", 0)
+        reasoning = analysis.get("analysis", "")
+        worth = analysis.get("worth_applying", False)
+
+        # Company name
+        company = listing.company.name if listing.company else "Unknown"
+
+        # Location string
+        location_str = ""
+        if listing.location:
+            location_str = listing.location.city or ""
+
+        # Workload string
+        workload_str = ""
+        if listing.employment:
+            wmin = listing.employment.workload_min
+            wmax = listing.employment.workload_max
+            workload_str = f"{wmin}-{wmax}%" if wmin != wmax else f"{wmin}%"
+
+        # Application email
+        app_email = ""
+        if listing.application and listing.application.email:
+            app_email = listing.application.email
+
+        # Publication date
+        pub_date = None
+        if listing.publication and listing.publication.start_date:
+            try:
+                pub_date = datetime.fromisoformat(listing.publication.start_date)
+            except (ValueError, TypeError):
+                pass
+
+        # JobRoom URL
+        jobroom_url = f"https://www.job-room.ch/offerten/stelle/{listing.id}"
+
+        # Distance calculation
+        distance_km = None
+        if (
+            profile.latitude
+            and profile.longitude
+            and listing.location
+            and listing.location.coordinates
+        ):
+            distance_km = round(
+                haversine_distance(
+                    profile.latitude,
+                    profile.longitude,
+                    listing.location.coordinates.lat,
+                    listing.location.coordinates.lon,
+                ),
+                1,
             )
-            
-            new_job = Job(
-                user_id=profile.user_id,
-                title=title,
-                company=company,
-                description=description,
-                location=location,
-                url=job_item.external_url,
-                jobroom_url=f"https://www.job-room.ch/job-advertisement/{job_item.id}" if job_item.source == "job_room" else None,
-                publication_date=job_item.publication_date,
-                is_scraped=True,
-                source_query=job_item.request.query if hasattr(job_item, 'request') else "auto",
-                affinity_score=analysis.get("affinity_score"),
-                affinity_analysis=analysis.get("affinity_analysis"),
-                worth_applying=analysis.get("worth_applying", False)
-            )
-            
-            self.job_repo.create(new_job)
-            logger.info(f"Saved new job: {title} at {company}")
-            
-        except Exception as e:
-            logger.error(f"Error processing job {job_item.title}: {e}")
 
-# Factory or singleton
+        job = Job(
+            user_id=profile.user_id,
+            title=listing.title,
+            company=company,
+            description=desc_text[:5000] if desc_text else None,
+            location=location_str,
+            url=listing.external_url or jobroom_url,
+            jobroom_url=jobroom_url,
+            application_email=app_email or None,
+            workload=workload_str or None,
+            publication_date=pub_date,
+            is_scraped=True,
+            source_query=listing.title,
+            affinity_score=score,
+            affinity_analysis=reasoning[:2000] if reasoning else None,
+            worth_applying=worth,
+            distance_km=distance_km,
+        )
+
+        self.job_repo.db.add(job)
+        self.job_repo.db.commit()
+        return True
+
+
 def get_search_service(db) -> SearchService:
-    from backend.repositories.job_repository import JobRepository
-    from backend.repositories.profile_repository import ProfileRepository
-    return SearchService(JobRepository(db), ProfileRepository(db))
+    """Factory — create a SearchService with proper repositories."""
+    return SearchService(
+        job_repo=JobRepository(db),
+        profile_repo=ProfileRepository(db),
+    )

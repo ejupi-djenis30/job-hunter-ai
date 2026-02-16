@@ -105,6 +105,8 @@ This project is designed to be **self-hosted**, ensuring your data (CV, search p
 - **Responsive Dashboard**: Built with React and Bootstrap for a clean, mobile-friendly experience.
 - **Real-time Progress**: Watch the search agent work in real-time with live log streaming.
 - **Dark Mode**: Easy on the eyes for late-night job hunting sessions.
+- **Smart Filters**: Filter jobs by Match Score, Distance, or "Worth Applying" status directly on the dashboard.
+- **Distance Calculation**: Automatically calculates distance from your home to the job location (e.g., "15.4 km").
 
 ---
 
@@ -350,6 +352,8 @@ DeepSeek provides excellent reasoning capabilities at a very low cost.
     LLM_API_KEY=sk-...
     LLM_MODEL=deepseek-chat
     ```
+
+    **Note on Performance**: DeepSeek is highly efficient but complex searches with many results may take >60 seconds to fully analyze. The application runs this in the background, so the UI remains responsive.
 
 #### Google Gemini
 
@@ -763,7 +767,7 @@ The easiest way to run the full stack (Frontend + Backend + Database) is via Doc
 
 ### Common Issues
 
-**1. `ModuleNotFoundError: No module named 'backend'`**
+#### 1. `ModuleNotFoundError: No module named 'backend'`
 
 - **Cause**: Python path issue.
 - **Fix**: Run uvicorn from the project root directory, not inside `backend/`.
@@ -773,25 +777,30 @@ The easiest way to run the full stack (Frontend + Backend + Database) is via Doc
     python -m uvicorn backend.main:app --reload
     ```
 
-**2. `AttributeError: type object 'Settings' has no attribute 'LLM_PROVIDER'`**
+#### 2. `AttributeError: type object 'Settings' has no attribute 'LLM_PROVIDER'`
 
 - **Cause**: `.env` file is missing or not loaded.
 - **Fix**: Ensure `.env` exists in the root directory and contains `LLM_PROVIDER`.
 
-**3. Frontend shows "Network Error"**
+#### 3. Frontend shows "Network Error"
 
 - **Cause**: Backend is not running or CORS issue.
 - **Fix**: Ensure Backend is running on port 8000. Check `CORS_ORIGINS` in `.env`.
 
-**4. "HuggingFace Token not found"**
+#### 4. "HuggingFace Token not found"
 
 - **Cause**: Only if using local transformers (not default).
 - **Fix**: This project uses remote APIs (Groq/DeepSeek) by default, so this shouldn't happen unless you modified the code to use local models.
 
-**5. Search stuck on "Generating Queries"**
+#### 5. Search stuck on "Generating Queries"
 
 - **Cause**: LLM API key might be invalid or out of credits.
 - **Fix**: Check backend logs (`uvicorn` terminal) for 401/403 errors from the LLM provider.
+
+#### 6. Search takes a long time (> 60s)
+
+- **Cause**: DeepSeek and other deep-reasoning models take time to analyze each job description.
+- **Fix**: This is normal! The search runs in the background. You can navigate away and check back later. The "Live Log" will show progress.
 
 ---
 

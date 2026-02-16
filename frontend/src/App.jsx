@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { JobTable } from './components/JobTable';
 import { SearchForm } from './components/SearchForm';
 import { SearchProgress } from './components/SearchProgress';
+import { FilterBar } from './components/FilterBar';
 import { Schedules } from './components/Schedules';
 import { Login } from './components/Login';
 import { AuthService } from './services/auth';
@@ -20,19 +21,33 @@ function App() {
   const [activeProfileId, setActiveProfileId] = useState(null);
   const [searchState, setSearchState] = useState(null); // null | "running" | "done" | "error"
 
+  // Filter State
+  const [filters, setFilters] = useState({
+    min_score: "",
+    max_distance: "",
+    worth_applying: "",
+    sort_by: "created_at",
+    sort_order: "desc"
+  });
+
   useEffect(() => {
     if (isLoggedIn) {
       fetchJobs();
-      const interval = setInterval(fetchJobs, 10000);
+    }
+  }, [filters]); // Reload when filters change
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchJobs(); // Initial load
+      const interval = setInterval(fetchJobs, 10000); // Poll every 10s
       return () => clearInterval(interval);
     }
   }, [isLoggedIn]);
 
   const fetchJobs = async () => {
     try {
-      const data = await JobService.getAll();
-      const sorted = data.sort((a, b) => (b.affinity_score || 0) - (a.affinity_score || 0));
-      setJobs(sorted);
+      const data = await JobService.getAll(filters);
+      setJobs(data); // Backend handles sorting now
     } catch (error) {
       if (error.message === "UNAUTHORIZED") {
         handleLogout();
@@ -214,6 +229,19 @@ function App() {
                 <i className="bi bi-arrow-clockwise me-1"></i> Refresh
               </button>
             </div>
+
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              onClear={() => setFilters({
+                min_score: "",
+                max_distance: "",
+                worth_applying: "",
+                sort_by: "created_at",
+                sort_order: "desc"
+              })}
+            />
+
             <JobTable jobs={jobs} onToggleApplied={toggleApplied} />
           </>
         ) : null}

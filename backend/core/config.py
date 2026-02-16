@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     
     # Security
     SECRET_KEY: str = "changeme"
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def warn_default_secret_key(cls, v: str) -> str:
+        if v == "changeme":
+            import logging
+            logging.warning("⚠️ USING DEFAULT INSECURE SECRET_KEY! Set SECRET_KEY in .env for production.")
+        return v
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     

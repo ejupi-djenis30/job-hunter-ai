@@ -42,6 +42,7 @@ class JobCreate(JobBase):
     affinity_score: Optional[float] = None
     affinity_analysis: Optional[str] = None
     worth_applying: Optional[bool] = False
+    distance_km: Optional[float] = None
 
 class JobUpdate(BaseModel):
     """Partial update schema — all fields optional."""
@@ -59,6 +60,7 @@ class Job(JobBase):
     affinity_score: Optional[float] = None
     affinity_analysis: Optional[str] = None
     worth_applying: Optional[bool] = False
+    distance_km: Optional[float] = None
     applied: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

@@ -8,13 +8,22 @@ function ScoreBadge({ score }) {
     return <span className={cls}>{score}%</span>;
 }
 
+function DistanceBadge({ km }) {
+    if (km == null) return <span className="text-muted">—</span>;
+    let cls = "badge ";
+    if (km <= 15) cls += "bg-success";
+    else if (km <= 40) cls += "bg-info text-dark";
+    else cls += "bg-secondary";
+    return <span className={cls}>{km} km</span>;
+}
+
 export function JobTable({ jobs, onToggleApplied }) {
     if (!jobs || jobs.length === 0) {
         return (
             <div className="card bg-dark border-secondary">
                 <div className="card-body text-center py-5">
-                    <p className="fs-5 text-secondary mb-1">No jobs found yet</p>
-                    <p className="text-secondary small">Start a new search to discover opportunities</p>
+                    <i className="bi bi-briefcase fs-1 text-muted"></i>
+                    <p className="text-muted mt-3 mb-0">No jobs found yet. Start a search to discover opportunities!</p>
                 </div>
             </div>
         );
@@ -22,97 +31,92 @@ export function JobTable({ jobs, onToggleApplied }) {
 
     return (
         <div className="card bg-dark border-secondary">
-            {/* Desktop Table View */}
-            <div className="table-responsive d-none d-md-block">
-                <table className="table table-dark table-hover mb-0 align-middle">
+            <div className="table-responsive">
+                <table className="table table-dark table-hover table-striped mb-0">
                     <thead>
-                        <tr className="text-secondary small text-uppercase">
-                            <th>Title / Company</th>
-                            <th>Location</th>
-                            <th>Match</th>
-                            <th>Posted</th>
-                            <th>Status</th>
-                            <th>Links</th>
+                        <tr>
+                            <th style={{ width: "5%" }}>#</th>
+                            <th style={{ width: "25%" }}>Title</th>
+                            <th style={{ width: "15%" }}>Company</th>
+                            <th style={{ width: "10%" }}>Location</th>
+                            <th style={{ width: "8%" }}>Distance</th>
+                            <th style={{ width: "8%" }}>Workload</th>
+                            <th style={{ width: "7%" }}>Score</th>
+                            <th style={{ width: "7%" }}>Worth</th>
+                            <th style={{ width: "8%" }}>Applied</th>
+                            <th style={{ width: "7%" }}>Links</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {jobs.map((job) => (
+                        {jobs.map((job, idx) => (
                             <tr key={job.id}>
+                                <td className="text-muted">{idx + 1}</td>
                                 <td>
-                                    <div className="fw-semibold text-light">{job.title}</div>
-                                    <small className="text-secondary">{job.company}</small>
-                                    {job.workload && <small className="text-secondary d-block">{job.workload}</small>}
+                                    <div className="fw-semibold text-truncate" style={{ maxWidth: 280 }} title={job.title}>
+                                        {job.title}
+                                    </div>
+                                    {job.publication_date && (
+                                        <small className="text-muted">
+                                            {new Date(job.publication_date).toLocaleDateString()}
+                                        </small>
+                                    )}
                                 </td>
-                                <td><small className="text-secondary">{job.location || '-'}</small></td>
+                                <td className="text-truncate" style={{ maxWidth: 160 }} title={job.company}>
+                                    {job.company}
+                                </td>
+                                <td className="text-truncate" style={{ maxWidth: 120 }} title={job.location}>
+                                    {job.location || "—"}
+                                </td>
                                 <td>
-                                    <ScoreBadge score={job.affinity_score || 0} />
-                                    {/* Worth applying badge */}
-                                    {job.worth_applying && (
-                                        <span
-                                            className="badge bg-info text-dark ms-1"
-                                            title="This job might be worth applying for despite the score"
-                                        >
-                                            <i className="bi bi-lightbulb-fill me-1"></i> Worth it
+                                    <DistanceBadge km={job.distance_km} />
+                                </td>
+                                <td>{job.workload || "—"}</td>
+                                <td>
+                                    {job.affinity_score != null ? (
+                                        <ScoreBadge score={Math.round(job.affinity_score)} />
+                                    ) : (
+                                        <span className="text-muted">—</span>
+                                    )}
+                                </td>
+                                <td>
+                                    {job.worth_applying ? (
+                                        <span className="badge bg-success">
+                                            <i className="bi bi-check-lg"></i> Yes
                                         </span>
-                                    )}
-                                    {job.affinity_analysis && (
-                                        <div className="text-secondary small mt-1" style={{ maxWidth: 200 }} title={job.affinity_analysis}>
-                                            {job.affinity_analysis.length > 60
-                                                ? job.affinity_analysis.substring(0, 60) + '...'
-                                                : job.affinity_analysis
-                                            }
-                                        </div>
+                                    ) : (
+                                        <span className="badge bg-secondary">No</span>
                                     )}
                                 </td>
                                 <td>
-                                    <small className="text-secondary">
-                                        {job.publication_date
-                                            ? new Date(job.publication_date).toLocaleDateString()
-                                            : '-'}
-                                    </small>
+                                    <div className="form-check form-switch">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            checked={job.applied}
+                                            onChange={() => onToggleApplied(job.id, !job.applied)}
+                                        />
+                                    </div>
                                 </td>
                                 <td>
-                                    <button
-                                        onClick={() => onToggleApplied(job)}
-                                        className={`btn btn-sm ${job.applied ? 'btn-success' : 'btn-outline-secondary'}`}
-                                    >
-                                        {job.applied ? <><i className="bi bi-check-circle-fill me-1"></i> Applied</> : <><i className="bi bi-circle me-1"></i> Apply</>}
-                                    </button>
-                                </td>
-                                <td>
-                                    <div className="d-flex flex-column gap-1">
-                                        <div className="d-flex gap-1">
-                                            {job.url && (
-                                                <a
-                                                    href={job.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="btn btn-sm btn-outline-primary"
-                                                    title="External job posting"
-                                                >
-                                                    <i className="bi bi-box-arrow-up-right"></i>
-                                                </a>
-                                            )}
-                                            {job.jobroom_url && (
-                                                <a
-                                                    href={job.jobroom_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="btn btn-sm btn-outline-info"
-                                                    title="View on Job-Room.ch"
-                                                >
-                                                    <i className="bi bi-building"></i>
-                                                </a>
-                                            )}
-                                        </div>
+                                    <div className="d-flex gap-1">
+                                        {job.url && (
+                                            <a
+                                                href={job.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-sm btn-outline-primary"
+                                                title="View job"
+                                            >
+                                                <i className="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        )}
                                         {job.application_email && (
                                             <a
                                                 href={`mailto:${job.application_email}`}
-                                                className="btn btn-sm btn-outline-warning"
-                                                title={`Send application to ${job.application_email}`}
+                                                className="btn btn-sm btn-outline-success"
+                                                title="Send email"
                                             >
-                                                <i className="bi bi-envelope me-1"></i>
-                                                Email
+                                                <i className="bi bi-envelope"></i>
                                             </a>
                                         )}
                                     </div>
@@ -122,60 +126,8 @@ export function JobTable({ jobs, onToggleApplied }) {
                     </tbody>
                 </table>
             </div>
-
-            {/* Mobile Card View */}
-            <div className="d-md-none">
-                {jobs.map((job) => (
-                    <div key={job.id} className="p-3 border-bottom border-secondary">
-                        <div className="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <div className="fw-bold text-light">{job.title}</div>
-                                <div className="small text-secondary">{job.company}</div>
-                            </div>
-                            <ScoreBadge score={job.affinity_score || 0} />
-                        </div>
-
-                        <div className="mb-2">
-                            <div className="small text-secondary"><i className="bi bi-geo-alt me-1"></i>{job.location || 'Unknown'}</div>
-                            {job.workload && <div className="small text-secondary"><i className="bi bi-briefcase me-1"></i>{job.workload}</div>}
-                            <div className="small text-secondary"><i className="bi bi-calendar3 me-1"></i>{job.publication_date ? new Date(job.publication_date).toLocaleDateString() : '-'}</div>
-                        </div>
-
-                        {job.worth_applying && (
-                            <div className="mb-2">
-                                <span className="badge bg-info text-dark">
-                                    <i className="bi bi-lightbulb-fill me-1"></i> Worth applying
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="d-flex justify-content-between align-items-center mt-3">
-                            <div className="btn-group">
-                                {job.url && (
-                                    <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary">
-                                        <i className="bi bi-box-arrow-up-right"></i>
-                                    </a>
-                                )}
-                                {job.jobroom_url && (
-                                    <a href={job.jobroom_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-info">
-                                        <i className="bi bi-building"></i>
-                                    </a>
-                                )}
-                                {job.application_email && (
-                                    <a href={`mailto:${job.application_email}`} className="btn btn-sm btn-outline-warning">
-                                        <i className="bi bi-envelope"></i>
-                                    </a>
-                                )}
-                            </div>
-                            <button
-                                onClick={() => onToggleApplied(job)}
-                                className={`btn btn-sm ${job.applied ? 'btn-success' : 'btn-outline-secondary'}`}
-                            >
-                                {job.applied ? <><i className="bi bi-check-circle-fill me-1"></i> Applied</> : <><i className="bi bi-circle me-1"></i> Apply</>}
-                            </button>
-                        </div>
-                    </div>
-                ))}
+            <div className="card-footer bg-dark border-secondary text-muted small">
+                Showing {jobs.length} job{jobs.length !== 1 ? "s" : ""}
             </div>
         </div>
     );

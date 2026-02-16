@@ -43,6 +43,9 @@ class Job(Base):
     affinity_analysis = Column(Text)
     worth_applying = Column(Boolean, default=False)
     
+    # Distance from search origin (km)
+    distance_km = Column(Float, nullable=True)
+    
     # User Action
     applied = Column(Boolean, default=False)
     

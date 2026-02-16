@@ -6,6 +6,7 @@ from backend.services.search_service import SearchService
 from backend.repositories.job_repository import JobRepository
 from backend.repositories.profile_repository import ProfileRepository
 from backend.api.deps import get_current_user_id
+from backend.services.search_status import get_status
 
 router = APIRouter()
 
@@ -77,3 +78,15 @@ async def start_search(
     background_tasks.add_task(service.run_search, profile.id)
     
     return {"message": "Search started", "profile_id": profile.id}
+
+
+@router.get("/status/{profile_id}")
+def get_search_status(
+    profile_id: int,
+    user_id: int = Depends(get_current_user_id)
+):
+    """
+    Get the current status of a background search for the given profile.
+    Returns { "state": "unknown" } if not found.
+    """
+    return get_status(profile_id)

@@ -1,15 +1,33 @@
-import { ApiClient } from "../lib/client";
+import { client } from "../lib/client";
 
 export const JobService = {
-    getAll(applied = null) {
-        let url = "/jobs/";
-        if (applied !== null) {
-            url += `?applied=${applied}`;
+    /**
+     * Fetch jobs with optional filters and sorting.
+     * @param {Object} filters
+     * @param {number}  [filters.min_score]
+     * @param {number}  [filters.max_score]
+     * @param {number}  [filters.min_distance]
+     * @param {number}  [filters.max_distance]
+     * @param {boolean} [filters.worth_applying]
+     * @param {boolean} [filters.applied]
+     * @param {string}  [filters.sort_by]      - created_at | affinity_score | distance_km | title
+     * @param {string}  [filters.sort_order]   - asc | desc
+     */
+    async getAll(filters = {}) {
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(filters)) {
+            if (value !== null && value !== undefined && value !== "") {
+                params.append(key, String(value));
+            }
         }
-        return ApiClient.get(url);
+        const qs = params.toString();
+        const url = qs ? `/jobs/?${qs}` : "/jobs/";
+        const res = await client.get(url);
+        return res.data;
     },
 
-    update(jobId, updates) {
-        return ApiClient.patch(`/jobs/${jobId}`, updates);
-    }
+    async toggleApplied(jobId, applied) {
+        const res = await client.patch(`/jobs/${jobId}`, { applied });
+        return res.data;
+    },
 };

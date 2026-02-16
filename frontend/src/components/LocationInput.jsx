@@ -37,11 +37,29 @@ export function LocationInput({
         setIsLoading(true);
         try {
             // Limited to Switzerland (ch) for this app context, but can be global
+            // Limited to Switzerland (ch) for this app context, but can be global
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=ch&limit=5`
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=ch&addressdetails=1&limit=5`
             );
             const data = await response.json();
-            setSuggestions(data);
+
+            // Format display names
+            const formatted = data.map(item => {
+                const addr = item.address || {};
+                const city = addr.city || addr.town || addr.village || addr.municipality;
+                const state = addr.state || addr.canton;
+                let shortName = item.display_name;
+
+                if (city && state) {
+                    shortName = `${city}, ${state}`;
+                } else if (city) {
+                    shortName = city;
+                }
+
+                return { ...item, display_name: shortName, full_name: item.display_name };
+            });
+
+            setSuggestions(formatted);
             setShowSuggestions(true);
         } catch (error) {
             console.error("OSM Search Error:", error);
