@@ -214,6 +214,41 @@ class TestProfileRoutes:
         resp = client.get("/api/v1/profiles/")
         assert resp.status_code in (401, 403)
 
+    def test_profile_persistence_across_sessions(self, client):
+        """Verify profiles persist after logout/login."""
+        from unittest.mock import patch
+        
+        # 1. Register and Login User A
+        username = f"user_persist_{uuid.uuid4().hex[:6]}"
+        client.post("/api/v1/auth/register", json={"username": username, "password": "Password123!"})
+        login_resp = client.post("/api/v1/auth/login", data={"username": username, "password": "Password123!"})
+        token_a = login_resp.json()["access_token"]
+        headers_a = {"Authorization": f"Bearer {token_a}"}
+
+        # 2. Create a search profile (mocking run_search)
+        with patch("backend.services.search_service.SearchService.run_search"):
+            create_resp = client.post("/api/v1/search/start", json={
+                "name": "Persist Test",
+                "role_description": "dev",
+                "location_filter": "Luzern"
+            }, headers=headers_a)
+        assert create_resp.status_code == 200
+        
+        # 3. Logout (client side just drops token, but let's simulate new login)
+        # Login again to get a new token (or same, doesn't matter, just proving user match)
+        login_resp_2 = client.post("/api/v1/auth/login", data={"username": username, "password": "Password123!"})
+        token_b = login_resp_2.json()["access_token"]
+        headers_b = {"Authorization": f"Bearer {token_b}"}
+
+        # 4. Fetch profiles with new session
+        list_resp = client.get("/api/v1/profiles/", headers=headers_b)
+        assert list_resp.status_code == 200
+        profiles = list_resp.json()
+        
+        assert len(profiles) >= 1
+        assert any(p["name"] == "Persist Test" for p in profiles)
+        assert any(p["is_history"] is True for p in profiles)
+
 
 class TestScheduleRoutes:
     """Test schedule-related endpoints."""

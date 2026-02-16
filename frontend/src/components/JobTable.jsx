@@ -230,8 +230,11 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                                     </button>
                                 </li>
                                 {[...Array(pagination.pages)].map((_, i) => (
-                                    <li key={i} className={`page-item ${pagination.page === i + 1 ? 'active' : ''}`}>
-                                        <button className="page-link bg-dark border-secondary bg-opacity-50 text-light" onClick={() => onPageChange(i + 1)}>
+                                    <li key={i} className="page-item">
+                                        <button
+                                            className={`page-link ${pagination.page === i + 1 ? 'active bg-primary border-primary text-white' : 'bg-dark border-secondary bg-opacity-50 text-light'}`}
+                                            onClick={() => onPageChange(i + 1)}
+                                        >
                                             {i + 1}
                                         </button>
                                     </li>

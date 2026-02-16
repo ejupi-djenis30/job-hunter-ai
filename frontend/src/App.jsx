@@ -51,7 +51,7 @@ function App() {
     if (isLoggedIn) {
       fetchJobs();
     }
-  }, [filters, isLoggedIn]); // Reload when filters change
+  }, [filters, pagination.page, isLoggedIn]); // Reload when filters or page change
 
   useEffect(() => {
     if (isLoggedIn) {
