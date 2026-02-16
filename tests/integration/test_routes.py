@@ -44,7 +44,9 @@ class TestJobCRUD:
         headers = _register_and_auth(client)
         resp = client.get("/api/v1/jobs/", headers=headers)
         assert resp.status_code == 200
-        assert resp.json() == []
+        data = resp.json()
+        assert data["items"] == []
+        assert data["total"] == 0
 
     def test_list_jobs_after_create(self, client):
         headers = _register_and_auth(client)
@@ -60,7 +62,7 @@ class TestJobCRUD:
         }, headers=headers)
         resp = client.get("/api/v1/jobs/", headers=headers)
         assert resp.status_code == 200
-        assert len(resp.json()) == 2
+        assert len(resp.json()["items"]) == 2
 
     def test_patch_job_applied(self, client):
         headers = _register_and_auth(client)
@@ -141,7 +143,7 @@ class TestJobCRUD:
 
         resp = client.get("/api/v1/jobs/", headers=headers_b)
         assert resp.status_code == 200
-        assert len(resp.json()) == 0
+        assert len(resp.json()["items"]) == 0
 
     def test_filter_jobs_by_applied(self, client):
         headers = _register_and_auth(client)
@@ -162,12 +164,12 @@ class TestJobCRUD:
         # Filter applied=true
         resp = client.get("/api/v1/jobs/?applied=true", headers=headers)
         assert resp.status_code == 200
-        assert all(j["applied"] for j in resp.json())
+        assert all(j["applied"] for j in resp.json()["items"])
 
         # Filter applied=false
         resp = client.get("/api/v1/jobs/?applied=false", headers=headers)
         assert resp.status_code == 200
-        assert all(not j["applied"] for j in resp.json())
+        assert all(not j["applied"] for j in resp.json()["items"])
 
 
 class TestProfileRoutes:
@@ -180,14 +182,18 @@ class TestProfileRoutes:
         assert resp.json() == []
 
     def test_delete_profile(self, client):
+        from unittest.mock import patch
         headers = _register_and_auth(client)
 
         # Create via search/start to get a profile
-        resp = client.post("/api/v1/search/start", json={
-            "name": "Delete Me",
-            "role_description": "test",
-            "location_filter": "Zürich",
-        }, headers=headers)
+        # Mock run_search to prevent actual execution
+        with patch("backend.services.search_service.SearchService.run_search"):
+            resp = client.post("/api/v1/search/start", json={
+                "name": "Delete Me",
+                "role_description": "test",
+                "location_filter": "Zürich",
+            }, headers=headers)
+        
         profile_id = resp.json().get("profile_id")
         if profile_id is None:
             pytest.skip("Profile creation via search/start not returning profile_id")

@@ -109,7 +109,7 @@ class TestProtectedEndpoints:
         headers = self._get_auth_headers(client)
         response = client.get("/api/v1/jobs", headers=headers)
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
+        assert isinstance(response.json()["items"], list)
 
     def test_get_profiles_authenticated(self, client):
         """Should return search profiles for authenticated user."""
