@@ -1,4 +1,4 @@
-import { client } from "../lib/client";
+import { ApiClient } from "../lib/client";
 
 export const JobService = {
     /**
@@ -22,12 +22,12 @@ export const JobService = {
         }
         const qs = params.toString();
         const url = qs ? `/jobs/?${qs}` : "/jobs/";
-        const res = await client.get(url);
+        const res = await ApiClient.get(url);
         return res.data;
     },
 
     async toggleApplied(jobId, applied) {
-        const res = await client.patch(`/jobs/${jobId}`, { applied });
+        const res = await ApiClient.patch(`/jobs/${jobId}`, { applied });
         return res.data;
     },
 };
