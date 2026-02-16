@@ -1,6 +1,5 @@
-import os
-from typing import List, Union
-from pydantic import AnyHttpUrl, EmailStr, field_validator
+from typing import List, Union, Any, Optional
+from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -8,16 +7,19 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Job Hunter AI"
     
     # CORS
-    CORS_ORIGINS: List[AnyHttpUrl] = []
+    CORS_ORIGINS: Optional[str] = None
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[AnyHttpUrl]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+    @property
+    def cors_origins_list(self) -> List[str]:
+        if not self.CORS_ORIGINS:
+            return []
+        if self.CORS_ORIGINS.startswith("["):
+            import json
+            try:
+                return json.loads(self.CORS_ORIGINS)
+            except Exception:
+                pass
+        return [i.strip() for i in self.CORS_ORIGINS.split(",") if i.strip()]
 
     # Database
     DATABASE_URL: str = "sqlite:///./job_hunter.db"
@@ -43,6 +45,6 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
-    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=None, extra="ignore")
 
 settings = Settings()

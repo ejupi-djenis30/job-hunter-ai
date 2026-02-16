@@ -17,6 +17,19 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# CORS
+if settings.cors_origins_list:
+    logger.info(f"Configuring CORS with origins: {settings.cors_origins_list}")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.cors_origins_list],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    logger.warning("CORS_ORIGINS is empty, CORS middleware not added!")
+
 # Exception Handlers
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -39,16 +52,6 @@ async def core_exception_handler(request, exc):
 async def generic_exception_handler(request, exc):
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
-
-# CORS
-if settings.CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.CORS_ORIGINS],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
 # Routes
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
