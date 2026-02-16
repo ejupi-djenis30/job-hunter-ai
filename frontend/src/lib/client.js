@@ -1,0 +1,65 @@
+export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+
+export class ApiClient {
+    static getToken() {
+        return localStorage.getItem("jh_token");
+    }
+
+    static getHeaders() {
+        const token = this.getToken();
+        const headers = {
+            "Content-Type": "application/json",
+        };
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+        return headers;
+    }
+
+    static async request(endpoint, options = {}) {
+        const url = `${API_BASE}${endpoint}`;
+        const config = {
+            ...options,
+            headers: {
+                ...this.getHeaders(),
+                ...options.headers,
+            },
+        };
+
+        const response = await fetch(url, config);
+
+        if (response.status === 401) {
+            // Handle unauthorized (logout?)
+            throw new Error("UNAUTHORIZED");
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || "API Request Failed");
+        }
+
+        return response.json();
+    }
+
+    static async get(endpoint) {
+        return this.request(endpoint, { method: "GET" });
+    }
+
+    static async post(endpoint, body) {
+        return this.request(endpoint, {
+            method: "POST",
+            body: JSON.stringify(body),
+        });
+    }
+
+    static async patch(endpoint, body) {
+        return this.request(endpoint, {
+            method: "PATCH",
+            body: JSON.stringify(body),
+        });
+    }
+
+    static async delete(endpoint) {
+        return this.request(endpoint, { method: "DELETE" });
+    }
+}

@@ -1,79 +1,65 @@
-"""
-Job Hunter AI — FastAPI Application
-
-Self-hosted, AI-powered Swiss job search platform.
-Supports SQLite (default) and PostgreSQL backends.
-"""
-
-import os
-import logging
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
+import logging
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+from backend.core.config import settings
+from backend.api import auth, jobs, search, profiles, schedules
 
-# Load environment variables
-load_dotenv()
-load_dotenv("backend/.env")
-
-# ─── Logging ───
-LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+# Logging
 logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
     format="%(asctime)s │ %(levelname)-8s │ %(name)s │ %(message)s",
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
 
-# ─── Database setup ───
-from backend import models, database  # noqa: E402
-
-models.Base.metadata.create_all(bind=database.engine)
-
-# ─── Scheduler lifecycle ───
-from backend.services.scheduler import start_scheduler, stop_scheduler  # noqa: E402
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    start_scheduler()
-    logger.info("Application started")
-    yield
-    stop_scheduler()
-    logger.info("Application stopped")
-
-
-# ─── App ───
 app = FastAPI(
-    title="Job Hunter AI",
-    description="AI-powered Swiss job search platform",
-    version="1.0.0",
-    lifespan=lifespan,
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# ─── CORS ───
-CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[o.strip() for o in CORS_ORIGINS.split(",")],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Exception Handlers
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from backend.core.exceptions import CoreException
 
-# ─── Routes ───
-from backend.routes import auth, jobs, search, profiles  # noqa: E402
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-app.include_router(auth.router)
-app.include_router(jobs.router)
-app.include_router(search.router)
-app.include_router(profiles.router)
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return JSONResponse(status_code=422, content={"detail": exc.errors(), "message": "Validation Error"})
 
+@app.exception_handler(CoreException)
+async def core_exception_handler(request, exc):
+    return JSONResponse(status_code=400, content={"detail": str(exc), "message": "Application Error"})
 
-@app.get("/", tags=["Health"])
+@app.exception_handler(Exception)
+async def generic_exception_handler(request, exc):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+# CORS
+if settings.CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.CORS_ORIGINS],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Routes
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+app.include_router(jobs.router, prefix=f"{settings.API_V1_STR}/jobs", tags=["jobs"])
+app.include_router(search.router, prefix=f"{settings.API_V1_STR}/search", tags=["search"])
+app.include_router(profiles.router, prefix=f"{settings.API_V1_STR}/profiles", tags=["profiles"])
+app.include_router(schedules.router, prefix=f"{settings.API_V1_STR}/schedules", tags=["schedules"])
+
+@app.get("/")
 def root():
     return {
-        "message": "Job Hunter AI Backend is running",
-        "database": "postgresql" if not database._is_sqlite else "sqlite",
+        "message": "Job Hunter AI API",
+        "database": settings.DATABASE_URL.split("://")[0] if settings.DATABASE_URL else "unknown"
     }

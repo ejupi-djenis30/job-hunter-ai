@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { api } from "../api";
+import { SearchService } from "../services/search";
 
 export function Schedules() {
     const [profiles, setProfiles] = useState([]);
@@ -11,7 +11,7 @@ export function Schedules() {
 
     const loadProfiles = async () => {
         try {
-            const data = await api.getProfiles();
+            const data = await SearchService.getProfiles();
             setProfiles(data);
         } catch (e) {
             console.error("Failed to load profiles:", e);
@@ -22,7 +22,7 @@ export function Schedules() {
 
     const handleToggle = async (profileId, currentEnabled, intervalHours) => {
         try {
-            await api.toggleSchedule(profileId, !currentEnabled, intervalHours);
+            await SearchService.toggleSchedule(profileId, !currentEnabled, intervalHours);
             loadProfiles();
         } catch (e) {
             alert("Failed to toggle schedule: " + e.message);
@@ -32,7 +32,7 @@ export function Schedules() {
     const handleDelete = async (profileId) => {
         if (!confirm("Delete this profile and its schedule?")) return;
         try {
-            await api.deleteProfile(profileId);
+            await SearchService.deleteProfile(profileId);
             loadProfiles();
         } catch (e) {
             alert("Failed to delete profile: " + e.message);
@@ -41,7 +41,7 @@ export function Schedules() {
 
     const handleChangeInterval = async (profileId, newInterval) => {
         try {
-            await api.toggleSchedule(profileId, true, parseInt(newInterval));
+            await SearchService.toggleSchedule(profileId, true, parseInt(newInterval));
             loadProfiles();
         } catch (e) {
             alert("Failed to update interval: " + e.message);

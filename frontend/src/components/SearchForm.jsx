@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { SearchService } from "../services/search";
 
 export function SearchForm({ onStartSearch, isLoading }) {
     const [profile, setProfile] = useState({
@@ -28,8 +29,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
         const file = e.target.files[0];
         if (!file) return;
         try {
-            const { api } = await import("../api");
-            const { text } = await api.uploadCV(file);
+            const { text } = await SearchService.uploadCV(file);
             setProfile(prev => ({ ...prev, cv_content: text }));
         } catch (err) {
             alert("Failed to upload CV: " + err.message);

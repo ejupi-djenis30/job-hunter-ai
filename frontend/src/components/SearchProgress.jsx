@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { api } from "../api";
+import { SearchService } from "../services/search";
 
 export function SearchProgress({ profileId, onStateChange, onClear }) {
     const [status, setStatus] = useState(null);
@@ -11,7 +11,7 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
 
         const poll = async () => {
             try {
-                const data = await api.getSearchStatus(profileId);
+                const data = await SearchService.getStatus(profileId);
                 setStatus(data);
 
                 // Notify parent of state changes

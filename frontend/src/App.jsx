@@ -4,16 +4,16 @@ import { SearchForm } from './components/SearchForm';
 import { SearchProgress } from './components/SearchProgress';
 import { Schedules } from './components/Schedules';
 import { Login } from './components/Login';
-import { api } from './api';
+import { AuthService } from './services/auth';
+import { JobService } from './services/jobs';
+import { SearchService } from './services/search';
 import './App.css';
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(api.isLoggedIn());
-  const [username, setUsername] = useState(api.getUsername() || "");
+  const [isLoggedIn, setIsLoggedIn] = useState(AuthService.isLoggedIn());
+  const [username, setUsername] = useState(AuthService.getUsername() || "");
 
-  useEffect(() => {
-    api.init();
-  }, []);
+  // Init auth check if needed, mostly handled by localStorage
   const [view, setView] = useState('jobs'); // jobs | new | progress | schedules
   const [jobs, setJobs] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -30,7 +30,7 @@ function App() {
 
   const fetchJobs = async () => {
     try {
-      const data = await api.getJobs();
+      const data = await JobService.getAll();
       const sorted = data.sort((a, b) => (b.affinity_score || 0) - (a.affinity_score || 0));
       setJobs(sorted);
     } catch (error) {
@@ -48,7 +48,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    api.logout();
+    AuthService.logout();
     setIsLoggedIn(false);
     setUsername("");
     setJobs([]);
@@ -60,7 +60,7 @@ function App() {
   const handleStartSearch = async (profile) => {
     setIsSearching(true);
     try {
-      const result = await api.startSearch(profile);
+      const result = await SearchService.start(profile);
       setActiveProfileId(result.profile_id);
       setSearchState("running");
       setView('progress');
@@ -87,7 +87,7 @@ function App() {
 
   const toggleApplied = async (job) => {
     try {
-      const updated = await api.updateJob(job.id, { applied: !job.applied });
+      const updated = await JobService.update(job.id, { applied: !job.applied });
       setJobs(prev => prev.map(j => j.id === job.id ? updated : j));
     } catch (error) {
       if (error.message === "UNAUTHORIZED") { handleLogout(); return; }

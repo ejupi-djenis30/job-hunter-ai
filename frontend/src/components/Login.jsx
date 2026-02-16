@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api } from "../api";
+import { AuthService } from "../services/auth";
 
 export function Login({ onLogin }) {
     const [mode, setMode] = useState("login"); // login | register
@@ -20,9 +20,9 @@ export function Login({ onLogin }) {
                     setLoading(false);
                     return;
                 }
-                await api.register(username, password);
+                await AuthService.register(username, password);
             } else {
-                await api.login(username, password);
+                await AuthService.login(username, password);
             }
             onLogin(username);
         } catch (err) {

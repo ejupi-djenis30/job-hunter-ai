@@ -10,9 +10,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy.orm import Session
 
-from backend import models
-from backend.database import SessionLocal
-from backend.services import scraper
+from backend.db.base import Base, SessionLocal
+from backend.services.search_service import get_search_service
+from backend.models import SearchProfile
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ async def _run_scheduled_search(profile_id: int):
     logger.info(f"[Scheduler] Running scheduled search for profile {profile_id}")
     db: Session = SessionLocal()
     try:
-        profile = db.query(models.SearchProfile).filter(models.SearchProfile.id == profile_id).first()
+        profile = db.query(SearchProfile).filter(SearchProfile.id == profile_id).first()
         if not profile:
             logger.warning(f"[Scheduler] Profile {profile_id} not found, removing job")
             remove_schedule(profile_id)
@@ -48,7 +48,8 @@ async def _run_scheduled_search(profile_id: int):
         db.commit()
         
         # Run the search workflow
-        await scraper.run_search_workflow(profile_id, db)
+        search_service = get_search_service(db)
+        await search_service.run_search(profile_id)
         
         logger.info(f"[Scheduler] Completed scheduled search for profile {profile_id}")
     except Exception as e:
@@ -112,8 +113,8 @@ def start_scheduler():
     # Load saved schedules from DB
     db: Session = SessionLocal()
     try:
-        profiles = db.query(models.SearchProfile).filter(
-            models.SearchProfile.schedule_enabled == True
+        profiles = db.query(SearchProfile).filter(
+            SearchProfile.schedule_enabled == True
         ).all()
         
         for profile in profiles:
