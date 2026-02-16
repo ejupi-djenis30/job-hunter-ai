@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
+    # Ollama Defaults
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
+    OLLAMA_MODEL: str = "llama3"
+
     model_config = SettingsConfigDict(
         case_sensitive=True, 
         env_file=".env", 

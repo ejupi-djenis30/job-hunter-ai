@@ -58,92 +58,99 @@ export function Schedules() {
 
     if (!profiles.length) {
         return (
-            <div className="card bg-dark border-secondary">
-                <div className="card-body text-center py-5">
+            <div className="glass-card text-center py-5 animate-fade-in">
+                <div className="card-body">
+                    <i className="bi bi-calendar-x display-4 text-secondary opacity-50 mb-3"></i>
                     <p className="fs-5 text-secondary mb-1">No search profiles yet</p>
-                    <p className="text-secondary small">Start a new search to create a profile</p>
+                    <p className="text-secondary small">Start a new search to create a profile and enable auto-scheduling.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div>
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0 text-light"><i className="bi bi-clock-history me-2"></i>Scheduled Searches</h5>
-                <button onClick={loadProfiles} className="btn btn-sm btn-outline-secondary">
-                    <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+        <div className="animate-fade-in">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="mb-0 text-light fw-bold"><i className="bi bi-clock-history me-2 text-primary"></i>Scheduled Searches</h5>
+                <button onClick={loadProfiles} className="btn btn-sm btn-outline-secondary border-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
+                    <i className="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
 
-            <div className="row g-3">
+            <div className="row g-4">
                 {profiles.map(p => (
                     <div key={p.id} className="col-md-6 col-lg-4">
-                        <div className={`card bg-dark border-${p.schedule_enabled ? 'success' : 'secondary'}`}>
-                            <div className="card-body">
-                                <div className="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h6 className="text-light mb-0">{p.name}</h6>
-                                        <small className="text-secondary">#{p.id}</small>
+                        <div className={`glass-card h-100 ${p.schedule_enabled ? 'border-primary border-opacity-50' : ''}`}>
+                            <div className="card-body d-flex flex-column">
+                                <div className="d-flex justify-content-between align-items-start mb-3">
+                                    <div className="overflow-hidden me-2">
+                                        <h6 className="text-light mb-0 text-truncate fw-bold">{p.name}</h6>
+                                        <small className="text-secondary opacity-75">ID: {p.id}</small>
                                     </div>
-                                    <div className="form-check form-switch">
+                                    <div className="form-check form-switch shrink-0">
                                         <input
                                             className="form-check-input"
                                             type="checkbox"
                                             checked={p.schedule_enabled || false}
                                             onChange={() => handleToggle(p.id, p.schedule_enabled, p.schedule_interval_hours)}
+                                            style={{ cursor: 'pointer' }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="mb-2">
-                                    <small className="text-secondary d-block">
-                                        <i className="bi bi-geo-alt me-1"></i> {p.location_filter || "Any"}
-                                    </small>
-                                    <small className="text-secondary d-block" style={{
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        maxWidth: "100%"
-                                    }}>
-                                        <i className="bi bi-crosshair me-1"></i> {p.role_description ? p.role_description.substring(0, 60) + (p.role_description.length > 60 ? '...' : '') : "No description"}
-                                    </small>
+                                <div className="mb-3 flex-grow-1">
+                                    <div className="d-flex align-items-center mb-2 text-secondary small">
+                                        <i className="bi bi-geo-alt me-2 text-primary opacity-75"></i>
+                                        <span className="text-truncate">{p.location_filter || "Any Location"}</span>
+                                    </div>
+                                    <div className="d-flex align-items-start mb-2 text-secondary small">
+                                        <i className="bi bi-briefcase me-2 text-primary opacity-75 mt-1"></i>
+                                        <span className="text-truncate-2">{p.role_description || "No description"}</span>
+                                    </div>
                                 </div>
 
-                                {p.schedule_enabled && (
-                                    <div className="mb-2">
-                                        <select
-                                            className="form-select form-select-sm bg-dark text-light border-secondary"
-                                            value={p.schedule_interval_hours || 24}
-                                            onChange={(e) => handleChangeInterval(p.id, e.target.value)}
-                                        >
-                                            <option value="1">Every 1h</option>
-                                            <option value="3">Every 3h</option>
-                                            <option value="6">Every 6h</option>
-                                            <option value="12">Every 12h</option>
-                                            <option value="24">Every 24h</option>
-                                            <option value="48">Every 48h</option>
-                                            <option value="72">Every 72h</option>
-                                        </select>
-                                    </div>
-                                )}
-
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <small className={p.schedule_enabled ? "text-success" : "text-secondary"}>
-                                        {p.schedule_enabled ? <><i className="bi bi-circle-fill me-1"></i>Active</> : <><i className="bi bi-circle me-1"></i>Inactive</>}
-                                    </small>
-                                    {p.last_scheduled_run && (
-                                        <small className="text-secondary">
-                                            Last: {new Date(p.last_scheduled_run).toLocaleString()}
-                                        </small>
+                                <div className="pt-3 border-top border-secondary border-opacity-25 mt-auto">
+                                    {p.schedule_enabled && (
+                                        <div className="mb-3">
+                                            <div className="input-group input-group-sm">
+                                                <span className="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">Every</span>
+                                                <select
+                                                    className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                                    value={p.schedule_interval_hours || 24}
+                                                    onChange={(e) => handleChangeInterval(p.id, e.target.value)}
+                                                >
+                                                    <option value="1">1h</option>
+                                                    <option value="3">3h</option>
+                                                    <option value="6">6h</option>
+                                                    <option value="12">12h</option>
+                                                    <option value="24">24h</option>
+                                                    <option value="48">48h</option>
+                                                    <option value="72">72h</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     )}
-                                    <button
-                                        className="btn btn-sm btn-outline-danger"
-                                        onClick={() => handleDelete(p.id)}
-                                        title="Delete profile"
-                                    >
-                                        <i className="bi bi-trash"></i>
-                                    </button>
+
+                                    <div className="d-flex justify-content-between align-items-end">
+                                        <div>
+                                            <div className={`badge ${p.schedule_enabled ? "bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" : "bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25"} mb-1`}>
+                                                {p.schedule_enabled ? <><i className="bi bi-lightning-fill me-1"></i>Active</> : "Inactive"}
+                                            </div>
+                                            {p.last_scheduled_run && (
+                                                <div className="text-secondary small" style={{ fontSize: '0.75rem' }}>
+                                                    Last run: {new Date(p.last_scheduled_run).toLocaleDateString()}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <button
+                                            className="btn btn-sm btn-outline-danger border-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+                                            style={{ width: 32, height: 32 }}
+                                            onClick={() => handleDelete(p.id)}
+                                            title="Delete profile"
+                                        >
+                                            <i className="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

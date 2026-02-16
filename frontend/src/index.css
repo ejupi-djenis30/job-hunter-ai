@@ -1,25 +1,145 @@
+/* Google Fonts: Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Color Palette */
+  --bg-dark: #0f172a;
+  /* Slate 900 */
+  --bg-card: #1e293b;
+  /* Slate 800 */
+  --text-primary: #f8fafc;
+  /* Slate 50 */
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+
+  /* Brand Colors */
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  /* Indigo -> Violet */
+  --primary-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+
+  /* Status Colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* UI Effects */
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
 body {
-  background-color: #1a1d23;
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Typography & Utilities ─── */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.text-gradient {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Components ─── */
+
+/* Glassmorphism Card */
+.glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--glass-border);
+  border-radius: 1rem;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Modern Buttons */
+.btn-primary {
+  background: var(--primary-gradient);
+  border: none;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.btn-outline-secondary {
+  border-color: rgba(148, 163, 184, 0.2);
+  color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+/* Match Scores */
+.score-badge {
+  font-weight: 700;
+  padding: 0.35em 0.65em;
+  border-radius: 0.5rem;
+  letter-spacing: -0.01em;
 }
 
 .score-high {
-  color: #198754;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .score-mid {
-  color: #ffc107;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.1);
 }
 
 .score-low {
-  color: #dc3545;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.btn-search {
-  background: linear-gradient(135deg, #0d6efd, #6610f2);
-  border: none;
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.btn-search:hover {
-  background: linear-gradient(135deg, #0b5ed7, #520dc2);
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Data Tables Override */
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+}
+
+.table> :not(caption)>*>* {
+  border-color: rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
 }

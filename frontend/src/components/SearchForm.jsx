@@ -57,44 +57,51 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
     return (
         <div className="row justify-content-center">
-            <div className="col-lg-8">
-                <div className="card bg-dark border-secondary">
-                    <div className="card-header border-secondary">
-                        <h5 className="mb-0 text-light"><i className="bi bi-search me-2"></i>New Search</h5>
+            <div className="col-lg-8 animate-fade-in">
+                <div className="glass-card overflow-hidden">
+                    <div className="card-header bg-transparent border-secondary border-opacity-25 py-3">
+                        <h5 className="mb-0 text-light fw-bold"><i className="bi bi-search me-2 text-primary"></i>New Job Search</h5>
                     </div>
-                    <div className="card-body">
+                    <div className="card-body p-4">
                         <form onSubmit={handleSubmit}>
                             {/* Role Description */}
-                            <div className="mb-3">
-                                <label className="form-label text-light">What are you looking for?</label>
+                            <div className="mb-4">
+                                <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
+                                    <i className="bi bi-person-workspace me-1 text-primary"></i>What are you looking for?
+                                </label>
                                 <textarea
                                     name="role_description"
                                     value={profile.role_description}
                                     onChange={handleChange}
                                     placeholder="e.g. Senior Python Backend Developer, seeking remote work..."
-                                    className="form-control bg-dark text-light border-secondary"
-                                    rows="4"
+                                    className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                    rows="3"
                                     required
+                                    style={{ backdropFilter: 'blur(5px)' }}
                                 />
                             </div>
 
                             {/* CV Upload (Required) */}
-                            <div className="mb-3">
-                                <label className="form-label text-light">Upload CV <span className="text-danger">*</span></label>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.txt,.md"
-                                    onChange={handleCVUpload}
-                                    className="form-control form-control-sm bg-dark text-light border-secondary"
-                                />
+                            <div className="mb-4">
+                                <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
+                                    <i className="bi bi-file-earmark-text me-1 text-primary"></i>Upload CV <span className="text-danger">*</span>
+                                </label>
+                                <div className="input-group">
+                                    <input
+                                        type="file"
+                                        accept=".pdf,.txt,.md"
+                                        onChange={handleCVUpload}
+                                        className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                    />
+                                </div>
                                 {profile.cv_content ? (
-                                    <small className="text-success"><i className="bi bi-check-lg me-1"></i>CV loaded — AI will use it for keyword generation</small>
+                                    <small className="text-success d-block mt-2"><i className="bi bi-check-lg me-1"></i>CV loaded — AI will use it for keyword generation</small>
                                 ) : (
-                                    <small className="text-warning"><i className="bi bi-exclamation-triangle me-1"></i>Required: AI generates searches from your CV</small>
+                                    <small className="text-warning d-block mt-2"><i className="bi bi-exclamation-triangle me-1"></i>Required: AI generates searches from your CV</small>
                                 )}
                             </div>
 
-                            <div className="row g-3 mb-3">
+                            <div className="row g-4 mb-4">
                                 {/* Location with Autocomplete */}
                                 <div className="col-md-6">
                                     <LocationInput
@@ -107,12 +114,14 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
                                 {/* Workload */}
                                 <div className="col-md-6">
-                                    <label className="form-label text-light"><i className="bi bi-briefcase me-1"></i>Workload</label>
+                                    <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
+                                        <i className="bi bi-briefcase me-1 text-primary"></i>Workload
+                                    </label>
                                     <select
                                         name="workload_filter"
                                         value={profile.workload_filter}
                                         onChange={handleChange}
-                                        className="form-select bg-dark text-light border-secondary"
+                                        className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
                                     >
                                         <option value="80-100">80-100%</option>
                                         <option value="100">100%</option>
@@ -123,12 +132,14 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
                                 {/* Scrape Mode */}
                                 <div className="col-md-6">
-                                    <label className="form-label text-light"><i className="bi bi-lightning me-1"></i>Scrape Speed</label>
+                                    <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
+                                        <i className="bi bi-lightning me-1 text-primary"></i>Scrape Speed
+                                    </label>
                                     <select
                                         name="scrape_mode"
                                         value={profile.scrape_mode}
                                         onChange={handleChange}
-                                        className="form-select bg-dark text-light border-secondary"
+                                        className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
                                     >
                                         <option value="sequential">Sequential (1 req/sec, safer)</option>
                                         <option value="immediate">Immediate (all at once, faster)</option>
@@ -137,35 +148,37 @@ export function SearchForm({ onStartSearch, isLoading }) {
                             </div>
 
                             {/* AI Strategy */}
-                            <div className="mb-3">
-                                <label className="form-label text-light"><i className="bi bi-robot me-1"></i>AI Strategy</label>
+                            <div className="mb-4">
+                                <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
+                                    <i className="bi bi-robot me-1 text-primary"></i>AI Strategy
+                                </label>
                                 <textarea
                                     name="search_strategy"
                                     value={profile.search_strategy}
                                     onChange={handleChange}
                                     placeholder="Instructions for the AI agent..."
-                                    className="form-control bg-dark text-light border-secondary"
+                                    className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
                                     rows="2"
                                 />
                             </div>
 
                             {/* Advanced Toggle */}
-                            <div className="mb-3">
+                            <div className="mb-4">
                                 <button
                                     type="button"
-                                    className="btn btn-sm btn-outline-secondary"
+                                    className="btn btn-sm btn-outline-secondary rounded-pill px-3"
                                     onClick={() => setShowAdvanced(!showAdvanced)}
                                 >
-                                    <i className="bi bi-gear me-1"></i> Advanced Filters <i className={`bi bi-chevron-${showAdvanced ? 'up' : 'down'} ms-1`}></i>
+                                    <i className="bi bi-sliders me-1"></i> Advanced Filters <i className={`bi bi-chevron-${showAdvanced ? 'up' : 'down'} ms-1`}></i>
                                 </button>
                             </div>
 
                             {showAdvanced && (
-                                <div className="card bg-black bg-opacity-25 border-secondary mb-3">
+                                <div className="card bg-black bg-opacity-25 border-secondary border-opacity-25 mb-4">
                                     <div className="card-body">
                                         <div className="row g-3">
                                             <div className="col-md-6">
-                                                <label className="form-label text-secondary">
+                                                <label className="form-label text-secondary small">
                                                     Max Distance: <strong className="text-light">{profile.max_distance} km</strong>
                                                 </label>
                                                 <input
@@ -179,7 +192,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 />
                                             </div>
                                             <div className="col-md-6">
-                                                <label className="form-label text-secondary">
+                                                <label className="form-label text-secondary small">
                                                     Posted Within: <strong className="text-light">{profile.posted_within_days} days</strong>
                                                 </label>
                                                 <input
@@ -193,25 +206,25 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 />
                                             </div>
                                             <div className="col-md-6">
-                                                <label className="form-label text-secondary">Latitude</label>
+                                                <label className="form-label text-secondary small">Latitude</label>
                                                 <input
                                                     type="number"
                                                     name="latitude"
                                                     step="0.0001"
                                                     value={profile.latitude}
                                                     onChange={handleChange}
-                                                    className="form-control form-control-sm bg-dark text-light border-secondary font-monospace"
+                                                    className="form-control form-control-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 font-monospace"
                                                 />
                                             </div>
                                             <div className="col-md-6">
-                                                <label className="form-label text-secondary">Longitude</label>
+                                                <label className="form-label text-secondary small">Longitude</label>
                                                 <input
                                                     type="number"
                                                     name="longitude"
                                                     step="0.0001"
                                                     value={profile.longitude}
                                                     onChange={handleChange}
-                                                    className="form-control form-control-sm bg-dark text-light border-secondary font-monospace"
+                                                    className="form-control form-control-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 font-monospace"
                                                 />
                                             </div>
                                         </div>
@@ -220,10 +233,10 @@ export function SearchForm({ onStartSearch, isLoading }) {
                             )}
 
                             {/* Schedule */}
-                            <div className="card bg-black bg-opacity-25 border-secondary mb-3">
+                            <div className="card bg-black bg-opacity-25 border-secondary border-opacity-25 mb-4">
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <label className="form-label text-light mb-0"><i className="bi bi-clock-history me-1"></i>Auto-Repeat Search</label>
+                                        <label className="form-label text-light mb-0 fw-bold"><i className="bi bi-clock-history me-2 text-primary"></i>Auto-Repeat Search</label>
                                         <div className="form-check form-switch">
                                             <input
                                                 className="form-check-input"
@@ -233,6 +246,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                     ...prev,
                                                     schedule_enabled: e.target.checked
                                                 }))}
+                                                style={{ width: '2.5em', height: '1.25em', cursor: 'pointer' }}
                                             />
                                         </div>
                                     </div>
@@ -243,7 +257,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 name="schedule_interval_hours"
                                                 value={profile.schedule_interval_hours}
                                                 onChange={handleChange}
-                                                className="form-select form-select-sm bg-dark text-light border-secondary"
+                                                className="form-select form-select-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 w-auto d-inline-block ms-2"
                                             >
                                                 <option value="1">Every 1 hour</option>
                                                 <option value="3">Every 3 hours</option>
@@ -253,8 +267,8 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 <option value="48">Every 48 hours</option>
                                                 <option value="72">Every 72 hours</option>
                                             </select>
-                                            <small className="text-info d-block mt-1">
-                                                <i className="bi bi-arrow-repeat me-1"></i>This search will run automatically every {profile.schedule_interval_hours}h while the server is running.
+                                            <small className="text-info d-block mt-2">
+                                                <i className="bi bi-info-circle me-1"></i>This search will run automatically every {profile.schedule_interval_hours}h while the server is running.
                                             </small>
                                         </div>
                                     )}
@@ -265,7 +279,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="btn btn-search btn-lg w-100 text-white fw-semibold"
+                                className="btn btn-primary btn-lg w-100 text-white fw-bold py-3 rounded-3 shadow-lg"
                             >
                                 {isLoading ? (
                                     <>
@@ -273,7 +287,7 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                         Launching AI Agents...
                                     </>
                                 ) : (
-                                    <><i className="bi bi-play-fill me-2"></i>Start Intelligent Search</>
+                                    <><i className="bi bi-rocket-takeoff me-2"></i>Start Intelligent Search</>
                                 )}
                             </button>
                         </form>

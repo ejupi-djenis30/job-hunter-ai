@@ -135,25 +135,24 @@ export function LocationInput({
 
     return (
         <div className="position-relative" ref={wrapperRef}>
-            <label className="form-label text-light">
-                <i className="bi bi-geo-alt me-1"></i>Location
+            <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
+                <i className="bi bi-geo-alt me-1 text-primary"></i>Location
             </label>
             <div className="input-group">
+                <span className="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-primary">
+                    <i className="bi bi-search"></i>
+                </span>
                 <input
                     type="text"
-                    className="form-control bg-dark text-light border-secondary"
+                    className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 py-2"
                     placeholder="Search city or address..."
                     value={query}
-                    onChange={(e) => {
-                        setQuery(e.target.value);
-                        // Also update parent plain text immediately if they just type generic text
-                        // but don't set lat/lon yet
-                        // onLocationChange({ name: e.target.value, lat: null, lon: null }); 
-                    }}
+                    onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => query.length >= 3 && setShowSuggestions(true)}
+                    style={{ backdropFilter: 'blur(5px)' }}
                 />
                 <button
-                    className="btn btn-outline-secondary"
+                    className="btn btn-outline-secondary border-opacity-25"
                     type="button"
                     onClick={handleCurrentLocation}
                     title="Use Current Location"
@@ -164,25 +163,32 @@ export function LocationInput({
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-                <ul className="list-group position-absolute w-100 z-3 shadow mt-1">
-                    {suggestions.map((item) => (
-                        <button
-                            key={item.place_id}
-                            type="button"
-                            className="list-group-item list-group-item-action bg-dark text-light border-secondary text-start"
-                            onClick={() => handleSelect(item)}
-                        >
-                            <small>{item.display_name}</small>
-                        </button>
-                    ))}
-                </ul>
+                <div className="position-absolute w-100 z-3 mt-2">
+                    <div className="glass-card overflow-hidden border-0 shadow-lg" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        <ul className="list-group list-group-flush bg-transparent">
+                            {suggestions.map((item) => (
+                                <button
+                                    key={item.place_id}
+                                    type="button"
+                                    className="list-group-item list-group-item-action bg-transparent text-light border-secondary border-opacity-10 px-3 py-2 text-start"
+                                    onClick={() => handleSelect(item)}
+                                >
+                                    <div className="d-flex align-items-center">
+                                        <i className="bi bi-geo-alt-fill text-primary me-2 opacity-75"></i>
+                                        <small>{item.display_name}</small>
+                                    </div>
+                                </button>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
             )}
 
             {/* Debug/Info: Show verified coordinates if present */}
             {latitude && longitude && (
-                <div className="form-text text-success">
+                <div className="form-text text-success mt-2 d-flex align-items-center small">
                     <i className="bi bi-check-circle-fill me-1"></i>
-                    Coordinates set: {Number(latitude).toFixed(4)}, {Number(longitude).toFixed(4)}
+                    <span>Coords set: {Number(latitude).toFixed(4)}, {Number(longitude).toFixed(4)}</span>
                 </div>
             )}
         </div>

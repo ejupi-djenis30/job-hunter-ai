@@ -121,65 +121,68 @@ function App() {
   const avgScore = totalJobs > 0 ? Math.round(jobs.reduce((acc, j) => acc + (j.affinity_score || 0), 0) / totalJobs) : 0;
 
   return (
-    <div className="min-vh-100">
+    <div className="min-vh-100 text-light">
       {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary sticky-top">
+      <nav className="navbar navbar-expand-lg navbar-dark fixed-top border-bottom border-secondary border-opacity-10" style={{ backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)' }}>
         <div className="container">
-          <span className="navbar-brand fw-bold d-flex align-items-center">
-            <i className="bi bi-crosshair me-2 text-primary"></i>
-            JobHunter<span className="text-primary">.ai</span>
+          <span className="navbar-brand fw-bold d-flex align-items-center fs-4">
+            <div className="rounded-circle bg-primary bg-gradient d-flex align-items-center justify-content-center me-2" style={{ width: 40, height: 40, boxShadow: '0 0 15px rgba(99, 102, 241, 0.5)' }}>
+              <i className="bi bi-search text-white"></i>
+            </div>
+            <span className="tracking-tight">JobHunter<span className="text-secondary opacity-50">.ai</span></span>
           </span>
 
-          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <button className="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span className="navbar-toggler-icon"></span>
           </button>
 
           <div className="collapse navbar-collapse" id="navbarNav">
-            <div className="navbar-nav me-auto mb-2 mb-lg-0">
+            <div className="navbar-nav ms-auto mb-2 mb-lg-0 gap-1">
               <button
-                className={`nav-link btn btn-link text-start ${view === 'jobs' ? 'active text-primary' : ''}`}
+                className={`nav-link btn btn-link text-start px-3 rounded-pill ${view === 'jobs' ? 'active bg-white bg-opacity-10 text-white fw-medium' : 'text-secondary'}`}
                 onClick={() => { setView('jobs'); }}
               >
-                <i className="bi bi-layout-text-sidebar-reverse me-1"></i>
-                Dashboard {totalJobs > 0 && <span className="badge bg-secondary ms-1">{totalJobs}</span>}
+                <i className="bi bi-grid me-2"></i>Dashboard
+                {totalJobs > 0 && <span className="badge bg-primary rounded-pill ms-2">{totalJobs}</span>}
               </button>
 
               {/* Persistent search tab */}
               {activeProfileId && (
                 <button
-                  className={`nav-link btn btn-link text-start ${view === 'progress' ? 'active' : ''} ${searchState === 'done' ? 'text-success' : searchState === 'error' ? 'text-danger' : 'text-warning'
-                    }`}
+                  className={`nav-link btn btn-link text-start px-3 rounded-pill ${view === 'progress' ? 'active bg-white bg-opacity-10' : ''} ${searchState === 'done' ? 'text-success' : searchState === 'error' ? 'text-danger' : 'text-warning'}`}
                   onClick={() => setView('progress')}
                 >
-                  {searchState === 'running' && <><i className="bi bi-arrow-clockwise me-1 spinner-border-sm"></i>Searching...</>}
-                  {searchState === 'done' && <><i className="bi bi-check-circle me-1"></i>Searched</>}
-                  {searchState === 'error' && <><i className="bi bi-exclamation-triangle me-1"></i>Error</>}
+                  {searchState === 'running' && <><i className="bi bi-arrow-clockwise me-2 spinner-border-sm"></i>Searching</>}
+                  {searchState === 'done' && <><i className="bi bi-check-circle me-2"></i>Results</>}
+                  {searchState === 'error' && <><i className="bi bi-exclamation-triangle me-2"></i>Error</>}
                 </button>
               )}
 
               <button
-                className={`nav-link btn btn-link text-start ${view === 'schedules' ? 'active text-primary' : ''}`}
+                className={`nav-link btn btn-link text-start px-3 rounded-pill ${view === 'schedules' ? 'active bg-white bg-opacity-10 text-white fw-medium' : 'text-secondary'}`}
                 onClick={() => setView('schedules')}
               >
-                <i className="bi bi-clock-history me-1"></i> Schedules
+                <i className="bi bi-clock me-2"></i>Schedules
               </button>
 
               <button
-                className={`nav-link btn btn-link text-start ${view === 'new' ? 'active text-primary' : ''}`}
+                className={`nav-link btn btn-link text-start px-3 rounded-pill ${view === 'new' ? 'active bg-white bg-opacity-10 text-white fw-medium' : 'text-secondary'}`}
                 onClick={() => setView('new')}
               >
-                <i className="bi bi-plus-circle me-1"></i> New Search
+                <i className="bi bi-plus-lg me-2"></i>New Search
               </button>
             </div>
 
             {/* User / Logout */}
-            <div className="d-flex align-items-center gap-3 border-top border-lg-0 pt-2 pt-lg-0 mt-2 mt-lg-0">
+            <div className="d-flex align-items-center gap-3 border-start border-secondary border-opacity-25 ms-lg-3 ps-lg-3 pt-2 pt-lg-0">
               <div className="d-flex align-items-center text-secondary">
-                <i className="bi bi-person-circle me-2"></i>
-                <small>{username}</small>
+                <div className="avatar bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: 32, height: 32 }}>
+                  <i className="bi bi-person-fill"></i>
+                </div>
+                <small className="fw-medium">{username}</small>
               </div>
-              <button className="btn btn-sm btn-outline-danger" onClick={handleLogout}>
-                <i className="bi bi-box-arrow-right me-1"></i> Logout
+              <button className="btn btn-sm btn-outline-secondary rounded-pill px-3 border-opacity-25" onClick={handleLogout}>
+                <i className="bi bi-box-arrow-right"></i>
               </button>
             </div>
           </div>
@@ -187,37 +190,39 @@ function App() {
       </nav>
 
       {/* Content */}
-      <div className="container py-4">
+      <div className="container py-5 mt-5">
         {view === 'new' ? (
-          <SearchForm onStartSearch={handleStartSearch} isLoading={isSearching} />
+          <div className="animate-fade-in text-center py-5">
+            <h2 className="display-5 fw-bold mb-4">Launch New Search</h2>
+            <div className="mx-auto" style={{ maxWidth: 800 }}>
+              <SearchForm onStartSearch={handleStartSearch} isLoading={isSearching} />
+            </div>
+          </div>
         ) : view === 'schedules' ? (
           <Schedules />
         ) : view === 'jobs' ? (
-          <>
+          <div className="animate-fade-in">
             {/* Stats Row */}
-            <div className="row g-3 mb-4">
-              <div className="col-4 col-md-3">
-                <div className="card bg-dark border-secondary text-center">
-                  <div className="card-body py-3">
-                    <div className="fs-3 fw-bold text-primary">{totalJobs}</div>
-                    <small className="text-secondary">Total Jobs</small>
+            <div className="row g-4 mb-5">
+              <div className="col-12 col-md-4">
+                <div className="glass-card p-4 text-center h-100 position-relative overflow-hidden group">
+                  <div className="position-absolute top-0 end-0 p-3 opacity-10">
+                    <i className="bi bi-briefcase fs-1"></i>
                   </div>
+                  <div className="display-4 fw-bold text-gradient mb-1">{totalJobs}</div>
+                  <div className="text-secondary fw-medium text-uppercase tracking-wider small">Total Jobs</div>
                 </div>
               </div>
-              <div className="col-4 col-md-3">
-                <div className="card bg-dark border-secondary text-center">
-                  <div className="card-body py-3">
-                    <div className="fs-3 fw-bold text-warning">{avgScore}%</div>
-                    <small className="text-secondary">Avg Match</small>
-                  </div>
+              <div className="col-6 col-md-4">
+                <div className="glass-card p-4 text-center h-100">
+                  <div className="display-4 fw-bold text-warning mb-1">{avgScore}%</div>
+                  <div className="text-secondary fw-medium text-uppercase tracking-wider small">Avg Match</div>
                 </div>
               </div>
-              <div className="col-4 col-md-3">
-                <div className="card bg-dark border-secondary text-center">
-                  <div className="card-body py-3">
-                    <div className="fs-3 fw-bold text-success">{appliedCount}</div>
-                    <small className="text-secondary">Applied</small>
-                  </div>
+              <div className="col-6 col-md-4">
+                <div className="glass-card p-4 text-center h-100">
+                  <div className="display-4 fw-bold text-success mb-1">{appliedCount}</div>
+                  <div className="text-secondary fw-medium text-uppercase tracking-wider small">Applied</div>
                 </div>
               </div>
             </div>
@@ -243,7 +248,7 @@ function App() {
             />
 
             <JobTable jobs={jobs} onToggleApplied={toggleApplied} />
-          </>
+          </div>
         ) : null}
 
         {/* SearchProgress stays mounted (hidden) to preserve polling state */}
