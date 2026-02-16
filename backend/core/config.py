@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
-    model_config = SettingsConfigDict(case_sensitive=True, env_file=None, extra="ignore")
+    model_config = SettingsConfigDict(
+        case_sensitive=True, 
+        env_file=".env", 
+        extra="ignore"
+    )
 
 settings = Settings()
