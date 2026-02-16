@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { SearchService } from "../services/search";
+import { LocationInput } from "./LocationInput";
 
 export function SearchForm({ onStartSearch, isLoading }) {
     const [profile, setProfile] = useState({
@@ -23,6 +24,15 @@ export function SearchForm({ onStartSearch, isLoading }) {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProfile(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleLocationChange = (locationData) => {
+        setProfile(prev => ({
+            ...prev,
+            location_filter: locationData.name,
+            latitude: locationData.lat,
+            longitude: locationData.lon
+        }));
     };
 
     const handleCVUpload = async (e) => {
@@ -85,16 +95,13 @@ export function SearchForm({ onStartSearch, isLoading }) {
                             </div>
 
                             <div className="row g-3 mb-3">
-                                {/* Location */}
+                                {/* Location with Autocomplete */}
                                 <div className="col-md-6">
-                                    <label className="form-label text-light"><i className="bi bi-geo-alt me-1"></i>Location</label>
-                                    <input
-                                        type="text"
-                                        name="location_filter"
-                                        value={profile.location_filter}
-                                        onChange={handleChange}
-                                        placeholder="e.g. Zurich"
-                                        className="form-control bg-dark text-light border-secondary"
+                                    <LocationInput
+                                        location={profile.location_filter}
+                                        latitude={profile.latitude}
+                                        longitude={profile.longitude}
+                                        onLocationChange={handleLocationChange}
                                     />
                                 </div>
 
