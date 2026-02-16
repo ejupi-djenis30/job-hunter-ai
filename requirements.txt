@@ -29,6 +29,7 @@ tenacity>=9.0.0
 
 # ─── Data Validation ───
 pydantic>=2.10.0
+pydantic-settings>=2.0.0
 
 # ─── Scheduling ───
 apscheduler>=3.10.0

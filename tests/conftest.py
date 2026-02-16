@@ -61,7 +61,7 @@ def test_engine(test_db_path):
         connect_args={"check_same_thread": False},
     )
 
-    from backend.database import Base
+    from backend.db.base import Base
     import backend.models  # Ensure models are registered
     Base.metadata.create_all(bind=engine)
 
@@ -91,7 +91,7 @@ def client(test_engine, db_session):
     """Create a FastAPI test client with injected test DB."""
     from fastapi.testclient import TestClient
     from backend.main import app
-    from backend.database import get_db
+    from backend.db.base import get_db
 
     def override_get_db():
         try:

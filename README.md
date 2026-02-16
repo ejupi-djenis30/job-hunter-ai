@@ -738,6 +738,7 @@ We are working on a `docker-compose.yml` to launch the full stack with one comma
 ### Common Issues
 
 **1. `ModuleNotFoundError: No module named 'backend'`**
+
 - **Cause**: Python path issue.
 - **Fix**: Run uvicorn from the project root directory, not inside `backend/`.
 
@@ -747,18 +748,22 @@ We are working on a `docker-compose.yml` to launch the full stack with one comma
     ```
 
 **2. `AttributeError: type object 'Settings' has no attribute 'LLM_PROVIDER'`**
+
 - **Cause**: `.env` file is missing or not loaded.
 - **Fix**: Ensure `.env` exists in the root directory and contains `LLM_PROVIDER`.
 
 **3. Frontend shows "Network Error"**
+
 - **Cause**: Backend is not running or CORS issue.
 - **Fix**: Ensure Backend is running on port 8000. Check `CORS_ORIGINS` in `.env`.
 
 **4. "HuggingFace Token not found"**
+
 - **Cause**: Only if using local transformers (not default).
 - **Fix**: This project uses remote APIs (Groq/DeepSeek) by default, so this shouldn't happen unless you modified the code to use local models.
 
 **5. Search stuck on "Generating Queries"**
+
 - **Cause**: LLM API key might be invalid or out of credits.
 - **Fix**: Check backend logs (`uvicorn` terminal) for 401/403 errors from the LLM provider.
 
@@ -791,8 +796,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 - **Groq**: For enabling real-time LLM inference.
 - **JobRoom.ch**: For providing the data source for Swiss job seekers.
 - **React Query / Bootstrap**: For making frontend development sane.
-
----
-
-*Made with ❤️ by [Job Hunter AI Team]*
-*Version 1.0.0 - Production Ready Refactor*

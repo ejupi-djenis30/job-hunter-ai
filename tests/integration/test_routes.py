@@ -9,11 +9,11 @@ def _register_and_auth(client, username=None) -> dict:
     if username is None:
         username = f"test-{uuid.uuid4().hex[:8]}"
 
-    client.post("/auth/register", json={
+    client.post("/api/v1/auth/register", json={
         "username": username,
         "password": "TestPass123!",
     })
-    resp = client.post("/auth/login", json={
+    resp = client.post("/api/v1/auth/login", data={
         "username": username,
         "password": "TestPass123!",
     })
@@ -26,7 +26,7 @@ class TestJobCRUD:
 
     def test_create_job(self, client):
         headers = _register_and_auth(client)
-        resp = client.post("/jobs/", json={
+        resp = client.post("/api/v1/jobs/", json={
             "title": "Python Developer",
             "company": "TestCorp",
             "url": "https://example.com/job/1",
@@ -42,36 +42,36 @@ class TestJobCRUD:
 
     def test_list_jobs_empty(self, client):
         headers = _register_and_auth(client)
-        resp = client.get("/jobs/", headers=headers)
+        resp = client.get("/api/v1/jobs/", headers=headers)
         assert resp.status_code == 200
         assert resp.json() == []
 
     def test_list_jobs_after_create(self, client):
         headers = _register_and_auth(client)
-        client.post("/jobs/", json={
+        client.post("/api/v1/jobs/", json={
             "title": "Job A",
             "company": "Corp",
             "url": "https://example.com/a",
         }, headers=headers)
-        client.post("/jobs/", json={
+        client.post("/api/v1/jobs/", json={
             "title": "Job B",
             "company": "Corp",
             "url": "https://example.com/b",
         }, headers=headers)
-        resp = client.get("/jobs/", headers=headers)
+        resp = client.get("/api/v1/jobs/", headers=headers)
         assert resp.status_code == 200
         assert len(resp.json()) == 2
 
     def test_patch_job_applied(self, client):
         headers = _register_and_auth(client)
-        create_resp = client.post("/jobs/", json={
+        create_resp = client.post("/api/v1/jobs/", json={
             "title": "Patch Test",
             "company": "Corp",
             "url": "https://example.com/patch",
         }, headers=headers)
         job_id = create_resp.json()["id"]
 
-        resp = client.patch(f"/jobs/{job_id}", json={
+        resp = client.patch(f"/api/v1/jobs/{job_id}", json={
             "applied": True
         }, headers=headers)
         assert resp.status_code == 200
@@ -79,14 +79,14 @@ class TestJobCRUD:
 
     def test_patch_job_title(self, client):
         headers = _register_and_auth(client)
-        create_resp = client.post("/jobs/", json={
+        create_resp = client.post("/api/v1/jobs/", json={
             "title": "Old Title",
             "company": "Corp",
             "url": "https://example.com/title",
         }, headers=headers)
         job_id = create_resp.json()["id"]
 
-        resp = client.patch(f"/jobs/{job_id}", json={
+        resp = client.patch(f"/api/v1/jobs/{job_id}", json={
             "title": "New Title"
         }, headers=headers)
         assert resp.status_code == 200
@@ -94,21 +94,21 @@ class TestJobCRUD:
 
     def test_patch_nonexistent_job(self, client):
         headers = _register_and_auth(client)
-        resp = client.patch("/jobs/99999", json={
+        resp = client.patch("/api/v1/jobs/99999", json={
             "applied": True
         }, headers=headers)
         assert resp.status_code == 404
 
     def test_update_job_full(self, client):
         headers = _register_and_auth(client)
-        create_resp = client.post("/jobs/", json={
+        create_resp = client.post("/api/v1/jobs/", json={
             "title": "Original",
             "company": "OldCorp",
             "url": "https://example.com/old",
         }, headers=headers)
         job_id = create_resp.json()["id"]
 
-        resp = client.put(f"/jobs/{job_id}", json={
+        resp = client.patch(f"/api/v1/jobs/{job_id}", json={
             "title": "Updated",
             "company": "NewCorp",
             "url": "https://example.com/new",
@@ -121,7 +121,7 @@ class TestJobCRUD:
 
     def test_update_nonexistent_job(self, client):
         headers = _register_and_auth(client)
-        resp = client.put("/jobs/99999", json={
+        resp = client.patch("/api/v1/jobs/99999", json={
             "title": "X",
             "company": "X",
             "url": "https://x.com",
@@ -133,39 +133,39 @@ class TestJobCRUD:
         headers_a = _register_and_auth(client)
         headers_b = _register_and_auth(client)
 
-        client.post("/jobs/", json={
+        client.post("/api/v1/jobs/", json={
             "title": "A's Job",
             "company": "Corp",
             "url": "https://example.com/a",
         }, headers=headers_a)
 
-        resp = client.get("/jobs/", headers=headers_b)
+        resp = client.get("/api/v1/jobs/", headers=headers_b)
         assert resp.status_code == 200
         assert len(resp.json()) == 0
 
     def test_filter_jobs_by_applied(self, client):
         headers = _register_and_auth(client)
-        create_resp = client.post("/jobs/", json={
+        create_resp = client.post("/api/v1/jobs/", json={
             "title": "Applied Job",
             "company": "Corp",
             "url": "https://example.com/applied",
         }, headers=headers)
         job_id = create_resp.json()["id"]
-        client.patch(f"/jobs/{job_id}", json={"applied": True}, headers=headers)
+        client.patch(f"/api/v1/jobs/{job_id}", json={"applied": True}, headers=headers)
 
-        client.post("/jobs/", json={
+        client.post("/api/v1/jobs/", json={
             "title": "Not Applied",
             "company": "Corp",
             "url": "https://example.com/notapplied",
         }, headers=headers)
 
         # Filter applied=true
-        resp = client.get("/jobs/?applied=true", headers=headers)
+        resp = client.get("/api/v1/jobs/?applied=true", headers=headers)
         assert resp.status_code == 200
         assert all(j["applied"] for j in resp.json())
 
         # Filter applied=false
-        resp = client.get("/jobs/?applied=false", headers=headers)
+        resp = client.get("/api/v1/jobs/?applied=false", headers=headers)
         assert resp.status_code == 200
         assert all(not j["applied"] for j in resp.json())
 
@@ -175,7 +175,7 @@ class TestProfileRoutes:
 
     def test_list_profiles_empty(self, client):
         headers = _register_and_auth(client)
-        resp = client.get("/profiles/", headers=headers)
+        resp = client.get("/api/v1/profiles/", headers=headers)
         assert resp.status_code == 200
         assert resp.json() == []
 
@@ -183,7 +183,7 @@ class TestProfileRoutes:
         headers = _register_and_auth(client)
 
         # Create via search/start to get a profile
-        resp = client.post("/search/start", json={
+        resp = client.post("/api/v1/search/start", json={
             "name": "Delete Me",
             "role_description": "test",
             "location_filter": "Zürich",
@@ -193,17 +193,17 @@ class TestProfileRoutes:
             pytest.skip("Profile creation via search/start not returning profile_id")
 
         # Delete it
-        resp = client.delete(f"/profiles/{profile_id}", headers=headers)
+        resp = client.delete(f"/api/v1/profiles/{profile_id}", headers=headers)
         assert resp.status_code == 200
         assert "deleted" in resp.json()["message"].lower()
 
     def test_delete_nonexistent_profile(self, client):
         headers = _register_and_auth(client)
-        resp = client.delete("/profiles/99999", headers=headers)
+        resp = client.delete("/api/v1/profiles/99999", headers=headers)
         assert resp.status_code == 404
 
     def test_profiles_unauthenticated(self, client):
-        resp = client.get("/profiles/")
+        resp = client.get("/api/v1/profiles/")
         assert resp.status_code in (401, 403)
 
 
@@ -212,19 +212,19 @@ class TestScheduleRoutes:
 
     def test_list_schedules_empty(self, client):
         headers = _register_and_auth(client)
-        resp = client.get("/schedules/", headers=headers)
+        resp = client.get("/api/v1/schedules/", headers=headers)
         assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.json()["schedules"] == []
 
     def test_scheduler_status(self, client):
         headers = _register_and_auth(client)
-        resp = client.get("/schedules/status", headers=headers)
+        resp = client.get("/api/v1/schedules/status", headers=headers)
         assert resp.status_code == 200
         assert "active_jobs" in resp.json()
 
     def test_toggle_schedule_nonexistent(self, client):
         headers = _register_and_auth(client)
-        resp = client.patch("/profiles/99999/schedule", json={
+        resp = client.patch("/api/v1/profiles/99999/schedule", json={
             "enabled": True,
             "interval_hours": 12,
         }, headers=headers)
@@ -236,13 +236,13 @@ class TestSearchRoutes:
 
     def test_search_status_unknown_profile(self, client):
         headers = _register_and_auth(client)
-        resp = client.get("/search/status/99999", headers=headers)
+        resp = client.get("/api/v1/search/status/99999", headers=headers)
         assert resp.status_code == 200
         assert resp.json()["state"] == "unknown"
 
     def test_upload_cv_no_file(self, client):
         headers = _register_and_auth(client)
-        resp = client.post("/upload-cv", headers=headers)
+        resp = client.post("/api/v1/search/upload-cv", headers=headers)
         assert resp.status_code == 422  # Missing file
 
 
