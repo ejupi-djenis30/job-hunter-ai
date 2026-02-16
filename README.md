@@ -80,6 +80,7 @@ This project is designed to be **self-hosted**, ensuring your data (CV, search p
   - **Groq** (Llama 3, Mixtral) - Ultra-fast inference.
   - **DeepSeek** - Cost-effective coding specialist.
   - **Google Gemini** - High context window and reasoning capabilities.
+  - **Ollama** (Local) - Run privacy-focused models like Llama 3 locally.
   - **OpenAI** (GPT-4) - Industry standard for reasoning.
 
 ### 🇨🇭 Optimized for the Swiss Market
@@ -102,7 +103,8 @@ This project is designed to be **self-hosted**, ensuring your data (CV, search p
 
 ### 📊 Modern User Interface
 
-- **Responsive Dashboard**: Built with React and Bootstrap for a clean, mobile-friendly experience.
+- **Glassmorphism Design**: Premium, translucent UI with interactive gradients and animations.
+- **Mobile-First Experience**: Optimized card-based layouts for job hunting on the go.
 - **Real-time Progress**: Watch the search agent work in real-time with live log streaming.
 - **Dark Mode**: Easy on the eyes for late-night job hunting sessions.
 - **Smart Filters**: Filter jobs by Match Score, Distance, or "Worth Applying" status directly on the dashboard.
@@ -231,7 +233,8 @@ Ensure you have the following installed:
 - **Python 3.10** or higher: [Download Python](https://www.python.org/downloads/)
 - **Node.js 18** or higher (LTS recommended): [Download Node.js](https://nodejs.org/)
 - **Git**: [Download Git](https://git-scm.com/)
-- **API Key**: You need an API key for Groq, DeepSeek, or Gemini.
+- **API Key**: You need an API key for Groq, DeepSeek, or Gemini (unless using Ollama).
+- **Ollama**: (Optional) For running local models.
 
 ### Installation
 
@@ -366,6 +369,23 @@ Google's Gemini models have massive context windows, useful for very long CVs or
     LLM_PROVIDER=gemini
     LLM_API_KEY=AIza...
     LLM_MODEL=gemini-pro
+    ```
+
+#### Ollama (Local LLM - Privacy Focused)
+
+Run models like Llama 3 locally on your machine.
+
+- **Install**: [ollama.com](https://ollama.com)
+- **Pull Model**: `ollama pull llama3`
+- **Env**:
+
+    ```ini
+    LLM_PROVIDER=ollama
+    # API Key is ignored for Ollama but required by config validation
+    LLM_API_KEY=ollama
+    # Default URL is http://localhost:11434/v1
+    OLLAMA_BASE_URL=http://localhost:11434/v1
+    OLLAMA_MODEL=llama3
     ```
 
 ---
