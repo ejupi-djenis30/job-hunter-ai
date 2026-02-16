@@ -31,10 +31,10 @@ Unlike standard job boards that rely on simple keyword matching, Job Hunter AI u
     - [Environment Variables](#environment-variables)
     - [LLM Provider Setup](#llm-provider-setup)
 7. [Usage Guide](#-usage-guide)
-    - [User Registration](#user-registration)
-    - [Creating a Search Profile](#creating-a-search-profile)
-    - [Running a Search](#running-a-search)
-    - [Scheduling](#scheduling)
+    - [User Registration](#2-user-registration)
+    - [Creating a Search Profile](#3-creating-a-search-profile)
+    - [Running a Search](#4-running-a-search)
+    - [Scheduling](#6-scheduling)
 8. [API Documentation](#-api-documentation)
     - [Authentication](#authentication-endpoints)
     - [Jobs](#job-endpoints)
@@ -87,6 +87,12 @@ This project is designed to be **self-hosted**, ensuring your data (CV, search p
 - **JobRoom Integration**: Built-in adapter for `job-room.ch` (RAV/Unemployment office database).
 - **Language Support**: Capable of processing job descriptions in German, French, Italian, and English.
 - **Location Filtering**: Precise radius-based filtering (e.g., "Within 50km of Zurich").
+
+### 🌍 Location Intelligence
+
+- **OpenStreetMap Integration**: Built-in address autocomplete for Swiss locations.
+- **Geolocation**: One-click "Use My Location" to automatically infer coordinates and address.
+- **Radius Filtering**: Precise distance-based filtering from your exact coordinates.
 
 ### ⚡ Automation & Workflow
 
