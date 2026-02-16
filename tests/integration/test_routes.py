@@ -47,6 +47,8 @@ class TestJobCRUD:
         data = resp.json()
         assert data["items"] == []
         assert data["total"] == 0
+        assert data["total_applied"] == 0
+        assert data["avg_score"] == 0.0
 
     def test_list_jobs_after_create(self, client):
         headers = _register_and_auth(client)

@@ -29,7 +29,9 @@ function App() {
     page: 1,
     pages: 1,
     total: 0,
-    pageSize: 20
+    pageSize: 20,
+    total_applied: 0,
+    avg_score: 0
   });
 
   // Filter State
@@ -74,7 +76,9 @@ function App() {
         ...prev,
         total: res.total || 0,
         pages: res.pages || 1,
-        page: res.page || 1
+        page: res.page || 1,
+        total_applied: res.total_applied || 0,
+        avg_score: res.avg_score || 0
       }));
     } catch (error) {
       if (error.message === "UNAUTHORIZED") {
@@ -162,9 +166,10 @@ function App() {
 
   // ─── Logged in ───
   const safeJobs = Array.isArray(jobs) ? jobs : [];
-  const totalJobs = safeJobs.length;
-  const appliedCount = safeJobs.filter(j => j.applied).length;
-  const avgScore = totalJobs > 0 ? Math.round(safeJobs.reduce((acc, j) => acc + (j.affinity_score || 0), 0) / totalJobs) : 0;
+  // Use backend stats instead of client-side calculation
+  const totalJobs = pagination.total;
+  const appliedCount = pagination.total_applied;
+  const avgScore = Math.round(pagination.avg_score || 0);
 
   return (
     <div className="min-vh-100 text-light">

@@ -56,11 +56,23 @@ def read_jobs(
         applied=applied,
     )
     
+    stats = repo.get_stats_by_user_filtered(
+        user_id,
+        min_score=min_score,
+        max_score=max_score,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        worth_applying=worth_applying,
+        applied=applied,
+    )
+    
     return {
         "items": items,
         "total": total,
         "page": page,
-        "pages": (total + page_size - 1) // page_size
+        "pages": (total + page_size - 1) // page_size,
+        "total_applied": stats["total_applied"],
+        "avg_score": stats["avg_score"]
     }
 
 

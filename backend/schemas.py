@@ -70,6 +70,8 @@ class JobPaginationResponse(BaseModel):
     total: int
     page: int
     pages: int
+    total_applied: int
+    avg_score: float
 
 
 # ═══════════════════════════════════════
