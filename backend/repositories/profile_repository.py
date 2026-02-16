@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session
 from backend.repositories.base import BaseRepository
 from backend.models import SearchProfile

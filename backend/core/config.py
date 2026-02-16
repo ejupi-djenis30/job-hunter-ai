@@ -1,6 +1,6 @@
 import os
 from typing import List, Union
-from pydantic import AnyHttpUrl, EmailStr, validator
+from pydantic import AnyHttpUrl, EmailStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -10,7 +10,8 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[AnyHttpUrl] = []
 
-    @validator("CORS_ORIGINS", pre=True)
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[AnyHttpUrl]:
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
