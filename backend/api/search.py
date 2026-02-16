@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 
 from backend.db.base import get_db
@@ -9,43 +9,71 @@ from backend.api.deps import get_current_user_id
 
 router = APIRouter()
 
-@router.post("/start")
-async def start_search(
-    profile_data: dict, # Should use Pydantic model
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user_id)
-):
-    # In a real app we'd create/update the profile here first
-    # For now, assuming profile logic is handled or we just trigger based on ID
-    # This is a simplification during refactor to get structure right
-    
-    # Create temp profile or use existing
-    profile_repo = ProfileRepository(db)
-    job_repo = JobRepository(db)
-    service = SearchService(job_repo, profile_repo)
-    
-    # Ideally, we pass the profile_id. 
-    # If the frontend sends the full profile, we might need to save it first.
-    
-    return {"message": "Search started (mock)"}
+import fitz  # PyMuPDF
+import io
+import logging
 
-@router.get("/status/{profile_id}")
-def get_status(profile_id: int):
-    # Status logic needs to be migrated to a proper service/store
-    # Currently it was in-memory in `backend.services.search_status`
-    # We should keep using that for now or move it to redis/db
-    from backend.services.search_status import get_status
-    return get_status(profile_id)
+logger = logging.getLogger(__name__)
 
-from fastapi import UploadFile, File
+async def extract_text_from_pdf(file_content: bytes) -> str:
+    """Extract text from PDF bytes using PyMuPDF."""
+    text = ""
+    try:
+        with fitz.open(stream=file_content, filetype="pdf") as doc:
+            for page in doc:
+                text += page.get_text()
+    except Exception as e:
+        logger.error(f"Error extracting PDF text: {e}")
+        # Fallback to simple decode if it's text-based
+        try:
+            text = file_content.decode("utf-8")
+        except:
+            text = "Error: Could not extract text from file."
+    return text
 
 @router.post("/upload-cv")
 async def upload_cv(
     file: UploadFile = File(...),
     user_id: int = Depends(get_current_user_id)
 ):
-    # Process CV logic here (extract text)
-    # For now just return mock success or text
     content = await file.read()
-    return {"filename": file.filename, "content_preview": content[:100].decode("utf-8", errors="ignore")}
+    if file.filename.lower().endswith(".pdf"):
+        text = await extract_text_from_pdf(content)
+    else:
+        try:
+            text = content.decode("utf-8")
+        except:
+            text = "Error: Only PDF and Text files supported."
+    
+    return {"text": text, "filename": file.filename}
+
+@router.post("/start")
+async def start_search(
+    profile_data: dict,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
+):
+    profile_repo = ProfileRepository(db)
+    
+    # 1. Save or Update Profile
+    # In this app, we typically have one active profile per search or many.
+    # Logic: if name exists for user, update. Else create.
+    existing = db.query(profile_repo.model).filter(
+        profile_repo.model.user_id == user_id,
+        profile_repo.model.name == profile_data.get("name", "Default Profile")
+    ).first()
+    
+    if existing:
+        profile = profile_repo.update(existing, profile_data)
+    else:
+        profile_data["user_id"] = user_id
+        profile = profile_repo.create(profile_data)
+    
+    # 2. Trigger Search in Background
+    from backend.services.search_service import get_search_service
+    service = get_search_service(db)
+    
+    background_tasks.add_task(service.run_search, profile.id)
+    
+    return {"message": "Search started", "profile_id": profile.id}

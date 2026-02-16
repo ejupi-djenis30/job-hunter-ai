@@ -52,6 +52,20 @@ export class ApiClient {
         });
     }
 
+    static async postForm(endpoint, body) {
+        const formData = new URLSearchParams();
+        for (const key in body) {
+            formData.append(key, body[key]);
+        }
+        return this.request(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: formData,
+        });
+    }
+
     static async patch(endpoint, body) {
         return this.request(endpoint, {
             method: "PATCH",
