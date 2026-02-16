@@ -57,6 +57,10 @@ app.include_router(search.router, prefix=f"{settings.API_V1_STR}/search", tags=[
 app.include_router(profiles.router, prefix=f"{settings.API_V1_STR}/profiles", tags=["profiles"])
 app.include_router(schedules.router, prefix=f"{settings.API_V1_STR}/schedules", tags=["schedules"])
 
+@app.get(f"{settings.API_V1_STR}/health")
+def health():
+    return {"status": "ok"}
+
 @app.get("/")
 def root():
     return {
