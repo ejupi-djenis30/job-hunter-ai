@@ -33,6 +33,9 @@ services:
       - CORS_ORIGINS=http://localhost:5173,http://localhost:80
     ports:
       - "8000:8000"
+    command: >
+      sh -c "python -m backend.pre_start &&
+             gunicorn backend.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 2 --timeout 120"
     volumes:
       - app_data:/app/data
     healthcheck:

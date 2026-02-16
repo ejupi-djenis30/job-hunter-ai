@@ -25,12 +25,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown logic."""
     # Startup: create DB tables
-    from backend.db.base import Base, engine
-    from backend import models  # noqa: F401 — register models with metadata
-
-    logger.info("Creating database tables if they don't exist…")
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created/verified.")
+    # Moved to backend/pre_start.py to avoid race conditions with multiple workers
 
     # Startup: start scheduler
     from backend.services.scheduler import start_scheduler, stop_scheduler
