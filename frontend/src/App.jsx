@@ -45,9 +45,11 @@ function App() {
 
   // Keep track of filters in a ref for the polling interval
   const filtersRef = React.useRef(filters);
+  const paginationRef = React.useRef(pagination);
 
   useEffect(() => {
     filtersRef.current = filters;
+    paginationRef.current = pagination;
     if (isLoggedIn) {
       fetchJobs();
     }
@@ -66,9 +68,10 @@ function App() {
     try {
       // Use the ref value for polling to avoid closure staleness
       const currentFilters = isPolling ? filtersRef.current : filters;
+      const currentPage = isPolling ? paginationRef.current.page : pagination.page;
       const res = await JobService.getAll({
         ...currentFilters,
-        page: pagination.page,
+        page: currentPage,
         page_size: pagination.pageSize
       });
       setJobs(res.items || []);
