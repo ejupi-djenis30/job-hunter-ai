@@ -73,6 +73,9 @@ class SearchProfile(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     scrape_mode = Column(String, default="sequential")
+    max_queries = Column(Integer, nullable=True)
+    is_history = Column(Boolean, default=False)
+    is_stopped = Column(Boolean, default=False)
     
     # Schedule
     schedule_enabled = Column(Boolean, default=False)

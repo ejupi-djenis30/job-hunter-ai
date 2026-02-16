@@ -65,6 +65,12 @@ class Job(JobBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+class JobPaginationResponse(BaseModel):
+    items: List[Job]
+    total: int
+    page: int
+    pages: int
+
 
 # ═══════════════════════════════════════
 # Search Profile Schemas
@@ -82,6 +88,9 @@ class SearchProfileBase(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     scrape_mode: Optional[str] = "sequential"
+    max_queries: Optional[int] = None
+    is_history: Optional[bool] = False
+    is_stopped: Optional[bool] = False
     # Schedule
     schedule_enabled: Optional[bool] = False
     schedule_interval_hours: Optional[int] = 24

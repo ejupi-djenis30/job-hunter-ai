@@ -19,6 +19,10 @@ function DistanceBadge({ km }) {
 
 // Mobile Card Component
 function JobCard({ job, onToggleApplied }) {
+    // Determine if it's a "Job Room only" link situation
+    const isJobRoomOnly = job.jobroom_url && (!job.url || job.url === job.jobroom_url);
+    const applyUrl = isJobRoomOnly ? null : job.url;
+
     return (
         <div className="glass-card p-3 mb-3 position-relative group">
             <div className="d-flex justify-content-between align-items-start mb-2">
@@ -51,14 +55,19 @@ function JobCard({ job, onToggleApplied }) {
 
             <div className="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
                 <div className="d-flex gap-2">
-                    {job.url && (
-                        <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary rounded-pill">
+                    {applyUrl && (
+                        <a href={applyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary rounded-pill">
                             Apply <i className="bi bi-box-arrow-up-right ms-1"></i>
                         </a>
                     )}
                     {job.application_email && (
                         <a href={`mailto:${job.application_email}`} className="btn btn-sm btn-outline-secondary rounded-pill">
                             <i className="bi bi-envelope"></i>
+                        </a>
+                    )}
+                    {(job.jobroom_url) && (
+                        <a href={job.jobroom_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-secondary rounded-pill" title="View on Job Room">
+                            <i className="bi bi-link-45deg"></i>
                         </a>
                     )}
                 </div>
@@ -68,7 +77,7 @@ function JobCard({ job, onToggleApplied }) {
                         className="form-check-input"
                         type="checkbox"
                         checked={job.applied}
-                        onChange={() => onToggleApplied(job.id, !job.applied)}
+                        onChange={() => onToggleApplied(job)}
                         style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
                     />
                 </div>
@@ -77,7 +86,7 @@ function JobCard({ job, onToggleApplied }) {
     );
 }
 
-export function JobTable({ jobs, onToggleApplied }) {
+export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
     if (!jobs || jobs.length === 0) {
         return (
             <div className="glass-card text-center py-5 animate-fade-in">
@@ -125,7 +134,16 @@ export function JobTable({ jobs, onToggleApplied }) {
                                             {job.title}
                                         </div>
                                         <div className="small text-secondary mt-1">
-                                            {new Date(job.created_at || job.publication_date).toLocaleDateString()}
+                                            {job.publication_date && (
+                                                <span className="me-2 text-info" title="Pubblicato il">
+                                                    <i className="bi bi-calendar-event me-1"></i>
+                                                    {new Date(job.publication_date).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                            <span title="Scrappato il">
+                                                <i className="bi bi-cloud-download me-1"></i>
+                                                {new Date(job.created_at).toLocaleDateString()}
+                                            </span>
                                             {job.workload && <span className="ms-2 badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{job.workload}%</span>}
                                         </div>
                                     </td>
@@ -139,6 +157,12 @@ export function JobTable({ jobs, onToggleApplied }) {
                                             <i className="bi bi-geo-alt me-1 opacity-50"></i>
                                             {job.location || "Remote"}
                                         </div>
+                                        {job.application_email && (
+                                            <div className="small text-secondary mt-1 text-truncate" title={job.application_email}>
+                                                <i className="bi bi-envelope me-1 opacity-50"></i>
+                                                {job.application_email}
+                                            </div>
+                                        )}
                                     </td>
                                     <td><DistanceBadge km={job.distance_km} /></td>
                                     <td>
@@ -159,18 +183,33 @@ export function JobTable({ jobs, onToggleApplied }) {
                                                 className="form-check-input"
                                                 type="checkbox"
                                                 checked={job.applied}
-                                                onChange={() => onToggleApplied(job.id, !job.applied)}
+                                                onChange={() => onToggleApplied(job)}
                                                 style={{ cursor: 'pointer' }}
                                             />
                                         </div>
                                     </td>
                                     <td className="pe-4 text-end">
                                         <div className="d-flex justify-content-end gap-2">
-                                            {job.url && (
-                                                <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary rounded-pill px-3">
-                                                    Apply
-                                                </a>
-                                            )}
+                                            {(() => {
+                                                const isJobRoomOnly = job.jobroom_url && (!job.url || job.url === job.jobroom_url);
+                                                const applyUrl = isJobRoomOnly ? null : job.url;
+                                                return (
+                                                    <>
+                                                        {applyUrl && (
+                                                            <a href={applyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary rounded-pill px-3">
+                                                                Apply
+                                                            </a>
+                                                        )}
+                                                        {job.jobroom_url && (
+                                                            <a href={job.jobroom_url} target="_blank" rel="noopener noreferrer"
+                                                                className={`btn btn-sm rounded-pill px-2 ${isJobRoomOnly ? 'btn-outline-info' : 'btn-outline-secondary'}`}
+                                                                title="View on Job Room">
+                                                                <i className="bi bi-link-45deg"></i>
+                                                            </a>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </td>
                                 </tr>
@@ -178,8 +217,33 @@ export function JobTable({ jobs, onToggleApplied }) {
                         </tbody>
                     </table>
                 </div>
-                <div className="bg-dark bg-opacity-50 border-top border-secondary border-opacity-10 p-3 text-center text-secondary small">
-                    Showing {jobs.length} job{jobs.length !== 1 ? "s" : ""}
+                <div className="bg-dark bg-opacity-50 border-top border-secondary border-opacity-10 p-3 d-flex justify-content-between align-items-center">
+                    <div className="text-secondary small">
+                        Showing {(pagination.page - 1) * 20 + 1} to {Math.min(pagination.page * 20, pagination.total)} of {pagination.total} jobs
+                    </div>
+                    {pagination.pages > 1 && (
+                        <nav>
+                            <ul className="pagination pagination-sm mb-0">
+                                <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
+                                    <button className="page-link bg-dark border-secondary bg-opacity-50 text-light" onClick={() => onPageChange(pagination.page - 1)}>
+                                        <i className="bi bi-chevron-left"></i>
+                                    </button>
+                                </li>
+                                {[...Array(pagination.pages)].map((_, i) => (
+                                    <li key={i} className={`page-item ${pagination.page === i + 1 ? 'active' : ''}`}>
+                                        <button className="page-link bg-dark border-secondary bg-opacity-50 text-light" onClick={() => onPageChange(i + 1)}>
+                                            {i + 1}
+                                        </button>
+                                    </li>
+                                )).slice(Math.max(0, pagination.page - 3), Math.min(pagination.pages, pagination.page + 2))}
+                                <li className={`page-item ${pagination.page === pagination.pages ? 'disabled' : ''}`}>
+                                    <button className="page-link bg-dark border-secondary bg-opacity-50 text-light" onClick={() => onPageChange(pagination.page + 1)}>
+                                        <i className="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    )}
                 </div>
             </div>
         </div>

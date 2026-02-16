@@ -11,8 +11,7 @@ from backend.schemas import SearchProfile, SearchProfileCreate, ScheduleToggle #
 
 router = APIRouter()
 
-@router.get("/", response_model=List[dict]) 
-# Ideally response_model=List[SearchProfile] but simpler for now to avoid validation issues if schema mismatch
+@router.get("/", response_model=List[SearchProfile])
 def read_profiles(
     skip: int = 0,
     limit: int = 100,
@@ -22,21 +21,15 @@ def read_profiles(
     repo = ProfileRepository(db)
     return repo.get_by_user(user_id, skip=skip, limit=limit)
 
-@router.post("/", response_model=dict)
+@router.post("/", response_model=SearchProfile)
 def create_profile(
     profile_in: SearchProfileCreate,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id)
 ):
     repo = ProfileRepository(db)
-    # Ensure creation linked to user
-    # ProfileRepository.create takes a dictionary or object. 
-    # If using Pydantic, convert to dict.
     data = profile_in.model_dump()
     data["user_id"] = user_id
-    
-    # We might need to manually handle 'schedule_enabled' etc if not in create schema defaults effectively
-    # But repo.create usually handles model instantiation.
     return repo.create(data)
 
 @router.delete("/{profile_id}")
@@ -55,7 +48,7 @@ def delete_profile(
     repo.delete(profile_id)
     return {"message": "Profile deleted"}
 
-@router.patch("/{profile_id}/schedule")
+@router.patch("/{profile_id}/schedule", response_model=SearchProfile)
 def toggle_schedule(
     profile_id: int,
     schedule: ScheduleToggle,
@@ -69,8 +62,6 @@ def toggle_schedule(
     if profile.user_id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    # Update logic. Repository might need 'update' method.
-    # BaseRepository usually has update(db_obj, obj_in).
     update_data = {"schedule_enabled": schedule.enabled}
     if schedule.interval_hours:
         update_data["schedule_interval_hours"] = schedule.interval_hours

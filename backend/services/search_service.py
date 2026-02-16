@@ -7,7 +7,7 @@ from backend.repositories.profile_repository import ProfileRepository
 from backend.services.llm_service import llm_service
 from backend.services.utils import haversine_distance
 from backend.providers.jobs.jobroom.client import JobRoomProvider
-from backend.providers.jobs.models import JobSearchRequest, SortOrder
+from backend.providers.jobs.models import JobSearchRequest, SortOrder, RadiusSearchRequest, Coordinates
 from backend.models import Job
 from backend.core.config import settings
 from backend.services.search_status import (
@@ -45,7 +45,7 @@ class SearchService:
 
         try:
             searches = await asyncio.to_thread(
-                llm_service.generate_search_keywords, profile_dict
+                llm_service.generate_search_keywords, profile_dict, profile.max_queries
             )
         except Exception as e:
             logger.error(f"LLM keyword generation failed: {e}")
@@ -68,11 +68,24 @@ class SearchService:
         for idx, search in enumerate(searches):
             query = search.get("query", "")
             add_log(profile_id, f"Searching: «{query}» ({idx + 1}/{len(searches)})")
-            update_status(profile_id, current_search=idx + 1)
+            # Check if search was stopped
+            # Refresh the profile object to get the latest state from the DB
+            # Assuming profile_repo has a method to refresh an object or access to the session
+            # If profile_repo.db is the session, use self.profile_repo.db.refresh(profile)
+            # Otherwise, re-fetch the profile: profile = self.profile_repo.get(profile_id)
+            # For this change, we'll assume profile_repo has a refresh method or we re-fetch.
+            # Given the instruction, we'll re-fetch to ensure the latest state.
+            profile = self.profile_repo.get(profile_id) # Re-fetch to get latest state
+            if profile and profile.is_stopped:
+                logger.info(f"Search profile {profile_id} was stopped by user.")
+                update_status(profile_id, state="stopped", error="Search stopped by user.")
+                break
+
+            update_status(profile_id, current_search=idx + 1) # Original line was `update_status(profile_id, current_search=idx + 1)`
 
             try:
                 request = self._build_search_request(profile, query)
-                response = await asyncio.to_thread(provider.search, request)
+                response = await provider.search(request)
                 all_jobs.extend(response.items)
                 add_log(
                     profile_id,
@@ -123,12 +136,12 @@ class SearchService:
 
         async def process_with_limit(job, idx, total):
             async with semaphore:
-                add_log(profile_id, f"Analyzing {idx + 1}/{total}: {job.title[:60]}")
+                add_log(profile_id, f"Analyzing {idx + 1}/{total}: {job.title}")
                 try:
                     return await self._process_job(job, profile, profile_dict)
                 except Exception as e:
                     logger.warning(f"Failed to process job {job.id}: {e}")
-                    add_log(profile_id, f"⚠ Failed: {job.title[:30]} – {e}")
+                    add_log(profile_id, f"⚠ Failed: {job.title} – {e}")
                     return False
 
         tasks = [
@@ -161,6 +174,19 @@ class SearchService:
             except ValueError:
                 pass
 
+        radius_request = None
+        if profile.latitude and profile.longitude:
+            # Default to 30km if not specified, or use profile preference if available
+            # Assuming profile has no explicit distance pref, defaulting to 50 as per user payload example
+            dist = 50 
+            if hasattr(profile, 'search_radius') and profile.search_radius:
+                 dist = int(profile.search_radius)
+            
+            radius_request = RadiusSearchRequest(
+                geo_point=Coordinates(lat=profile.latitude, lon=profile.longitude),
+                distance=dist
+            )
+
         return JobSearchRequest(
             query=query,
             location=profile.location_filter or "",
@@ -169,22 +195,43 @@ class SearchService:
             workload_max=workload_max,
             page_size=50,
             sort=SortOrder.DATE_DESC,
+            radius_search=radius_request,
+            communal_codes=[] # Clear communal codes if using radius to avoid conflict? usually they can coexist or radius overrides.
         )
 
     async def _process_job(self, listing, profile, profile_dict: dict) -> bool:
         """Analyse a single job listing via LLM and save it to DB."""
+        # Step A: Title Relevance Check First (User Request)
+        relevance = await asyncio.to_thread(
+            llm_service.check_title_relevance, listing.title, profile.role_description or ""
+        )
+        if not relevance.get("relevant", True):
+            logger.info(f"Skipping job due to title irrelevance: {listing.title}")
+            return False
+
         # Extract description text
         desc_text = ""
         if listing.descriptions:
             desc_text = listing.descriptions[0].description
 
-        # LLM affinity analysis (in thread)
+        # Enriched Metadata for deep analysis
+        # Includes title, description, location, workload, languages, etc.
+        job_metadata = {
+            "title": listing.title,
+            "description": desc_text, 
+            "location": listing.location.city if listing.location else "Unknown",
+            "workload": f"{listing.employment.workload_min}-{listing.employment.workload_max}%" if listing.employment else "Unknown",
+            "languages": [f"{s.language_code} ({s.spoken_level})" for s in listing.language_skills] if listing.language_skills else [],
+            "company": listing.company.name if listing.company else "Unknown",
+        }
+
+        # LLM affinity analysis (Deep)
         analysis = await asyncio.to_thread(
-            llm_service.analyze_job_match, profile_dict, desc_text, listing.title
+            llm_service.analyze_job_match, job_metadata, profile_dict
         )
 
-        score = analysis.get("score", 0)
-        reasoning = analysis.get("analysis", "")
+        score = analysis.get("affinity_score", 0)
+        reasoning = analysis.get("affinity_analysis", "")
         worth = analysis.get("worth_applying", False)
 
         # Company name
@@ -211,12 +258,14 @@ class SearchService:
         pub_date = None
         if listing.publication and listing.publication.start_date:
             try:
-                pub_date = datetime.fromisoformat(listing.publication.start_date)
+                # Handle ISO format with Z or other offsets
+                date_str = listing.publication.start_date.replace('Z', '+00:00')
+                pub_date = datetime.fromisoformat(date_str)
             except (ValueError, TypeError):
                 pass
 
         # JobRoom URL
-        jobroom_url = f"https://www.job-room.ch/offerten/stelle/{listing.id}"
+        jobroom_url = f"https://www.job-room.ch/job-search/{listing.id}"
 
         # Distance calculation
         distance_km = None
@@ -240,7 +289,7 @@ class SearchService:
             user_id=profile.user_id,
             title=listing.title,
             company=company,
-            description=desc_text[:5000] if desc_text else None,
+            description=desc_text if desc_text else None,
             location=location_str,
             url=listing.external_url or jobroom_url,
             jobroom_url=jobroom_url,
@@ -250,7 +299,7 @@ class SearchService:
             is_scraped=True,
             source_query=listing.title,
             affinity_score=score,
-            affinity_analysis=reasoning[:2000] if reasoning else None,
+            affinity_analysis=reasoning if reasoning else None,
             worth_applying=worth,
             distance_km=distance_km,
         )

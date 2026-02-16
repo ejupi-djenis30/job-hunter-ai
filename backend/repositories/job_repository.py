@@ -65,3 +65,29 @@ class JobRepository(BaseRepository[Job]):
         q = q.order_by(order_fn(col))
 
         return q.offset(skip).limit(limit).all()
+
+    def count_by_user_filtered(
+        self,
+        user_id: int,
+        *,
+        min_score: Optional[float] = None,
+        max_score: Optional[float] = None,
+        min_distance: Optional[float] = None,
+        max_distance: Optional[float] = None,
+        worth_applying: Optional[bool] = None,
+        applied: Optional[bool] = None,
+    ) -> int:
+        q = self.db.query(self.model).filter(self.model.user_id == user_id)
+        if min_score is not None:
+            q = q.filter(self.model.affinity_score >= min_score)
+        if max_score is not None:
+            q = q.filter(self.model.affinity_score <= max_score)
+        if min_distance is not None:
+            q = q.filter(self.model.distance_km >= min_distance)
+        if max_distance is not None:
+            q = q.filter(self.model.distance_km <= max_distance)
+        if worth_applying is not None:
+            q = q.filter(self.model.worth_applying == worth_applying)
+        if applied is not None:
+            q = q.filter(self.model.applied == applied)
+        return q.count()

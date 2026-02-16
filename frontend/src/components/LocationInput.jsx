@@ -36,30 +36,46 @@ export function LocationInput({
 
         setIsLoading(true);
         try {
-            // Limited to Switzerland (ch) for this app context, but can be global
-            // Limited to Switzerland (ch) for this app context, but can be global
+            // Switzerland only (ch), but with full address details for streets
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=ch&addressdetails=1&limit=5`
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=ch&addressdetails=1&limit=10`
             );
             const data = await response.json();
 
             // Format display names
-            const formatted = data.map(item => {
-                const addr = item.address || {};
-                const city = addr.city || addr.town || addr.village || addr.municipality;
-                const state = addr.state || addr.canton;
-                let shortName = item.display_name;
-
-                if (city && state) {
-                    shortName = `${city}, ${state}`;
-                } else if (city) {
-                    shortName = city;
+            const formattedSuggestions = data.map((item) => {
+                const address = item.address || {};
+                // Construct a better display name: Street, City, Canton
+                const parts = [];
+                // Street & House Number
+                let street = address.road || address.pedestrian || address.highway || "";
+                if (street && address.house_number) {
+                    street += ` ${address.house_number}`;
                 }
+                if (street) parts.push(street);
 
-                return { ...item, display_name: shortName, full_name: item.display_name };
+                // City / Town / Village
+                if (address.city) parts.push(address.city);
+                else if (address.town) parts.push(address.town);
+                else if (address.village) parts.push(address.village);
+                else if (address.municipality) parts.push(address.municipality);
+
+                // Canton/State
+                if (address.state) parts.push(address.state);
+
+                // Fallback to display_name if parts are empty (rare)
+                const formattedDisplayName = parts.length > 0 ? parts.join(", ") : item.display_name;
+
+                return {
+                    place_id: item.place_id, // Keep place_id for key
+                    display_name: formattedDisplayName,
+                    lat: item.lat,
+                    lon: item.lon,
+                    full_name: item.display_name // Keep original full name for reference if needed
+                };
             });
 
-            setSuggestions(formatted);
+            setSuggestions(formattedSuggestions);
             setShowSuggestions(true);
         } catch (error) {
             console.error("OSM Search Error:", error);
@@ -71,7 +87,13 @@ export function LocationInput({
     // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (query !== location) { // Only search if user typed something new
+            if (query !== location) { // User typed something new
+                // Strict Mode: If user types, invalidate previous coordinates until they select a new one
+                onLocationChange({
+                    name: query,
+                    lat: null,
+                    lon: null
+                });
                 handleSearch(query);
             }
         }, 500);

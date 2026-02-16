@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 from backend.db.base import get_db
 from backend.repositories.job_repository import JobRepository
 from backend.api.deps import get_current_user_id
-from backend.schemas import Job
+from backend.schemas import Job, JobUpdate, JobPaginationResponse
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Job])
+@router.get("/", response_model=JobPaginationResponse)
 def read_jobs(
     # ── Filters ──
     applied: Optional[bool] = None,
@@ -23,14 +23,16 @@ def read_jobs(
     sort_by: str = Query("created_at", pattern="^(created_at|affinity_score|distance_km|title|publication_date)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # ── Pagination ──
-    skip: int = 0,
-    limit: int = 200,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     # ── Auth & DB ──
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
     repo = JobRepository(db)
-    return repo.get_by_user_filtered(
+    skip = (page - 1) * page_size
+    
+    items = repo.get_by_user_filtered(
         user_id,
         min_score=min_score,
         max_score=max_score,
@@ -41,8 +43,25 @@ def read_jobs(
         sort_by=sort_by,
         sort_order=sort_order,
         skip=skip,
-        limit=limit,
+        limit=page_size,
     )
+    
+    total = repo.count_by_user_filtered(
+        user_id,
+        min_score=min_score,
+        max_score=max_score,
+        min_distance=min_distance,
+        max_distance=max_distance,
+        worth_applying=worth_applying,
+        applied=applied,
+    )
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": (total + page_size - 1) // page_size
+    }
 
 
 @router.post("/", response_model=Job)
@@ -63,7 +82,7 @@ def create_job(
 @router.patch("/{job_id}", response_model=Job)
 def update_job(
     job_id: int,
-    updates: dict,
+    updates: JobUpdate,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):

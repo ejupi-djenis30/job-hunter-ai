@@ -1,23 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SearchService } from "../services/search";
 import { LocationInput } from "./LocationInput";
 
-export function SearchForm({ onStartSearch, isLoading }) {
+export function SearchForm({ onStartSearch, isLoading, prefill }) {
     const [profile, setProfile] = useState({
         name: "My Profile",
         role_description: "",
-        search_strategy: "Focus on technical roles, ignore senior management positions.",
-        location_filter: "Zurich",
+        search_strategy: "",
+        location_filter: "",
         workload_filter: "80-100",
         posted_within_days: 30,
         max_distance: 50,
-        latitude: 47.3769,
-        longitude: 8.5417,
+        latitude: null,
+        longitude: null,
         cv_content: "",
         scrape_mode: "sequential",
         schedule_enabled: false,
         schedule_interval_hours: 24,
+        max_queries: "", // Empty means unlimited
     });
+
+    useEffect(() => {
+        if (prefill) {
+            setProfile(prev => ({
+                ...prev,
+                ...prefill,
+                // Ensure ID is passed if we want to update the same entry
+                // but the user wants to EDIT, which implies creating a new history entry usually?
+                // Actually, if they EDIT, they might want to just re-run with new params.
+                // If it has an ID, App.jsx handleStartSearch will use it.
+            }));
+        }
+    }, [prefill]);
 
     const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -48,10 +62,25 @@ export function SearchForm({ onStartSearch, isLoading }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Strict Validation
         if (!profile.cv_content) {
-            alert("Please upload your CV first. It is required for AI-powered search.");
+            alert("⚠️ Please upload your CV first. It is required for AI-powered search.");
             return;
         }
+        if (!profile.role_description.trim()) {
+            alert("⚠️ Please describe what you are looking for (Role Description).");
+            return;
+        }
+        if (!profile.location_filter.trim()) {
+            alert("⚠️ Please enter a location.");
+            return;
+        }
+        if (!profile.latitude || !profile.longitude) {
+            alert("⚠️ Invalid Location: Please select a valid location from the dropdown suggestions to ensure we have exact coordinates.");
+            return;
+        }
+
         onStartSearch(profile);
     };
 
@@ -63,81 +92,48 @@ export function SearchForm({ onStartSearch, isLoading }) {
                     <div className="card-header bg-transparent border-secondary border-opacity-25 py-3">
                         <h5 className="mb-0 text-light fw-bold"><i className="bi bi-search me-2 text-primary"></i>New Job Search</h5>
                     </div>
-                    <div className="card-body p-4 text-start">
-                        <form onSubmit={handleSubmit}>
-                            <div className="row g-4">
-                                {/* Left Column: Core Info */}
-                                <div className="col-lg-6">
-                                    <h6 className="text-secondary text-uppercase tracking-wider fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
-                                        Profile & Role
+                    <form onSubmit={handleSubmit}>
+                        <div className="card-body p-4 text-start">
+                            <div className="row g-3">
+                                {/* Col 1: Role & Strategy */}
+                                <div className="col-lg-4 border-end border-secondary border-opacity-10">
+                                    <h6 className="text-secondary text-uppercase tracking-wider fw-bold mb-3 small">
+                                        1. Define Role
                                     </h6>
 
-                                    {/* Role Description */}
-                                    <div className="mb-4">
-                                        <label className="form-label text-light small fw-bold mb-2">
-                                            What are you looking for?
-                                        </label>
+                                    <div className="mb-3">
+                                        <label className="form-label text-light small fw-bold mb-1">Role Description <span className="text-danger">*</span></label>
                                         <textarea
                                             name="role_description"
                                             value={profile.role_description}
                                             onChange={handleChange}
-                                            placeholder="e.g. Senior Python Backend Developer, seeking remote work..."
-                                            className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
-                                            rows="4"
+                                            placeholder="e.g. Python Backend Developer..."
+                                            className="form-control form-control-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                            rows="3"
                                             required
-                                            style={{ backdropFilter: 'blur(5px)' }}
                                         />
                                     </div>
 
-                                    {/* CV Upload (Required) */}
-                                    <div className="mb-4">
-                                        <label className="form-label text-light small fw-bold mb-2">
-                                            <i className="bi bi-file-earmark-text me-1 text-primary"></i>Upload CV <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="file"
-                                            accept=".pdf,.txt,.md"
-                                            onChange={handleCVUpload}
-                                            className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 mb-2"
-                                        />
-                                        {profile.cv_content ? (
-                                            <div className="p-2 rounded bg-success bg-opacity-10 border border-success border-opacity-25">
-                                                <small className="text-success d-flex align-items-center">
-                                                    <i className="bi bi-check-circle-fill me-2 fs-5"></i>
-                                                    <span>CV loaded successfully. AI will use this to find matches.</span>
-                                                </small>
-                                            </div>
-                                        ) : (
-                                            <small className="text-warning d-block opacity-75">
-                                                <i className="bi bi-info-circle me-1"></i>Required for AI analysis
-                                            </small>
-                                        )}
-                                    </div>
-
-                                    {/* AI Strategy */}
-                                    <div className="mb-4">
-                                        <label className="form-label text-light small fw-bold mb-2">
-                                            <i className="bi bi-robot me-1 text-primary"></i>AI Instructions
-                                        </label>
+                                    <div className="mb-2">
+                                        <label className="form-label text-light small fw-bold mb-1">AI Instructions</label>
                                         <textarea
                                             name="search_strategy"
                                             value={profile.search_strategy}
                                             onChange={handleChange}
-                                            placeholder="Instructions for the AI agent (e.g. 'Ignore internship roles')..."
-                                            className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
-                                            rows="3"
+                                            placeholder="Extra context for the agent..."
+                                            className="form-control form-control-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                            rows="2"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Right Column: Filters & Config */}
-                                <div className="col-lg-6">
-                                    <h6 className="text-secondary text-uppercase tracking-wider fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
-                                        Search Parameters
+                                {/* Col 2: Targeting */}
+                                <div className="col-lg-4 border-end border-secondary border-opacity-10">
+                                    <h6 className="text-secondary text-uppercase tracking-wider fw-bold mb-3 small">
+                                        2. Targeting
                                     </h6>
 
-                                    {/* Location */}
-                                    <div className="mb-4">
+                                    <div className="mb-3">
                                         <LocationInput
                                             location={profile.location_filter}
                                             latitude={profile.latitude}
@@ -146,15 +142,14 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                         />
                                     </div>
 
-                                    <div className="row g-3 mb-4">
-                                        {/* Workload */}
-                                        <div className="col-md-6">
+                                    <div className="row g-2">
+                                        <div className="col-6">
                                             <label className="form-label text-light small fw-bold mb-1">Workload</label>
                                             <select
                                                 name="workload_filter"
                                                 value={profile.workload_filter}
                                                 onChange={handleChange}
-                                                className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                                className="form-select form-select-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
                                             >
                                                 <option value="80-100">80-100%</option>
                                                 <option value="100">100%</option>
@@ -162,56 +157,49 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 <option value="0-100">Any</option>
                                             </select>
                                         </div>
-
-                                        {/* Scrape Mode */}
-                                        <div className="col-md-6">
-                                            <label className="form-label text-light small fw-bold mb-1">Scrape Speed</label>
+                                        <div className="col-6">
+                                            <label className="form-label text-light small fw-bold mb-1">Speed</label>
                                             <select
                                                 name="scrape_mode"
                                                 value={profile.scrape_mode}
                                                 onChange={handleChange}
-                                                className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                                className="form-select form-select-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
                                             >
-                                                <option value="sequential">Sequential (Safer)</option>
-                                                <option value="immediate">Immediate (Faster)</option>
+                                                <option value="sequential">Sequential</option>
+                                                <option value="immediate">Fast (Riskier)</option>
                                             </select>
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* Advanced Options Toggle */}
-                                    <div className="mb-4">
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-outline-secondary rounded-pill w-100 border-opacity-25 text-start d-flex justify-content-between align-items-center px-3"
-                                            onClick={() => setShowAdvanced(!showAdvanced)}
-                                        >
-                                            <span><i className="bi bi-sliders me-2"></i>Advanced Filters</span>
-                                            <i className={`bi bi-chevron-${showAdvanced ? 'up' : 'down'}`}></i>
-                                        </button>
+                                {/* Col 3: Assets & Config */}
+                                <div className="col-lg-4">
+                                    <h6 className="text-secondary text-uppercase tracking-wider fw-bold mb-3 small">
+                                        3. Assets & Config
+                                    </h6>
 
-                                        {showAdvanced && (
-                                            <div className="card bg-black bg-opacity-25 border-secondary border-opacity-25 mt-2 animate-fade-in">
-                                                <div className="card-body p-3">
-                                                    <div className="row g-3">
-                                                        <div className="col-6">
-                                                            <label className="form-label text-secondary small mb-1">Max Dist: <span className="text-light">{profile.max_distance} km</span></label>
-                                                            <input type="range" name="max_distance" min="0" max="100" value={profile.max_distance} onChange={handleChange} className="form-range" />
-                                                        </div>
-                                                        <div className="col-6">
-                                                            <label className="form-label text-secondary small mb-1">Age: <span className="text-light">{profile.posted_within_days} days</span></label>
-                                                            <input type="range" name="posted_within_days" min="1" max="60" value={profile.posted_within_days} onChange={handleChange} className="form-range" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <div className="mb-3">
+                                        <label className="form-label text-light small fw-bold mb-1">
+                                            Upload CV <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.txt,.md"
+                                            onChange={handleCVUpload}
+                                            className="form-control form-control-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 mb-1"
+                                        />
+                                        {profile.cv_content ? (
+                                            <small className="text-success fw-bold"><i className="bi bi-check-circle-fill me-1"></i>CV Uploaded</small>
+                                        ) : (
+                                            <small className="text-warning"><i className="bi bi-exclamation-circle me-1"></i>Required</small>
                                         )}
                                     </div>
 
-                                    {/* Schedule Toggle */}
-                                    <div className="bg-black bg-opacity-20 rounded p-3 border border-secondary border-opacity-10">
+                                    {/* Auto-Repeat - Styled Teal */}
+                                    <div className={`p-2 rounded mb-0 border ${profile.schedule_enabled ? 'border-teal bg-teal bg-opacity-10' : 'border-secondary border-opacity-25 bg-white bg-opacity-5'}`}>
                                         <div className="form-check form-switch d-flex align-items-center justify-content-between ps-0 mb-0">
-                                            <label className="form-check-label text-light fw-medium cursor-pointer" htmlFor="scheduleSwitch">
-                                                <i className="bi bi-clock-history me-2 text-primary"></i>Auto-Repeat Search
+                                            <label className={`form-check-label small fw-bold cursor-pointer ${profile.schedule_enabled ? 'text-teal' : 'text-secondary'}`} htmlFor="scheduleSwitch">
+                                                Run Daily
                                             </label>
                                             <input
                                                 className="form-check-input ms-2"
@@ -219,52 +207,86 @@ export function SearchForm({ onStartSearch, isLoading }) {
                                                 id="scheduleSwitch"
                                                 checked={profile.schedule_enabled}
                                                 onChange={(e) => setProfile(prev => ({ ...prev, schedule_enabled: e.target.checked }))}
-                                                style={{ width: '2.5em', height: '1.25em', cursor: 'pointer', float: 'none', marginLeft: 0 }}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    float: 'none',
+                                                    marginLeft: 0,
+                                                    backgroundColor: profile.schedule_enabled ? '#20c997' : '#343a40',
+                                                    borderColor: profile.schedule_enabled ? '#20c997' : '#6c757d'
+                                                }}
                                             />
                                         </div>
-
-                                        {profile.schedule_enabled && (
-                                            <div className="mt-3 animate-fade-in border-top border-secondary border-opacity-10 pt-2">
-                                                <div className="d-flex align-items-center">
-                                                    <span className="text-secondary small me-2">Repeat every:</span>
-                                                    <select
-                                                        name="schedule_interval_hours"
-                                                        value={profile.schedule_interval_hours}
-                                                        onChange={handleChange}
-                                                        className="form-select form-select-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 w-auto"
-                                                    >
-                                                        <option value="1">1 hour</option>
-                                                        <option value="6">6 hours</option>
-                                                        <option value="12">12 hours</option>
-                                                        <option value="24">24 hours</option>
-                                                        <option value="48">48 hours</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
+                                    {profile.schedule_enabled && (
+                                        <div className="mt-2 d-flex align-items-center animate-fade-in">
+                                            <span className="text-secondary small me-2">Every:</span>
+                                            <select
+                                                name="schedule_interval_hours"
+                                                value={profile.schedule_interval_hours}
+                                                onChange={handleChange}
+                                                className="form-select form-select-xs py-0 bg-transparent text-light border-0 w-auto fw-bold"
+                                            >
+                                                <option value="1">1h</option>
+                                                <option value="6">6h</option>
+                                                <option value="12">12h</option>
+                                                <option value="24">24h</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-2 px-3">
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm btn-link text-secondary text-decoration-none p-0"
+                                        onClick={() => setShowAdvanced(!showAdvanced)}
+                                    >
+                                        <i className={`bi bi-chevron-${showAdvanced ? 'up' : 'down'} me-1`}></i>
+                                        {showAdvanced ? 'Hide Advanced' : 'Show Advanced Filters'}
+                                    </button>
+                                    {showAdvanced && (
+                                        <div className="row g-2 mt-1 animate-fade-in">
+                                            <div className="col-4">
+                                                <label className="text-secondary small">Max Dist: {profile.max_distance}km</label>
+                                                <input type="range" name="max_distance" min="0" max="100" value={profile.max_distance} onChange={handleChange} className="form-range" />
+                                            </div>
+                                            <div className="col-4">
+                                                <label className="text-secondary small">Age: {profile.posted_within_days}d</label>
+                                                <input type="range" name="posted_within_days" min="1" max="60" value={profile.posted_within_days} onChange={handleChange} className="form-range" />
+                                            </div>
+                                            <div className="col-4">
+                                                <label className="text-secondary small d-block mb-1">Max AI Queries</label>
+                                                <input
+                                                    type="number"
+                                                    name="max_queries"
+                                                    value={profile.max_queries}
+                                                    onChange={handleChange}
+                                                    placeholder="Unlimited"
+                                                    className="form-control form-control-sm bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                                    min="1"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Submit Button */}
-                            <div className="mt-4 pt-3 border-top border-secondary border-opacity-25">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="btn btn-primary btn-lg w-100 text-white fw-bold py-3 rounded-pill shadow-lg hover-scale"
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2" />
-                                            Initializing Agents...
-                                        </>
-                                    ) : (
-                                        <><i className="bi bi-rocket-takeoff me-2"></i>Launch Intelligent Search</>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                        {/* Submit Button - Compact */}
+                        <div className="px-4 pb-4 pt-2 text-end border-top border-secondary border-opacity-25">
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="btn btn-primary px-5 rounded-pill fw-bold shadow-lg hover-scale"
+                            >
+                                {isLoading ? (
+                                    <span><span className="spinner-border spinner-border-sm me-2"></span>Running...</span>
+                                ) : (
+                                    <span>Launch Search <i className="bi bi-rocket-takeoff ms-2"></i></span>
+                                )}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import { SearchForm } from './components/SearchForm';
 import { SearchProgress } from './components/SearchProgress';
 import { FilterBar } from './components/FilterBar';
 import { Schedules } from './components/Schedules';
+import { History } from './components/History';
 import { Login } from './components/Login';
 import { AuthService } from './services/auth';
 import { JobService } from './services/jobs';
@@ -20,6 +21,16 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState(null);
   const [searchState, setSearchState] = useState(null); // null | "running" | "done" | "error"
+  const [searchStatus, setSearchStatus] = useState(null);
+  const [prefillProfile, setPrefillProfile] = useState(null);
+
+  // Pagination State
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pages: 1,
+    total: 0,
+    pageSize: 20
+  });
 
   // Filter State
   const [filters, setFilters] = useState({
@@ -30,30 +41,47 @@ function App() {
     sort_order: "desc"
   });
 
+  // Keep track of filters in a ref for the polling interval
+  const filtersRef = React.useRef(filters);
+
   useEffect(() => {
+    filtersRef.current = filters;
     if (isLoggedIn) {
       fetchJobs();
     }
-  }, [filters]); // Reload when filters change
+  }, [filters, isLoggedIn]); // Reload when filters change
 
   useEffect(() => {
     if (isLoggedIn) {
-      fetchJobs(); // Initial load
-      const interval = setInterval(fetchJobs, 10000); // Poll every 10s
+      const interval = setInterval(() => {
+        fetchJobs(true); // Pass flag to indicate polling
+      }, 10000);
       return () => clearInterval(interval);
     }
   }, [isLoggedIn]);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (isPolling = false) => {
     try {
-      const data = await JobService.getAll(filters);
-      setJobs(Array.isArray(data) ? data : []); // Backend handles sorting now
+      // Use the ref value for polling to avoid closure staleness
+      const currentFilters = isPolling ? filtersRef.current : filters;
+      const res = await JobService.getAll({
+        ...currentFilters,
+        page: pagination.page,
+        page_size: pagination.pageSize
+      });
+      setJobs(res.items || []);
+      setPagination(prev => ({
+        ...prev,
+        total: res.total || 0,
+        pages: res.pages || 1,
+        page: res.page || 1
+      }));
     } catch (error) {
       if (error.message === "UNAUTHORIZED") {
         handleLogout();
         return;
       }
-      console.error("Failed to fetch jobs", error);
+      console.error("Fetch jobs error:", error);
     }
   };
 
@@ -74,6 +102,8 @@ function App() {
 
   const handleStartSearch = async (profile) => {
     setIsSearching(true);
+    setSearchStatus(null);
+    setPrefillProfile(null);
     try {
       const result = await SearchService.start(profile);
       setActiveProfileId(result.profile_id);
@@ -87,6 +117,20 @@ function App() {
     }
   };
 
+  const handleEditHistory = (profile) => {
+    setPrefillProfile(profile);
+    setView('new');
+  };
+
+  const handleSaveAsSchedule = async (profile) => {
+    try {
+      await SearchService.toggleSchedule(profile.id, true, profile.schedule_interval_hours || 24);
+      alert("Search profile added to schedules!");
+    } catch (error) {
+      alert("Failed to save schedule: " + error.message);
+    }
+  };
+
   const handleSearchStateChange = (state) => {
     if (state === "done" || state === "error") {
       setSearchState(state === "done" ? "done" : "error");
@@ -97,6 +141,7 @@ function App() {
   const handleClearSearch = () => {
     setActiveProfileId(null);
     setSearchState(null);
+    setSearchStatus(null);
     setView('jobs');
   };
 
@@ -167,6 +212,13 @@ function App() {
               </button>
 
               <button
+                className={`nav-link btn btn-link text-start px-3 rounded-pill ${view === 'history' ? 'active bg-white bg-opacity-10 text-white fw-medium' : 'text-secondary'}`}
+                onClick={() => setView('history')}
+              >
+                <i className="bi bi-clock-history me-2"></i>History
+              </button>
+
+              <button
                 className={`nav-link btn btn-link text-start px-3 rounded-pill ${view === 'new' ? 'active bg-white bg-opacity-10 text-white fw-medium' : 'text-secondary'}`}
                 onClick={() => setView('new')}
               >
@@ -191,27 +243,32 @@ function App() {
       </nav>
 
       {/* Content */}
-      <div className="container py-5 mt-5">
+      <div className="container py-3 mt-5">
         {view === 'new' ? (
-          <div className="animate-fade-in text-center py-5">
-            <h2 className="display-5 fw-bold mb-4">Launch New Search</h2>
+          <div className="animate-fade-in text-center py-2">
+            <h2 className="display-6 fw-bold mb-3">{prefillProfile ? 'Edit Search' : 'Launch New Search'}</h2>
             <div className="mx-auto">
-              <SearchForm onStartSearch={handleStartSearch} isLoading={isSearching} />
+              <SearchForm
+                onStartSearch={handleStartSearch}
+                isLoading={isSearching}
+                prefill={prefillProfile}
+              />
             </div>
           </div>
         ) : view === 'schedules' ? (
           <Schedules />
+        ) : view === 'history' ? (
+          <History onStartSearch={handleStartSearch} onEdit={handleEditHistory} onSaveAsSchedule={handleSaveAsSchedule} />
         ) : view === 'jobs' ? (
-          <div className="animate-fade-in">
+          <div className="animate-fade-in py-3">
             {/* Stats Row */}
             <div className="row g-4 mb-5">
               <div className="col-12 col-md-4">
-                <div className="glass-card p-4 text-center h-100 position-relative overflow-hidden group">
-                  <div className="position-absolute top-0 end-0 p-3 opacity-10">
-                    <i className="bi bi-briefcase fs-1"></i>
-                  </div>
+                <div className="glass-card p-4 text-center h-100">
                   <div className="display-4 fw-bold text-gradient mb-1">{totalJobs}</div>
-                  <div className="text-secondary fw-medium text-uppercase tracking-wider small">Total Jobs</div>
+                  <div className="text-secondary fw-medium text-uppercase tracking-wider small">
+                    <i className="bi bi-briefcase me-2"></i>Total Jobs
+                  </div>
                 </div>
               </div>
               <div className="col-6 col-md-4">
@@ -248,8 +305,12 @@ function App() {
               })}
             />
 
-            <JobTable jobs={safeJobs} onToggleApplied={toggleApplied} />
-          </div>
+            <JobTable
+              jobs={safeJobs}
+              onToggleApplied={toggleApplied}
+              pagination={pagination}
+              onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
+            />  </div>
         ) : null}
 
         {/* SearchProgress stays mounted (hidden) to preserve polling state */}
@@ -257,6 +318,8 @@ function App() {
           <div style={{ display: view === 'progress' ? 'block' : 'none' }}>
             <SearchProgress
               profileId={activeProfileId}
+              status={searchStatus}
+              setStatus={setSearchStatus}
               onStateChange={handleSearchStateChange}
               onClear={handleClearSearch}
             />

@@ -37,5 +37,9 @@ export const SearchService = {
 
     deleteProfile(profileId) {
         return ApiClient.delete(`/profiles/${profileId}`);
+    },
+
+    stopSearch(profileId) {
+        return ApiClient.post(`/search/stop/${profileId}`);
     }
 };

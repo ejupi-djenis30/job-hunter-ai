@@ -22,7 +22,9 @@ export const JobService = {
         }
         const qs = params.toString();
         const url = qs ? `/jobs/?${qs}` : "/jobs/";
-        return ApiClient.get(url);
+        const res = await ApiClient.get(url);
+        // Backend returns { items, total, page, pages }
+        return res;
     },
 
     async toggleApplied(jobId, applied) {

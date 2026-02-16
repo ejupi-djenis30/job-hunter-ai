@@ -30,7 +30,7 @@ export function Schedules() {
     };
 
     const handleDelete = async (profileId) => {
-        if (!confirm("Delete this profile and its schedule?")) return;
+        if (!window.confirm("Delete this profile and its schedule?")) return;
         try {
             await SearchService.deleteProfile(profileId);
             loadProfiles();
@@ -56,20 +56,24 @@ export function Schedules() {
         );
     }
 
-    if (!profiles.length) {
+    const activeSchedules = profiles.filter(p => p.schedule_enabled);
+
+    if (activeSchedules.length === 0) {
         return (
-            <div className="glass-card text-center py-5 animate-fade-in">
-                <div className="card-body">
-                    <i className="bi bi-calendar-x display-4 text-secondary opacity-50 mb-3"></i>
-                    <p className="fs-5 text-secondary mb-1">No search profiles yet</p>
-                    <p className="text-secondary small">Start a new search to create a profile and enable auto-scheduling.</p>
+            <div className="glass-card text-center py-5 animate-fade-in mt-4">
+                <div className="mb-3">
+                    <div className="rounded-circle bg-teal bg-opacity-10 d-inline-flex align-items-center justify-content-center" style={{ width: 80, height: 80 }}>
+                        <i className="bi bi-calendar-x fs-1 text-teal opacity-50"></i>
+                    </div>
                 </div>
+                <h5 className="text-light">No Active Schedules</h5>
+                <p className="text-secondary small">Your automated daily searches will appear here.<br />You can enable scheduling when creating a new search.</p>
             </div>
         );
     }
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in py-3">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="mb-0 text-light fw-bold"><i className="bi bi-clock-history me-2 text-primary"></i>Scheduled Searches</h5>
                 <button onClick={loadProfiles} className="btn btn-sm btn-outline-secondary border-opacity-25 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
@@ -78,9 +82,9 @@ export function Schedules() {
             </div>
 
             <div className="row g-4">
-                {profiles.map(p => (
+                {activeSchedules.map(p => (
                     <div key={p.id} className="col-md-6 col-lg-4">
-                        <div className={`glass-card h-100 ${p.schedule_enabled ? 'border-primary border-opacity-50' : ''}`}>
+                        <div className={`glass-card h-100 border-primary border-opacity-50`}>
                             <div className="card-body d-flex flex-column">
                                 <div className="d-flex justify-content-between align-items-start mb-3">
                                     <div className="overflow-hidden me-2">
@@ -110,31 +114,29 @@ export function Schedules() {
                                 </div>
 
                                 <div className="pt-3 border-top border-secondary border-opacity-25 mt-auto">
-                                    {p.schedule_enabled && (
-                                        <div className="mb-3">
-                                            <div className="input-group input-group-sm">
-                                                <span className="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">Every</span>
-                                                <select
-                                                    className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
-                                                    value={p.schedule_interval_hours || 24}
-                                                    onChange={(e) => handleChangeInterval(p.id, e.target.value)}
-                                                >
-                                                    <option value="1">1h</option>
-                                                    <option value="3">3h</option>
-                                                    <option value="6">6h</option>
-                                                    <option value="12">12h</option>
-                                                    <option value="24">24h</option>
-                                                    <option value="48">48h</option>
-                                                    <option value="72">72h</option>
-                                                </select>
-                                            </div>
+                                    <div className="mb-3">
+                                        <div className="input-group input-group-sm">
+                                            <span className="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-secondary">Every</span>
+                                            <select
+                                                className="form-select bg-dark bg-opacity-50 text-light border-secondary border-opacity-25"
+                                                value={p.schedule_interval_hours || 24}
+                                                onChange={(e) => handleChangeInterval(p.id, e.target.value)}
+                                            >
+                                                <option value="1">1h</option>
+                                                <option value="3">3h</option>
+                                                <option value="6">6h</option>
+                                                <option value="12">12h</option>
+                                                <option value="24">24h</option>
+                                                <option value="48">48h</option>
+                                                <option value="72">72h</option>
+                                            </select>
                                         </div>
-                                    )}
+                                    </div>
 
                                     <div className="d-flex justify-content-between align-items-end">
                                         <div>
-                                            <div className={`badge ${p.schedule_enabled ? "bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" : "bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25"} mb-1`}>
-                                                {p.schedule_enabled ? <><i className="bi bi-lightning-fill me-1"></i>Active</> : "Inactive"}
+                                            <div className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 mb-1">
+                                                <i className="bi bi-lightning-fill me-1"></i>Active
                                             </div>
                                             {p.last_scheduled_run && (
                                                 <div className="text-secondary small" style={{ fontSize: '0.75rem' }}>

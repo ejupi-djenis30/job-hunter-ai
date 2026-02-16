@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SearchService } from "../services/search";
 
-export function SearchProgress({ profileId, onStateChange, onClear }) {
-    const [status, setStatus] = useState(null);
+export function SearchProgress({ profileId, status, setStatus, onStateChange, onClear }) {
     const logEndRef = useRef(null);
     const reportedState = useRef(null);
 
     useEffect(() => {
         if (!profileId) return;
+
+        let intervalId;
 
         const poll = async () => {
             try {
@@ -21,8 +22,8 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                     onStateChange?.(s);
                 }
 
-                if (s === "done" || s === "error") {
-                    clearInterval(interval);
+                if (s === "done" || s === "error" || s === "stopped") {
+                    clearInterval(intervalId);
                 }
             } catch (e) {
                 console.error("Status poll error:", e);
@@ -30,24 +31,29 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
         };
 
         poll();
-        const interval = setInterval(poll, 1500);
-        return () => clearInterval(interval);
-    }, [profileId]);
+        intervalId = setInterval(poll, 1500);
+        return () => clearInterval(intervalId);
+    }, [profileId, setStatus]);
 
     useEffect(() => {
         logEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [status?.log?.length]);
 
-    if (!status || status.state === "unknown") {
-        return (
-            <div className="card bg-dark border-secondary">
-                <div className="card-body text-center py-5">
-                    <div className="spinner-border text-primary mb-3" />
-                    <p className="text-secondary">Connecting to search agent...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleStop = async () => {
+        if (!window.confirm("Sei sicuro di voler fermare la ricerca?")) return;
+        try {
+            await SearchService.stopSearch(profileId);
+        } catch (e) {
+            console.error("Stop error:", e);
+        }
+    };
+
+    if (!status) return (
+        <div className="glass-card p-5 text-center mt-4">
+            <div className="spinner-border text-primary mb-3"></div>
+            <p className="text-secondary">Connecting to search agent...</p>
+        </div>
+    );
 
     const { state, total_searches, current_search_index, current_query, searches_generated, jobs_new, jobs_duplicates, jobs_skipped, errors, log } = status;
     const isRunning = state === "generating" || state === "searching" || state === "analyzing";
@@ -68,20 +74,27 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                             {isError && <i className="bi bi-exclamation-triangle-fill me-2 text-danger"></i>}
                             Search Progress
                         </h5>
-                        {(isDone || isError) && (
-                            <button className="btn btn-sm btn-outline-secondary border-opacity-25 rounded-pill px-3" onClick={onClear}>
-                                <i className="bi bi-x-lg me-1"></i> Dismiss
-                            </button>
+                        {(isDone || isError || isRunning) && (
+                            <div className="d-flex align-items-center gap-3">
+                                {status.state === "running" && (
+                                    <button className="btn btn-sm btn-outline-danger px-3 rounded-pill" onClick={handleStop}>
+                                        <i className="bi bi-stop-circle me-1"></i>Stop Search
+                                    </button>
+                                )}
+                                <button className="btn btn-sm btn-outline-secondary px-3 rounded-pill" onClick={onClear}>
+                                    <i className="bi bi-x-lg"></i>
+                                </button>
+                            </div>
                         )}
                     </div>
 
                     {/* State Badge */}
                     <div className="mb-4">
                         <span className={`badge ${state === "generating" ? "bg-info bg-opacity-25 text-info border border-info border-opacity-25" :
-                                state === "searching" ? "bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" :
-                                    state === "analyzing" ? "bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" :
-                                        state === "done" ? "bg-success bg-opacity-25 text-success border border-success border-opacity-25" :
-                                            "bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25"
+                            state === "searching" ? "bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" :
+                                state === "analyzing" ? "bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" :
+                                    state === "done" ? "bg-success bg-opacity-25 text-success border border-success border-opacity-25" :
+                                        "bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25"
                             } me-2 py-2 px-3 rounded-pill`}>
                             {state === "generating" && <><i className="bi bi-robot me-2"></i>Generating Queries</>}
                             {state === "searching" && <><i className="bi bi-search me-2"></i>Searching {current_search_index}/{total_searches}</>}
@@ -105,7 +118,7 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
                     )}
 
                     {/* Stats Row */}
-                    <div className="row g-2 text-center">
+                    <div className="row g-3 text-center">
                         <div className="col">
                             <div className="p-3 glass-card bg-opacity-10 rounded-3">
                                 <div className="text-primary fw-bold fs-4 mb-1">{total_searches}</div>
@@ -143,29 +156,40 @@ export function SearchProgress({ profileId, onStateChange, onClear }) {
             {/* Generated Searches */}
             {searches_generated && searches_generated.length > 0 && (
                 <div className="glass-card mb-4">
-                    <div className="card-header bg-transparent border-secondary border-opacity-25 py-3">
+                    <div className="card-header bg-transparent border-secondary border-opacity-25 py-2">
                         <small className="text-secondary fw-bold text-uppercase tracking-wider"><i className="bi bi-robot me-2 text-primary"></i>AI Generated Searches ({searches_generated.length})</small>
                     </div>
-                    <div className="card-body p-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
-                        {searches_generated.map((s, i) => {
-                            const isActive = i + 1 === current_search_index;
-                            const isDoneSearch = i + 1 < current_search_index;
-                            return (
-                                <div key={i} className={`d-flex align-items-center gap-3 px-3 py-2 rounded mb-1 ${isActive ? 'bg-primary bg-opacity-10 border border-primary border-opacity-25' : 'border border-transparent'}`}>
-                                    <span style={{ width: 20, textAlign: "center" }}>
-                                        {isDoneSearch ? <i className="bi bi-check-lg text-success"></i> : isActive ? <div className="spinner-border spinner-border-sm text-primary" style={{ width: '1rem', height: '1rem' }} /> : <i className="bi bi-hourglass text-secondary opacity-50"></i>}
-                                    </span>
-                                    <span className="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25" style={{ minWidth: 80 }}>
-                                        {s.type}
-                                    </span>
-                                    <small className={`${isActive ? 'text-light fw-medium' : 'text-secondary'}`}>
-                                        {s.type === "combined"
-                                            ? `${s.occupation} + ${s.keywords}`
-                                            : s.value}
-                                    </small>
-                                </div>
-                            );
-                        })}
+                    <div className="card-body p-0" style={{ maxHeight: "250px", overflowY: "auto" }}>
+                        <div className="list-group list-group-flush">
+                            {status.searches?.map((s, i) => {
+                                const isDone = i < (status.current_search || 0);
+                                const isCurrent = i === (status.current_search || 0);
+
+                                return (
+                                    <li key={i} className={`list-group-item bg-transparent border-0 px-0 py-1 d-flex align-items-start gap-2 ${isCurrent ? 'animate-pulse' : ''}`}>
+                                        <div className="mt-1">
+                                            {isDone ? (
+                                                <i className="bi bi-check-circle-fill text-success fs-7"></i>
+                                            ) : isCurrent ? (
+                                                <div className="spinner-border spinner-border-sm text-primary" style={{ width: '0.75rem', height: '0.75rem' }}></div>
+                                            ) : (
+                                                <i className="bi bi-hourglass text-secondary opacity-50 fs-7"></i>
+                                            )}
+                                        </div>
+                                        <div className="d-flex flex-column">
+                                            <div className="d-flex align-items-center gap-2">
+                                                <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 small-caps">
+                                                    {s.type}
+                                                </span>
+                                                <code className={`text-break small ${isCurrent ? 'text-primary' : isDone ? 'text-secondary' : 'text-muted'}`}>
+                                                    {s.query}
+                                                </code>
+                                            </div>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             )}

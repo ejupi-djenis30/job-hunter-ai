@@ -29,8 +29,12 @@ class LanguageSkillRequest(BaseModel):
     spoken_level: Optional[LanguageLevel] = None
     written_level: Optional[LanguageLevel] = None
 
+class Coordinates(BaseModel):
+    lat: float
+    lon: float
+
 class RadiusSearchRequest(BaseModel):
-    geo_point: Any # Replace with actual GeoPoint model if needed
+    geo_point: Coordinates
     distance: int
 
 class JobSearchRequest(BaseModel):
@@ -68,9 +72,7 @@ class CompanyInfo(BaseModel):
     website: Optional[str] = None
     is_agency: bool = False
 
-class Coordinates(BaseModel):
-    lat: float
-    lon: float
+
 
 class JobLocation(BaseModel):
     city: str
