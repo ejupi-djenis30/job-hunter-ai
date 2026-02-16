@@ -721,9 +721,29 @@ One of the core design goals is extensibility. Here is how you can add new sourc
 
 ## 🚢 Deployment
 
-### Docker (Coming Soon)
+### Docker Compose (Recommended)
 
-We are working on a `docker-compose.yml` to launch the full stack with one command.
+The easiest way to run the full stack (Frontend + Backend + Database) is via Docker.
+
+1. **Configure Environment**:
+   - Ensure your `.env` file lists your `LLM_PROVIDER` and `LLM_API_KEY`.
+   - `docker-compose.yml` is pre-configured to read these values.
+
+2. **Run with Docker Compose**:
+
+   ```bash
+   docker-compose up -d --build
+   ```
+
+3. **Access the App**:
+   - Frontend: `http://localhost:5173`
+   - Backend API: `http://localhost:8000/docs`
+
+4. **Stop the App**:
+
+   ```bash
+   docker-compose down
+   ```
 
 ### Manual Deployment (Linux/VPS)
 

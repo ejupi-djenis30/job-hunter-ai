@@ -41,7 +41,14 @@ class OpenAICompatibleProvider(LLMProvider):
 
         try:
             completion = self.client.chat.completions.create(**params)
-            return completion.choices[0].message.content or ""
+            message = completion.choices[0].message
+            content = message.content or ""
+            
+            # Deepseek Reasoner support: Capture reasoning trace if available
+            if getattr(message, "reasoning_content", None):
+                logger.info(f"DeepSeek Reasoning Trace: {message.reasoning_content[:500]}...")
+            
+            return content
         except Exception as e:
             logger.error(f"LLM Error: {e}")
             raise

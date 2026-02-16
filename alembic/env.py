@@ -19,8 +19,15 @@ from dotenv import load_dotenv
 load_dotenv()
 load_dotenv("backend/.env")
 
-from backend.database import Base, DATABASE_URL
-from backend import models  # noqa: F401 — ensures all models are registered
+from backend.db.base import Base
+from backend.core.config import settings
+
+DATABASE_URL = settings.DATABASE_URL.replace("sqlite:///", "postgresql+psycopg2://") if "postgres" in settings.DATABASE_URL else settings.DATABASE_URL
+# Make sure we use psycopg2 driver for postgres in alembic context if needed, though usually handled by connection string
+# Actually, let's just use settings.DATABASE_URL directly, assuming correct driver is installed or string format is correct.
+DATABASE_URL = settings.DATABASE_URL
+
+from backend import models  # noqa: F401
 
 config = context.config
 

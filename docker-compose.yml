@@ -1,52 +1,55 @@
-# ─────────────────────────────────────
-# Job Hunter AI — Docker Compose
-# ─────────────────────────────────────
-# Quick start:
-#   cp .env.example .env   (fill in your values)
-#   docker-compose up -d
-#
-# Profiles:
-#   default:    App + PostgreSQL
-#   sqlite:     App only (SQLite, no external DB)
-#
-# Usage:
-#   docker-compose up -d                  # PostgreSQL mode
-#   docker-compose up -d app              # SQLite mode (no db service)
+version: '3.8'
 
 services:
-  app:
-    build: .
-    ports:
-      - "${API_PORT:-8000}:8000"
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://jobhunter:jobhunter@db:5432/jobhunter}
-      - API_HOST=0.0.0.0
-    volumes:
-      - app-data:/app/data # SQLite DB persistence (if using SQLite)
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
   db:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
+    restart: always
     environment:
-      POSTGRES_USER: jobhunter
-      POSTGRES_PASSWORD: jobhunter
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: jobhunter
     volumes:
-      - pg-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U jobhunter" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/jobhunter
+      - SECRET_KEY=changeme_in_production_please
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=11520
+      - CORS_ORIGINS=["http://localhost:5173", "http://localhost:80"]
+      # LLM Configuration for DeepSeek
+      - LLM_PROVIDER=deepseek
+      - LLM_API_KEY=sk-245f3b697a5b430aa70ad45a632221c6
+      - LLM_MODEL=deepseek-reasoner
+      - LLM_BASE_URL=https://api.deepseek.com
+      - LLM_THINKING=true
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
 
 volumes:
-  app-data:
-  pg-data:
+  postgres_data:
