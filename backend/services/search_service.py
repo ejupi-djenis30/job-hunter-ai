@@ -81,7 +81,7 @@ class SearchService:
                 update_status(profile_id, state="stopped", error="Search stopped by user.")
                 break
 
-            update_status(profile_id, current_search=idx + 1) # Original line was `update_status(profile_id, current_search=idx + 1)`
+            update_status(profile_id, current_search_index=idx + 1)
 
             try:
                 request = self._build_search_request(profile, query)

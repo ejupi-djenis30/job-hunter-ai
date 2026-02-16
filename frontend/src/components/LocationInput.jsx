@@ -157,62 +157,73 @@ export function LocationInput({
 
     return (
         <div className="position-relative" ref={wrapperRef}>
-            <label className="form-label text-secondary small text-uppercase tracking-wider fw-bold mb-2">
-                <i className="bi bi-geo-alt me-1 text-primary"></i>Location
+            <label className="form-label">
+                Location <span className="text-danger">*</span>
             </label>
-            <div className="input-group">
-                <span className="input-group-text bg-dark bg-opacity-50 border-secondary border-opacity-25 text-primary">
-                    <i className="bi bi-search"></i>
-                </span>
+
+            <div className="position-relative">
                 <input
                     type="text"
-                    className="form-control bg-dark bg-opacity-50 text-light border-secondary border-opacity-25 py-2"
-                    placeholder="Search city or address..."
+                    className="form-control"
+                    placeholder="Search city like 'Zurich'..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => query.length >= 3 && setShowSuggestions(true)}
-                    style={{ backdropFilter: 'blur(5px)' }}
+                    style={{ paddingRight: '3rem' }}
                 />
+
+                {/* Location Icon / Spinner Button inside input */}
                 <button
-                    className="btn btn-outline-secondary border-opacity-25"
+                    className="btn btn-sm btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-0"
                     type="button"
                     onClick={handleCurrentLocation}
                     title="Use Current Location"
+                    style={{ width: 24, height: 24 }}
                 >
-                    {isLoading ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-crosshair"></i>}
+                    {isLoading ? (
+                        <span className="spinner-border spinner-border-sm"></span>
+                    ) : (
+                        <i className="bi bi-crosshair fs-6"></i>
+                    )}
                 </button>
             </div>
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-                <div className="position-absolute w-100 z-3 mt-2">
-                    <div className="glass-card overflow-hidden border-0 shadow-lg" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                        <ul className="list-group list-group-flush bg-transparent">
+                <div className="position-absolute w-100 z-3 mt-2 animate-fade-in">
+                    <div className="glass-card overflow-hidden shadow-lg p-0" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                        <div className="list-group list-group-flush">
                             {suggestions.map((item) => (
                                 <button
                                     key={item.place_id}
                                     type="button"
-                                    className="list-group-item list-group-item-action bg-transparent text-light border-secondary border-opacity-10 px-3 py-2 text-start"
+                                    className="list-group-item list-group-item-action bg-transparent text-light border-bottom border-light border-opacity-10 px-3 py-2 text-start"
                                     onClick={() => handleSelect(item)}
                                 >
                                     <div className="d-flex align-items-center">
-                                        <i className="bi bi-geo-alt-fill text-primary me-2 opacity-75"></i>
-                                        <small>{item.display_name}</small>
+                                        <i className="bi bi-geo-alt text-primary me-3 opacity-75"></i>
+                                        <div className="text-truncate">
+                                            <span className="d-block small fw-bold text-white">{item.display_name.split(',')[0]}</span>
+                                            <span className="d-block x-small text-secondary text-truncate">{item.display_name}</span>
+                                        </div>
                                     </div>
                                 </button>
                             ))}
-                        </ul>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Debug/Info: Show verified coordinates if present */}
-            {latitude && longitude && (
-                <div className="form-text text-success mt-2 d-flex align-items-center small">
-                    <i className="bi bi-check-circle-fill me-1"></i>
-                    <span>Coords set: {Number(latitude).toFixed(4)}, {Number(longitude).toFixed(4)}</span>
-                </div>
-            )}
+            {/* Coordinates Validation Badge */}
+            <div className="d-flex align-items-center justify-content-end mt-1" style={{ minHeight: '20px' }}>
+                {latitude && longitude ? (
+                    <small className="text-primary fw-medium animate-fade-in">
+                        <i className="bi bi-crosshair me-1"></i> Coordinates locked
+                    </small>
+                ) : (
+                    query && !isLoading && <small className="text-warning animate-fade-in">Pick a location from the list</small>
+                )}
+            </div>
         </div>
     );
 }

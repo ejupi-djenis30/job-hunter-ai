@@ -21,14 +21,6 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
         }
     };
 
-    const handleRunAgain = async (profile) => {
-        if (onStartSearch) {
-            onStartSearch(profile);
-        }
-    };
-
-
-
     const handleDelete = async (profileId) => {
         if (!window.confirm("Delete this history entry?")) return;
         try {
@@ -47,84 +39,102 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
         return (
             <div className="glass-card text-center py-5 animate-fade-in">
                 <div className="card-body text-secondary">
-                    <i className="bi bi-clock-history display-4 opacity-50 mb-3"></i>
-                    <p className="fs-5">No search history yet</p>
+                    <i className="bi bi-clock-history display-1 opacity-25 mb-3"></i>
+                    <h5 className="fw-bold text-white">No Search History</h5>
+                    <p className="small">Your past searches will appear here.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="animate-fade-in">
+        <div className="container-fluid px-0 animate-fade-in">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="mb-0 text-light fw-bold">
-                    <i className="bi bi-calendar3 me-2 text-primary"></i>Recent Searches
-                </h5>
-                <button onClick={loadProfiles} className="btn btn-sm btn-outline-secondary rounded-circle">
+                <div>
+                    <h4 className="mb-1 text-white fw-bold">Recent Activity</h4>
+                    <p className="text-secondary small mb-0">Manage your past search configurations</p>
+                </div>
+                <button onClick={loadProfiles} className="btn btn-sm btn-secondary rounded-circle" style={{ width: 32, height: 32 }}>
                     <i className="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
 
-            <div className="table-responsive glass-card border-0">
-                <table className="table table-hover table-dark mb-0 bg-transparent align-middle">
-                    <thead className="bg-white bg-opacity-5">
-                        <tr className="border-0">
-                            <th className="border-0 px-4 py-3 text-secondary small text-uppercase">Search Name</th>
-                            <th className="border-0 py-3 text-secondary small text-uppercase">Role / Description</th>
-                            <th className="border-0 py-3 text-secondary small text-uppercase">Location</th>
-                            <th className="border-0 py-3 text-secondary small text-uppercase text-end px-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {profiles.map(p => (
-                            <tr key={p.id} className="border-secondary border-opacity-10">
-                                <td className="px-4 py-3">
-                                    <div className="text-light fw-medium">{p.name}</div>
-                                    <div className="text-secondary smaller">ID: {p.id}</div>
-                                </td>
-                                <td className="py-3">
-                                    <div className="text-secondary text-truncate" style={{ maxWidth: '250px' }}>
-                                        {p.role_description}
-                                    </div>
-                                </td>
-                                <td className="py-3 text-secondary">
-                                    {p.location_filter || "Any"}
-                                </td>
-                                <td className="py-3 text-end px-4">
-                                    <div className="d-flex justify-content-end gap-2">
+            <div className="d-flex flex-column gap-3">
+                {profiles.map(p => (
+                    <div key={p.id} className="glass-card p-3 p-md-4 hover-scale transition-all">
+                        <div className="row align-items-center g-3">
+                            {/* Icon & ID */}
+                            <div className="col-auto">
+                                <div className="rounded-circle bg-primary bg-gradient d-flex align-items-center justify-content-center text-white shadow-sm" style={{ width: 48, height: 48 }}>
+                                    <i className="bi bi-search fs-5"></i>
+                                </div>
+                            </div>
+
+                            {/* Main Info */}
+                            <div className="col">
+                                <h6 className="mb-1 fw-bold text-white text-truncate">{p.role_description}</h6>
+                                <div className="d-flex flex-wrap gap-3 small text-secondary">
+                                    <span className="d-flex align-items-center">
+                                        <i className="bi bi-geo-alt me-1"></i>
+                                        {p.location_filter || "Any Location"}
+                                    </span>
+                                    <span className="d-flex align-items-center">
+                                        <i className="bi bi-calendar me-1"></i>
+                                        Last {p.posted_within_days} days
+                                    </span>
+                                    {p.schedule_enabled && (
+                                        <span className="text-success fw-medium d-flex align-items-center">
+                                            <i className="bi bi-check-circle-fill me-1"></i>
+                                            Auto-runs every {p.schedule_interval_hours}h
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="col-12 col-md-auto mt-3 mt-md-0">
+                                <div className="d-flex gap-2 justify-content-end">
+                                    <button
+                                        className="btn btn-sm btn-primary px-3 rounded-pill fw-medium shadow-sm scale-on-hover"
+                                        onClick={() => onStartSearch && onStartSearch(p)}
+                                        title="Rerun Search"
+                                    >
+                                        <i className="bi bi-play-fill me-1"></i> Run
+                                    </button>
+
+                                    <button
+                                        className="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0"
+                                        style={{ width: 36, height: 36 }}
+                                        onClick={() => onEdit?.(p)}
+                                        title="Edit Parameters"
+                                    >
+                                        <i className="bi bi-pencil"></i>
+                                    </button>
+
+                                    {!p.schedule_enabled && (
                                         <button
-                                            className="btn btn-sm btn-outline-primary"
-                                            onClick={() => handleRunAgain(p)}
-                                            title="Rifai Ricerca"
-                                        >
-                                            <i className="bi bi-play-fill me-1"></i>Run
-                                        </button>
-                                        <button
-                                            className="btn btn-sm btn-outline-info"
-                                            onClick={() => onEdit?.(p)}
-                                            title="Modifica parametri"
-                                        >
-                                            <i className="bi bi-pencil-square me-1"></i>Edit
-                                        </button>
-                                        <button
-                                            className="btn btn-sm btn-outline-success"
+                                            className="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0"
+                                            style={{ width: 36, height: 36 }}
                                             onClick={() => onSaveAsSchedule?.(p)}
-                                            title="Attiva Schedulazione"
+                                            title="Add to Schedule"
                                         >
-                                            <i className="bi bi-calendar-check me-1"></i>Schedule
+                                            <i className="bi bi-clock"></i>
                                         </button>
-                                        <button
-                                            className="btn btn-sm btn-outline-danger"
-                                            onClick={() => handleDelete(p.id)}
-                                        >
-                                            <i className="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                    )}
+
+                                    <button
+                                        className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center p-0 border-opacity-50"
+                                        style={{ width: 36, height: 36 }}
+                                        onClick={() => handleDelete(p.id)}
+                                        title="Delete"
+                                    >
+                                        <i className="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

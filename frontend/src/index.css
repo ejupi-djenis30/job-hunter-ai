@@ -1,126 +1,178 @@
 /* Google Fonts: Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette */
-  --bg-dark: #0f172a;
-  /* Slate 900 */
-  --bg-card: #1e293b;
-  /* Slate 800 */
-  --text-primary: #f8fafc;
-  /* Slate 50 */
-  --text-secondary: #94a3b8;
-  /* Slate 400 */
+  /* ─── Apple-Style Monochrome Palette (Dark Mode) ─── */
 
-  /* Brand Colors */
-  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  /* Indigo -> Violet */
-  --primary-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  /* Core Colors */
+  --primary-base: #0a84ff;
+  /* Apple System Blue */
+  --success-base: #30d158;
+  --warning-base: #ff9f0a;
+  --danger-base: #ff453a;
+  --info-base: #64d2ff;
 
-  /* Status Colors */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  /* Bootstrap Overrides (The Correct Way) */
+  --bs-primary: var(--primary-base);
+  --bs-success: var(--success-base);
+  --bs-warning: var(--warning-base);
+  --bs-danger: var(--danger-base);
+  --bs-info: var(--info-base);
+  --bs-body-bg: #000000;
+  --bs-body-color: #ffffff;
 
-  /* UI Effects */
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
-  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  /* Custom UI Variables */
+  --bg-body: #000000;
+  --bg-subtle: #1c1c1e;
+  --bg-card: #1c1c1e;
+  --bg-card-hover: #2c2c2e;
+  --bg-input: #2c2c2e;
+  --bg-input-focus: #3a3a3c;
+
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-highlight: rgba(255, 255, 255, 0.2);
+
+  --text-primary: #ffffff;
+  --text-secondary: #98989d;
+  --text-tertiary: #6e6e73;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 15px rgba(10, 132, 255, 0.3);
 }
+
+/* ─── Global Reset & Base ─── */
 
 body {
-  font-family: 'Inter', sans-serif;
-  background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
-  background-attachment: fixed;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-body);
   color: var(--text-primary);
   min-height: 100vh;
+  margin: 0;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Typography & Utilities ─── */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-weight: 700;
-  letter-spacing: -0.025em;
+/* ─── Forms & Inputs (CRITICAL FIXES) ─── */
+
+.form-control,
+.form-select {
+  background-color: var(--bg-input);
+  /* Solid dark color, no transparency */
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
 }
 
-.text-gradient {
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg-input-focus);
+  border-color: var(--primary-base);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.25);
+  color: #fff;
+  outline: none;
+}
+
+.form-control::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* FIX: Ensure dropdown options are visible */
+select option {
+  background-color: #1c1c1e !important;
+  color: #ffffff !important;
+  padding: 10px;
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  margin-left: 0.25rem;
 }
 
 /* ─── Components ─── */
 
-/* Glassmorphism Card */
+/* Glass Cards -> Now Solid Cards for stability */
 .glass-card {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: var(--glass-border);
-  border-radius: 1rem;
-  box-shadow: var(--glass-shadow);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-/* Modern Buttons */
-.btn-primary {
-  background: var(--primary-gradient);
+/* Buttons */
+.btn {
+  border-radius: var(--radius-pill);
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
   border: none;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-base);
+  color: white;
 }
 
 .btn-primary:hover {
-  background: var(--primary-hover);
+  background-color: #0077ed;
+  /* Slightly darker blue */
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
 
+.btn-secondary,
 .btn-outline-secondary {
-  border-color: rgba(148, 163, 184, 0.2);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover,
+.btn-outline-secondary:hover {
+  background-color: var(--bg-input-focus);
+  color: #fff;
+}
+
+/* Navbar */
+.navbar-glass {
+  background-color: rgba(28, 28, 30, 0.85);
+  /* High opacity dark */
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.nav-pills .nav-link {
   color: var(--text-secondary);
 }
 
-.btn-outline-secondary:hover {
-  background: rgba(148, 163, 184, 0.1);
-  color: var(--text-primary);
-  border-color: rgba(148, 163, 184, 0.4);
+.nav-pills .nav-link.active {
+  background-color: var(--bg-input-focus);
+  color: var(--primary-base);
 }
 
-/* Match Scores */
-.score-badge {
-  font-weight: 700;
-  padding: 0.35em 0.65em;
-  border-radius: 0.5rem;
-  letter-spacing: -0.01em;
+/* Utilities */
+/* .text-primary and .bg-primary are now handled by Bootstrap variables */
+
+/* Animation Utils */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
 }
 
-.score-high {
-  color: #34d399;
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.score-mid {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.1);
-}
-
-.score-low {
-  color: #f87171;
-  background: rgba(239, 68, 68, 0.1);
-}
-
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(5px);
   }
 
   to {
@@ -129,17 +181,59 @@ h6 {
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+/* Remove decorative colored backgrounds/borders from previous design */
+.border-success,
+.border-warning,
+.border-danger,
+.border-info {
+  border-color: var(--border-subtle) !important;
 }
 
-/* Data Tables Override */
-.table-dark {
+
+/* Specific Badge Overrides */
+.badge.bg-success {
+  background-color: rgba(48, 209, 88, 0.2) !important;
+  color: #30d158 !important;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.badge.bg-warning {
+  background-color: rgba(255, 159, 10, 0.2) !important;
+  color: #ff9f0a !important;
+  border: 1px solid rgba(255, 159, 10, 0.3);
+}
+
+.badge.bg-danger {
+  background-color: rgba(255, 69, 58, 0.2) !important;
+  color: #ff453a !important;
+  border: 1px solid rgba(255, 69, 58, 0.3);
+}
+
+.badge.bg-primary {
+  background-color: rgba(10, 132, 255, 0.2) !important;
+  color: #0a84ff !important;
+  border: 1px solid rgba(10, 132, 255, 0.3);
+}
+
+/* Table Overrides for Dark Mode */
+.table {
+  --bs-table-color: var(--text-primary);
   --bs-table-bg: transparent;
-  --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+  --bs-table-border-color: var(--border-subtle);
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+  --bs-table-striped-color: var(--text-primary);
+  --bs-table-active-bg: rgba(255, 255, 255, 0.1);
+  --bs-table-active-color: var(--text-primary);
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+  --bs-table-hover-color: var(--text-primary);
 }
 
 .table> :not(caption)>*>* {
-  border-color: rgba(255, 255, 255, 0.05);
-  vertical-align: middle;
+  background-color: transparent !important;
+  border-bottom-width: 0;
+  box-shadow: none !important;
+}
+
+.job-row:hover td {
+  background-color: var(--bg-card-hover) !important;
 }
