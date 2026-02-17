@@ -12,12 +12,10 @@ export function LocationInput({
     const [showSuggestions, setShowSuggestions] = useState(false);
     const wrapperRef = useRef(null);
 
-    // Sync local query if prop changes externaly (e.g. initial load)
     useEffect(() => {
         setQuery(location || "");
     }, [location]);
 
-    // Close suggestions on click outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -36,42 +34,36 @@ export function LocationInput({
 
         setIsLoading(true);
         try {
-            // Switzerland only (ch), but with full address details for streets
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=ch&addressdetails=1&limit=10`
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchTerm)}&countrycodes=ch&addressdetails=1&limit=5`
             );
             const data = await response.json();
 
-            // Format display names
             const formattedSuggestions = data.map((item) => {
                 const address = item.address || {};
-                // Construct a better display name: Street, City, Canton
                 const parts = [];
-                // Street & House Number
+                
                 let street = address.road || address.pedestrian || address.highway || "";
                 if (street && address.house_number) {
                     street += ` ${address.house_number}`;
                 }
                 if (street) parts.push(street);
 
-                // City / Town / Village
                 if (address.city) parts.push(address.city);
                 else if (address.town) parts.push(address.town);
                 else if (address.village) parts.push(address.village);
                 else if (address.municipality) parts.push(address.municipality);
 
-                // Canton/State
                 if (address.state) parts.push(address.state);
 
-                // Fallback to display_name if parts are empty (rare)
                 const formattedDisplayName = parts.length > 0 ? parts.join(", ") : item.display_name;
 
                 return {
-                    place_id: item.place_id, // Keep place_id for key
+                    place_id: item.place_id,
                     display_name: formattedDisplayName,
                     lat: item.lat,
                     lon: item.lon,
-                    full_name: item.display_name // Keep original full name for reference if needed
+                    full_name: item.display_name
                 };
             });
 
@@ -84,11 +76,10 @@ export function LocationInput({
         }
     };
 
-    // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (query !== location) { // User typed something new
-                // Strict Mode: If user types, invalidate previous coordinates until they select a new one
+            if (query !== location) {
+                // When typing, we clear the locked coordinates until selection
                 onLocationChange({
                     name: query,
                     lat: null,
@@ -112,7 +103,7 @@ export function LocationInput({
 
     const handleCurrentLocation = () => {
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
+            alert("Geolocation is not supported");
             return;
         }
 
@@ -121,15 +112,13 @@ export function LocationInput({
             async (position) => {
                 const { latitude, longitude } = position.coords;
                 try {
-                    // Reverse Geocoding
                     const response = await fetch(
                         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
                     );
                     const data = await response.json();
-
                     const displayName = data.display_name || `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+                    
                     setQuery(displayName);
-
                     onLocationChange({
                         name: displayName,
                         lat: latitude,
@@ -137,7 +126,7 @@ export function LocationInput({
                     });
                 } catch (error) {
                     console.error("Reverse Geocoding Error:", error);
-                    // Fallback to coordinates
+                    setQuery(`Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`);
                     onLocationChange({
                         name: `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`,
                         lat: latitude,
@@ -149,7 +138,7 @@ export function LocationInput({
             },
             (error) => {
                 console.error("Geolocation Error:", error);
-                alert("Unable to retrieve your location");
+                alert("Impossible to retrieve location");
                 setIsLoading(false);
             }
         );
@@ -157,28 +146,23 @@ export function LocationInput({
 
     return (
         <div className="position-relative" ref={wrapperRef}>
-            <label className="form-label">
-                Location <span className="text-danger">*</span>
-            </label>
-
             <div className="position-relative">
                 <input
                     type="text"
-                    className="form-control"
-                    placeholder="Search city like 'Zurich'..."
+                    className="form-control bg-black-20 border-white-10 text-white"
+                    placeholder="Search city (e.g. Zurich)..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => query.length >= 3 && setShowSuggestions(true)}
                     style={{ paddingRight: '3rem' }}
                 />
 
-                {/* Location Icon / Spinner Button inside input */}
                 <button
-                    className="btn btn-sm btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-0"
+                    className="btn btn-sm btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-2 p-0 hover-text-white"
                     type="button"
                     onClick={handleCurrentLocation}
-                    title="Use Current Location"
-                    style={{ width: 24, height: 24 }}
+                    title="Use current location"
+                    style={{ width: 32, height: 32 }}
                 >
                     {isLoading ? (
                         <span className="spinner-border spinner-border-sm"></span>
@@ -190,14 +174,14 @@ export function LocationInput({
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-                <div className="position-absolute w-100 z-3 mt-2 animate-fade-in">
-                    <div className="glass-card overflow-hidden shadow-lg p-0" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                <div className="position-absolute w-100 z-3 mt-2 animate-slide-up">
+                    <div className="glass-panel overflow-hidden shadow-glow p-0" style={{ maxHeight: '250px', overflowY: 'auto', backgroundColor: '#18181b' }}>
                         <div className="list-group list-group-flush">
                             {suggestions.map((item) => (
                                 <button
                                     key={item.place_id}
                                     type="button"
-                                    className="list-group-item list-group-item-action bg-transparent text-light border-bottom border-light border-opacity-10 px-3 py-2 text-start"
+                                    className="list-group-item list-group-item-action bg-transparent text-light border-bottom border-white-5 px-3 py-2 text-start hover-bg-white-10 transition-colors"
                                     onClick={() => handleSelect(item)}
                                 >
                                     <div className="d-flex align-items-center">
@@ -213,17 +197,6 @@ export function LocationInput({
                     </div>
                 </div>
             )}
-
-            {/* Coordinates Validation Badge */}
-            <div className="d-flex align-items-center justify-content-end mt-1" style={{ minHeight: '20px' }}>
-                {latitude && longitude ? (
-                    <small className="text-primary fw-medium animate-fade-in">
-                        <i className="bi bi-crosshair me-1"></i> Coordinates locked
-                    </small>
-                ) : (
-                    query && !isLoading && <small className="text-warning animate-fade-in">Pick a location from the list</small>
-                )}
-            </div>
         </div>
     );
 }

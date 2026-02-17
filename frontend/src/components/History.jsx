@@ -32,54 +32,64 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
     };
 
     if (loading) {
-        return <div className="text-center py-5"><div className="spinner-border text-primary" /></div>;
+        return (
+            <div className="d-flex justify-content-center align-items-center h-100">
+                <div className="spinner-border text-primary" role="status"></div>
+            </div>
+        );
     }
 
     if (!profiles.length) {
         return (
-            <div className="glass-card text-center py-5 animate-fade-in">
-                <div className="card-body text-secondary">
-                    <i className="bi bi-clock-history display-1 opacity-25 mb-3"></i>
-                    <h5 className="fw-bold text-white">No Search History</h5>
-                    <p className="small">Your past searches will appear here.</p>
+            <div className="glass-panel text-center py-5 animate-fade-in align-items-center d-flex flex-column justify-content-center h-100">
+                <div className="mb-4">
+                    <div className="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style={{ width: 80, height: 80 }}>
+                        <i className="bi bi-journal-x fs-1 text-secondary opacity-50"></i>
+                    </div>
                 </div>
+                <h4 className="text-white fw-bold">No History</h4>
+                <p className="text-secondary opacity-75">Your past searches will appear here.</p>
             </div>
         );
     }
 
     return (
-        <div className="container-fluid px-0 animate-fade-in">
+        <div className="animate-fade-in h-100 d-flex flex-column">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h4 className="mb-1 text-white fw-bold">Recent Activity</h4>
-                    <p className="text-secondary small mb-0">Manage your past search configurations</p>
+                    <h3 className="mb-1 text-white fw-bold tracking-tight">Recent Activity</h3>
+                    <p className="text-secondary small mb-0 opacity-75">Manage your past search configurations</p>
                 </div>
-                <button onClick={loadProfiles} className="btn btn-sm btn-secondary rounded-circle" style={{ width: 32, height: 32 }}>
+                <button 
+                    onClick={loadProfiles} 
+                    className="btn btn-icon btn-secondary rounded-circle shadow-sm"
+                    title="Refresh List"
+                >
                     <i className="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
 
-            <div className="d-flex flex-column gap-3">
+            <div className="d-flex flex-column gap-3 overflow-auto custom-scrollbar pb-3">
                 {profiles.map(p => (
-                    <div key={p.id} className="glass-card p-3 p-md-4 hover-scale transition-all">
+                    <div key={p.id} className="glass-panel p-3 px-md-4 py-md-3 hover-bg-white-5 transition-colors group">
                         <div className="row align-items-center g-3">
                             {/* Icon & ID */}
                             <div className="col-auto">
-                                <div className="rounded-circle bg-primary bg-gradient d-flex align-items-center justify-content-center text-white shadow-sm" style={{ width: 48, height: 48 }}>
-                                    <i className="bi bi-search fs-5"></i>
+                                <div className={`rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm border border-white-10 ${p.schedule_enabled ? 'bg-success' : 'bg-primary'}`} style={{ width: 42, height: 42 }}>
+                                    <i className={`bi ${p.schedule_enabled ? 'bi-robot' : 'bi-search'} fs-5`}></i>
                                 </div>
                             </div>
 
                             {/* Main Info */}
                             <div className="col">
                                 <h6 className="mb-1 fw-bold text-white text-truncate">{p.role_description}</h6>
-                                <div className="d-flex flex-wrap gap-3 small text-secondary">
-                                    <span className="d-flex align-items-center">
-                                        <i className="bi bi-geo-alt me-1"></i>
+                                <div className="d-flex flex-wrap gap-3 small text-white-50">
+                                    <span className="d-flex align-items-center" title="Location">
+                                        <i className="bi bi-geo-alt me-1 text-primary"></i>
                                         {p.location_filter || "Any Location"}
                                     </span>
-                                    <span className="d-flex align-items-center">
-                                        <i className="bi bi-calendar me-1"></i>
+                                    <span className="d-flex align-items-center" title="Time range">
+                                        <i className="bi bi-calendar me-1 text-primary"></i>
                                         Last {p.posted_within_days} days
                                     </span>
                                     {p.schedule_enabled && (
@@ -93,9 +103,9 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
 
                             {/* Actions */}
                             <div className="col-12 col-md-auto mt-3 mt-md-0">
-                                <div className="d-flex gap-2 justify-content-end">
+                                <div className="d-flex gap-2 justify-content-end opacity-75 group-hover-opacity-100 transition-opacity">
                                     <button
-                                        className="btn btn-sm btn-primary px-3 rounded-pill fw-medium shadow-sm scale-on-hover"
+                                        className="btn btn-sm btn-primary px-3 rounded-pill fw-medium shadow-glow"
                                         onClick={() => onStartSearch && onStartSearch(p)}
                                         title="Rerun Search"
                                     >
@@ -103,8 +113,7 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
                                     </button>
 
                                     <button
-                                        className="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0"
-                                        style={{ width: 36, height: 36 }}
+                                        className="btn btn-sm btn-icon btn-secondary rounded-circle ms-1"
                                         onClick={() => onEdit?.(p)}
                                         title="Edit Parameters"
                                     >
@@ -113,8 +122,7 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
 
                                     {!p.schedule_enabled && (
                                         <button
-                                            className="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0"
-                                            style={{ width: 36, height: 36 }}
+                                            className="btn btn-sm btn-icon btn-secondary rounded-circle"
                                             onClick={() => onSaveAsSchedule?.(p)}
                                             title="Add to Schedule"
                                         >
@@ -122,9 +130,10 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
                                         </button>
                                     )}
 
+                                    <div className="vr bg-white opacity-25 mx-1"></div>
+
                                     <button
-                                        className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center p-0 border-opacity-50"
-                                        style={{ width: 36, height: 36 }}
+                                        className="btn btn-sm btn-icon btn-outline-danger border-0 rounded-circle text-danger hover-bg-danger hover-text-white transition-colors"
                                         onClick={() => handleDelete(p.id)}
                                         title="Delete"
                                     >

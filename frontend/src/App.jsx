@@ -6,10 +6,10 @@ import { FilterBar } from './components/FilterBar';
 import { Schedules } from './components/Schedules';
 import { History } from './components/History';
 import { Login } from './components/Login';
+import { Sidebar } from './components/Layout/Sidebar';
 import { AuthService } from './services/auth';
 import { JobService } from './services/jobs';
 import { SearchService } from './services/search';
-
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(AuthService.isLoggedIn());
@@ -23,6 +23,7 @@ function App() {
   const [searchState, setSearchState] = useState(null); // null | "running" | "done" | "error"
   const [searchStatus, setSearchStatus] = useState(null);
   const [prefillProfile, setPrefillProfile] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
 
   // Pagination State
   const [pagination, setPagination] = useState({
@@ -174,172 +175,168 @@ function App() {
   const appliedCount = pagination.total_applied;
   const avgScore = Math.round(pagination.avg_score || 0);
 
+  const StatCard = ({ label, value, color, icon }) => (
+    <div className="glass-panel p-4 d-flex align-items-center hover-card h-100">
+      <div className={`rounded-circle d-flex align-items-center justify-content-center me-3 bg-${color}-10 text-${color}`} 
+           style={{ width: 48, height: 48 }}>
+        <i className={`bi ${icon} fs-4`}></i>
+      </div>
+      <div>
+        <div className="h3 fw-bold mb-0 text-white">{value}</div>
+        <div className="text-secondary small fw-medium text-uppercase tracking-wide">{label}</div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="pb-5">
-      {/* Navbar - Glass Effect */}
-      <nav className="navbar navbar-expand-lg navbar-dark fixed-top navbar-glass">
-        <div className="container">
-          <span className="navbar-brand fw-bold d-flex align-items-center fs-4">
-            <div className="rounded-circle bg-primary bg-gradient d-flex align-items-center justify-content-center me-2" style={{ width: 38, height: 38, boxShadow: 'var(--shadow-glow)' }}>
-              <i className="bi bi-search text-white" style={{ fontSize: '1.1rem' }}></i>
-            </div>
-            <span className="tracking-tight" style={{ fontWeight: 700 }}>JobHunter</span>
-          </span>
+    <div className="d-flex min-vh-100 position-relative">
+      {/* Mobile Sidebar Backdrop */}
+      <div 
+        className={`sidebar-backdrop ${isSidebarOpen ? 'show' : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
 
-          <button className="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span className="navbar-toggler-icon"></span>
-          </button>
+      {/* Sidebar */}
+      <Sidebar 
+        view={view} 
+        setView={setView} 
+        searchState={searchState} 
+        totalJobs={totalJobs}
+        username={username}
+        onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <div className="navbar-nav nav-pills ms-auto mb-2 mb-lg-0 gap-1 align-items-center">
-              <button
-                className={`nav-link btn btn-link text-start ${view === 'jobs' ? 'active' : ''}`}
-                onClick={() => { setView('jobs'); }}
+      {/* Main Content - Offset */}
+      <div className="flex-grow-1 d-lg-ml-280 w-100" style={{ transition: 'margin 0.3s ease' }}>
+        <div className="container-fluid p-3 p-lg-5">
+          
+          {/* Header Area */}
+          <div className="d-flex justify-content-between align-items-start mb-4 mb-lg-5 animate-fade-in pt-4 pt-lg-0">
+            <div className="d-flex align-items-center">
+              {/* Hamburger Menu - Visible only on mobile */}
+              <button 
+                className="btn btn-icon btn-secondary me-3 d-lg-none"
+                onClick={() => setIsSidebarOpen(true)}
               >
-                <i className="bi bi-grid-fill me-2"></i>Dashboard
-                {totalJobs > 0 && <span className="badge bg-white text-dark ms-2 rounded-pill small" style={{ fontSize: '0.7em' }}>{totalJobs}</span>}
+                <i className="bi bi-list fs-4"></i>
               </button>
-
-              {/* Persistent search tab */}
-              {activeProfileId && (
-                <button
-                  className={`nav-link btn btn-link text-start ${view === 'progress' ? 'active' : ''} ${searchState === 'done' ? 'text-success' : searchState === 'error' ? 'text-danger' : 'text-warning'}`}
-                  onClick={() => setView('progress')}
-                >
-                  {searchState === 'running' && <><i className="bi bi-arrow-clockwise me-2 spinner-border-sm"></i>Searching</>}
-                  {searchState === 'done' && <><i className="bi bi-check-circle-fill me-2"></i>Results</>}
-                  {searchState === 'error' && <><i className="bi bi-exclamation-triangle-fill me-2"></i>Error</>}
-                </button>
-              )}
-
-              <button
-                className={`nav-link btn btn-link text-start ${view === 'schedules' ? 'active' : ''}`}
-                onClick={() => setView('schedules')}
-              >
-                <i className="bi bi-alarm-fill me-2"></i>Schedules
-              </button>
-
-              <button
-                className={`nav-link btn btn-link text-start ${view === 'history' ? 'active' : ''}`}
-                onClick={() => setView('history')}
-              >
-                <i className="bi bi-clock-history me-2"></i>History
-              </button>
-
-              <button
-                className={`nav-link btn btn-link text-start ${view === 'new' ? 'active' : ''}`}
-                onClick={() => setView('new')}
-              >
-                <i className="bi bi-plus-circle-fill me-2"></i>New Search
-              </button>
-            </div>
-
-            {/* User / Logout */}
-            <div className="d-flex align-items-center gap-3 ps-lg-4 ms-lg-2 pt-3 pt-lg-0 border-start border-secondary border-opacity-10">
-              <div className="d-flex align-items-center text-secondary">
-                <div className="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: 32, height: 32 }}>
-                  <i className="bi bi-person-fill text-white"></i>
-                </div>
-                <small className="fw-medium text-white-50">{username}</small>
+              
+              <div>
+                <h1 className="fw-bold text-white mb-1 d-none d-md-block">
+                  {view === 'jobs' && 'Dashboard'}
+                  {view === 'new' && 'New Search'}
+                  {view === 'schedules' && 'Schedules'}
+                  {view === 'history' && 'Search History'}
+                  {view === 'progress' && 'Search in Progress'}
+                </h1>
+                <h4 className="fw-bold text-white mb-0 d-md-none">
+                  {view === 'jobs' && 'Dashboard'}
+                  {view === 'new' && 'New Search'}
+                  {view === 'schedules' && 'Schedules'}
+                  {view === 'history' && 'History'}
+                  {view === 'progress' && 'Progress'}
+                </h4>
+                <p className="text-secondary mb-0 d-none d-md-block">
+                  {view === 'jobs' && 'Overview of your search activities'}
+                  {view === 'new' && 'Configure and launch a new search'}
+                  {view === 'schedules' && 'Manage your automated searches'}
+                  {view === 'history' && 'Review your search history'}
+                  {view === 'progress' && 'Real-time search status'}
+                </p>
               </div>
-              <button className="btn btn-sm btn-outline-secondary rounded-pill px-3" onClick={handleLogout} title="Sign Out">
-                <i className="bi bi-box-arrow-right"></i>
-              </button>
             </div>
-          </div>
-        </div>
-      </nav>
 
-      {/* Content */}
-      <div className="container py-4 mt-5 pt-5">
-        <div className="mt-4">
-          {view === 'new' ? (
-            <div className="animate-fade-in text-center py-2">
-              <h2 className="display-6 fw-bold mb-4">
-                {prefillProfile ? 'Edit Search Profile' : 'Start New Search'}
-              </h2>
-              <div className="mx-auto">
+            {view === 'jobs' && (
+               <button onClick={() => fetchJobs()} className="btn btn-secondary d-flex align-items-center gap-2">
+                 <i className="bi bi-arrow-clockwise"></i> <span className="d-none d-md-inline">Refresh Data</span>
+               </button>
+            )}
+          </div>
+
+          <div className="animate-slide-up">
+            {view === 'new' ? (
+              <div className="w-100 h-100">
                 <SearchForm
                   onStartSearch={handleStartSearch}
                   isLoading={isSearching}
                   prefill={prefillProfile}
                 />
               </div>
-            </div>
-          ) : view === 'schedules' ? (
-            <Schedules />
-          ) : view === 'history' ? (
-            <History onStartSearch={handleStartSearch} onEdit={handleEditHistory} onSaveAsSchedule={handleSaveAsSchedule} />
-          ) : view === 'jobs' ? (
-            <div className="animate-fade-in py-1">
-              {/* Stats Row */}
-              <div className="row g-4 mb-5">
-                <div className="col-12 col-md-4">
-                  <div className="glass-card p-4 text-center h-100 d-flex flex-column justify-content-center">
-                    <div className="display-5 fw-bold text-gradient mb-1">{totalJobs}</div>
-                    <div className="text-secondary fw-semibold text-uppercase tracking-wider small opacity-75">
-                      Total Jobs Found
-                    </div>
+            ) : view === 'schedules' ? (
+              <Schedules />
+            ) : view === 'history' ? (
+              <History onStartSearch={handleStartSearch} onEdit={handleEditHistory} onSaveAsSchedule={handleSaveAsSchedule} />
+            ) : view === 'jobs' ? (
+              <>
+                {/* Stats Row */}
+                <div className="row g-3 g-md-4 mb-4 mb-md-5">
+                  <div className="col-12 col-md-4">
+                    <StatCard 
+                      label="Jobs Found" 
+                      value={totalJobs} 
+                      color="primary" 
+                      icon="bi-briefcase-fill"
+                    />
+                  </div>
+                  <div className="col-6 col-md-4">
+                    <StatCard 
+                      label="Avg Match" 
+                      value={`${avgScore}%`} 
+                      color="warning" 
+                      icon="bi-pie-chart-fill"
+                    />
+                  </div>
+                  <div className="col-6 col-md-4">
+                    <StatCard 
+                      label="Applied" 
+                      value={appliedCount} 
+                      color="success" 
+                      icon="bi-send-check-fill"
+                    />
                   </div>
                 </div>
-                <div className="col-6 col-md-4">
-                  <div className="glass-card p-4 text-center h-100 d-flex flex-column justify-content-center">
-                    <div className="display-5 fw-bold text-warning mb-1">{avgScore}%</div>
-                    <div className="text-secondary fw-semibold text-uppercase tracking-wider small opacity-75">Avg Match Score</div>
+
+                {/* Filter & Table Section */}
+                <div className="glass-panel overflow-hidden d-flex flex-column">
+                  <div className="p-3 border-bottom border-white-10 bg-black-20 transition-all">
+                     <FilterBar
+                      filters={filters}
+                      onChange={setFilters}
+                      onClear={() => setFilters({
+                        min_score: "",
+                        max_distance: "",
+                        worth_applying: "",
+                        sort_by: "created_at",
+                        sort_order: "desc"
+                      })}
+                    />
                   </div>
+                  <JobTable
+                    jobs={safeJobs}
+                    onToggleApplied={toggleApplied}
+                    pagination={pagination}
+                    onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
+                  />
                 </div>
-                <div className="col-6 col-md-4">
-                  <div className="glass-card p-4 text-center h-100 d-flex flex-column justify-content-center">
-                    <div className="display-5 fw-bold text-success mb-1">{appliedCount}</div>
-                    <div className="text-secondary fw-semibold text-uppercase tracking-wider small opacity-75">Applications Sent</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Results */}
-              <div className="d-flex justify-content-between align-items-end mb-4">
-                <div>
-                  <h4 className="mb-1 text-white fw-bold">Job Results</h4>
-                  <p className="text-secondary small mb-0">Browse and manage your scraped opportunities</p>
-                </div>
-                <button onClick={() => fetchJobs()} className="btn btn-sm btn-secondary rounded-pill px-3">
-                  <i className="bi bi-arrow-clockwise me-1"></i> Refresh
-                </button>
-              </div>
-
-              <FilterBar
-                filters={filters}
-                onChange={setFilters}
-                onClear={() => setFilters({
-                  min_score: "",
-                  max_distance: "",
-                  worth_applying: "",
-                  sort_by: "created_at",
-                  sort_order: "desc"
-                })}
-              />
-
-              <JobTable
-                jobs={safeJobs}
-                onToggleApplied={toggleApplied}
-                pagination={pagination}
-                onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
-              />  </div>
-          ) : null}
-        </div>
-
-        {/* SearchProgress stays mounted (hidden) to preserve polling state */}
-        {activeProfileId && (
-          <div style={{ display: view === 'progress' ? 'block' : 'none' }}>
-            <SearchProgress
-              profileId={activeProfileId}
-              status={searchStatus}
-              setStatus={setSearchStatus}
-              onStateChange={handleSearchStateChange}
-              onClear={handleClearSearch}
-            />
+              </>
+            ) : null}
           </div>
-        )}
+
+          {/* SearchProgress stays mounted (hidden) to preserve polling state */}
+          {activeProfileId && (
+            <div style={{ display: view === 'progress' ? 'block' : 'none' }}>
+              <SearchProgress
+                profileId={activeProfileId}
+                status={searchStatus}
+                setStatus={setSearchStatus}
+                onStateChange={handleSearchStateChange}
+                onClear={handleClearSearch}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -50,8 +50,8 @@ export function Schedules() {
 
     if (loading) {
         return (
-            <div className="text-center py-5">
-                <div className="spinner-border text-primary" />
+            <div className="d-flex justify-content-center align-items-center h-100">
+                <div className="spinner-border text-primary" role="status"></div>
             </div>
         );
     }
@@ -60,71 +60,74 @@ export function Schedules() {
 
     if (activeSchedules.length === 0) {
         return (
-            <div className="glass-card text-center py-5 animate-fade-in align-items-center d-flex flex-column justify-content-center">
+            <div className="glass-panel text-center py-5 animate-fade-in align-items-center d-flex flex-column justify-content-center h-100">
                 <div className="mb-4">
-                    <div className="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center" style={{ width: 80, height: 80 }}>
-                        <i className="bi bi-calendar-x fs-1 text-success opacity-50"></i>
+                    <div className="rounded-circle bg-success-10 d-inline-flex align-items-center justify-content-center border border-success-20 shadow-glow" style={{ width: 80, height: 80 }}>
+                        <i className="bi bi-clock-history fs-1 text-success"></i>
                     </div>
                 </div>
-                <h5 className="text-white fw-bold">No Active Schedules</h5>
-                <p className="text-secondary small">Activate auto-search when creating a new search.</p>
+                <h4 className="text-white fw-bold">No Active Schedules</h4>
+                <p className="text-secondary opacity-75 max-w-sm">Enable "Automatic Search" when creating a new search to let the agent work for you.</p>
             </div>
         );
     }
 
     return (
-        <div className="animate-fade-in py-1">
+        <div className="animate-fade-in h-100 d-flex flex-column">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h4 className="mb-1 text-white fw-bold">Active Schedules</h4>
-                    <p className="text-secondary small mb-0">Automated jobs hunting campaigns</p>
+                    <h3 className="mb-1 text-white fw-bold tracking-tight">Active Schedules</h3>
+                    <p className="text-secondary small mb-0 opacity-75">Automated hunting campaigns currently running</p>
                 </div>
-                <button onClick={loadProfiles} className="btn btn-sm btn-secondary rounded-circle" style={{ width: 32, height: 32 }}>
+                <button 
+                    onClick={loadProfiles} 
+                    className="btn btn-icon btn-secondary rounded-circle shadow-sm"
+                    title="Refresh List"
+                >
                     <i className="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
 
-            <div className="row g-4">
+            <div className="row g-4 overflow-auto pb-4 custom-scrollbar">
                 {activeSchedules.map(p => (
                     <div key={p.id} className="col-12 col-md-6 col-xl-4">
-                        <div className="glass-card p-4 h-100 d-flex flex-column hover-scale transition-all">
+                        <div className="glass-panel p-4 h-100 d-flex flex-column hover-y-2 transition-transform shadow-sm">
                             <div className="d-flex justify-content-between align-items-start mb-3">
                                 <div className="d-flex align-items-center gap-3">
-                                    <div className="rounded-circle bg-success bg-gradient d-flex align-items-center justify-content-center text-white shadow-sm" style={{ width: 42, height: 42 }}>
-                                        <i className="bi bi-robot fs-5"></i>
+                                    <div className="rounded-circle bg-success bg-gradient d-flex align-items-center justify-content-center text-white shadow-glow border border-white-10" style={{ width: 48, height: 48 }}>
+                                        <i className="bi bi-robot fs-4"></i>
                                     </div>
                                     <div>
-                                        <h6 className="text-white mb-0 fw-bold">{p.name || `Search #${p.id}`}</h6>
+                                        <h6 className="text-white mb-0 fw-bold">{p.name || `Campaign #${p.id}`}</h6>
                                         <div className="d-flex align-items-center gap-2 mt-1">
-                                            <span className="badge bg-success rounded-pill px-2 border-0" style={{ fontSize: '0.65rem' }}>Active</span>
-                                            <span className="text-secondary x-small">ID: {p.id}</span>
+                                            <span className="badge bg-success-10 text-success border border-success-20 rounded-pill px-2 py-1" style={{ fontSize: '0.65rem' }}>ACTIVE</span>
+                                            <span className="text-secondary x-small font-monospace">ID: {p.id}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <hr className="border-secondary border-opacity-10 my-3" />
+                            <hr className="border-white-10 my-3 opacity-50" />
 
                             <div className="flex-grow-1 mb-4">
-                                <div className="d-flex flex-column gap-2 text-secondary small">
-                                    <div className="d-flex align-items-center">
-                                        <i className="bi bi-briefcase me-2 text-secondary"></i>
-                                        <span className="text-truncate-2 text-white-50">{p.role_description}</span>
+                                <div className="d-flex flex-column gap-2">
+                                    <div className="d-flex align-items-start text-white-50 small">
+                                        <i className="bi bi-briefcase me-2 mt-1 text-primary"></i>
+                                        <span className="text-white fw-medium text-truncate-2" title={p.role_description}>{p.role_description}</span>
                                     </div>
-                                    <div className="d-flex align-items-center">
-                                        <i className="bi bi-geo-alt me-2 text-secondary"></i>
+                                    <div className="d-flex align-items-center text-white-50 small">
+                                        <i className="bi bi-geo-alt me-2 text-primary"></i>
                                         <span>{p.location_filter || "Any Location"}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-dark bg-opacity-50 rounded-4 p-3 border border-secondary border-opacity-10">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
+                            <div className="bg-black-20 rounded-3 p-3 border border-white-5">
+                                <div className="d-flex align-items-center justify-content-between mb-3">
                                     <div className="d-flex align-items-center gap-2">
-                                        <i className="bi bi-stopwatch text-white"></i>
-                                        <span className="text-white small fw-bold">Run Interval:</span>
+                                        <i className="bi bi-arrow-repeat text-white"></i>
+                                        <span className="text-white small fw-bold">Interval</span>
                                     </div>
-
                                     <div className="form-check form-switch m-0">
                                         <input
                                             className="form-check-input"
@@ -137,12 +140,11 @@ export function Schedules() {
                                     </div>
                                 </div>
 
-                                <div className="d-flex align-items-center justify-content-between gap-2">
+                                <div className="d-flex gap-2">
                                     <select
-                                        className="form-select form-select-sm bg-input border-secondary border-opacity-25 text-white shadow-none"
+                                        className="form-select form-select-sm bg-black-20 border-white-10 text-white shadow-none"
                                         value={p.schedule_interval_hours || 24}
                                         onChange={(e) => handleChangeInterval(p.id, e.target.value)}
-                                        style={{ maxWidth: '140px' }}
                                     >
                                         <option value="1">Every 1h</option>
                                         <option value="3">Every 3h</option>
@@ -152,10 +154,9 @@ export function Schedules() {
                                     </select>
 
                                     <button
-                                        className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center p-0"
-                                        style={{ width: 32, height: 32 }}
+                                        className="btn btn-sm btn-outline-danger border-white-10 text-danger hover-bg-danger hover-text-white rounded-3 px-3 transition-colors"
                                         onClick={() => handleDelete(p.id)}
-                                        title="Delete Schedule"
+                                        title="Delete Campaign"
                                     >
                                         <i className="bi bi-trash"></i>
                                     </button>

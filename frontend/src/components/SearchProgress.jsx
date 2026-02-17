@@ -40,7 +40,7 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
     }, [status?.log?.length]);
 
     const handleStop = async () => {
-        if (!window.confirm("Sei sicuro di voler fermare la ricerca?")) return;
+        if (!window.confirm("Are you sure you want to stop the search?")) return;
         try {
             await SearchService.stopSearch(profileId);
         } catch (e) {
@@ -49,10 +49,10 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
     };
 
     if (!status) return (
-        <div className="glass-card p-5 text-center mt-4 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '300px' }}>
-            <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
-            <h5 className="text-white fw-bold">Initializing Connection</h5>
-            <p className="text-secondary mb-0">Contacting agent...</p>
+        <div className="glass-panel p-5 text-center mt-4 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+            <div className="spinner-border text-primary mb-4" role="status" style={{ width: '3rem', height: '3rem' }}></div>
+            <h5 className="text-white fw-bold">Initializing Uplink</h5>
+            <p className="text-secondary mb-0 font-monospace small">Connecting to agent swarm...</p>
         </div>
     );
 
@@ -64,41 +64,40 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
     const progressPct = total_searches > 0 ? Math.round((current_search_index / total_searches) * 100) : 0;
 
     return (
-        <div className="animate-fade-in py-3">
-            {/* Main Status Card */}
-            <div className="glass-card p-4 p-md-5 mb-4 position-relative overflow-hidden">
-                {/* Background glow effect based on status */}
-                <div className={`position-absolute top-0 end-0 w-50 h-100 opacity-20 blur-3xl rounded-circle translate-middle-x ${isDone ? 'bg-success' : isError ? 'bg-danger' : 'bg-primary'}`} style={{ zIndex: -1 }}></div>
+        <div className="animate-fade-in py-3 h-100 d-flex flex-column">
+            {/* Main Status Header */}
+            <div className="glass-panel p-4 mb-4 position-relative overflow-hidden">
+                {/* Background Ambient Glow Removed */}
 
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div className="d-flex align-items-center gap-3">
-                        <div className={`rounded-circle d-flex align-items-center justify-content-center text-white shadow-lg ${isDone ? 'bg-success' : isError ? 'bg-danger' : 'bg-primary'}`} style={{ width: 56, height: 56 }}>
-                            {isRunning ? <span className="spinner-border spinner-border-sm" style={{ width: '1.5rem', height: '1.5rem' }}></span>
-                                : isDone ? <i className="bi bi-check-lg fs-3"></i>
-                                    : <i className="bi bi-exclamation-triangle fs-3"></i>}
+                <div className="d-flex flex-wrap justify-content-between align-items-center gap-4 mb-4">
+                    <div className="d-flex align-items-center gap-4">
+                        <div className={`rounded-circle d-flex align-items-center justify-content-center text-white shadow-lg border border-white-10 ${isDone ? 'bg-success' : isError ? 'bg-danger' : 'bg-primary'}`} style={{ width: 64, height: 64 }}>
+                            {isRunning ? <span className="spinner-border spinner-border-sm" style={{ width: '2rem', height: '2rem' }}></span>
+                                : isDone ? <i className="bi bi-check-lg fs-2"></i>
+                                    : <i className="bi bi-exclamation-triangle fs-2"></i>}
                         </div>
                         <div>
-                            <h2 className="mb-0 fw-bold text-white">
-                                {isDone ? "Search Complete" : isError ? (state === "stopped" ? "Search Stopped" : "Search Error") : "Agent Working..."}
+                            <h2 className="mb-0 fw-bold text-white tracking-tight">
+                                {isDone ? "Mission Complete" : isError ? (state === "stopped" ? "Mission Aborted" : "Mission Failed") : "Agent Active"}
                             </h2>
-                            <p className="text-white-50 mb-0 small">
-                                {state === "generating" && "Generating smart queries based on your profile"}
-                                {state === "searching" && `Executing search query ${current_search_index} of ${total_searches}`}
-                                {state === "analyzing" && "Analyzing jobs for relevance"}
-                                {state === "done" && "All tasks finished successfully"}
+                            <p className="text-white-50 mb-0 font-monospace small">
+                                {state === "generating" && "Generating tactical search vector..."}
+                                {state === "searching" && `Executing vector ${current_search_index} / ${total_searches}...`}
+                                {state === "analyzing" && "Analyzing intelligence data..."}
+                                {state === "done" && "All objectives secured."}
                             </p>
                         </div>
                     </div>
 
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-3">
                         {isRunning && (
-                            <button className="btn btn-outline-danger border-0 bg-danger bg-opacity-10 rounded-pill px-4" onClick={handleStop}>
-                                <i className="bi bi-stop-fill me-2"></i>Stop
+                            <button className="btn btn-outline-danger border-white-10 bg-black-20 rounded-pill px-4 hover-bg-danger hover-text-white transition-all" onClick={handleStop}>
+                                <i className="bi bi-stop-circle me-2"></i>Abort
                             </button>
                         )}
                         {(isDone || isError) && (
-                            <button className="btn btn-secondary rounded-pill px-4" onClick={onClear}>
-                                Close
+                            <button className="btn btn-secondary rounded-pill px-5 shadow-glow" onClick={onClear}>
+                                Close Debrief
                             </button>
                         )}
                     </div>
@@ -108,20 +107,20 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
                 {total_searches > 0 && (
                     <div className="mb-4">
                         <div className="d-flex justify-content-between text-secondary x-small fw-bold text-uppercase tracking-wider mb-2">
-                            <span>Progress</span>
-                            <span>{isDone ? '100%' : `${progressPct}%`}</span>
+                            <span>Mission Progress</span>
+                            <span className="text-white">{isDone ? '100%' : `${progressPct}%`}</span>
                         </div>
-                        <div className="progress bg-dark bg-opacity-25" style={{ height: "10px", borderRadius: "10px" }}>
+                        <div className="progress bg-black-50 border border-white-5" style={{ height: "8px", borderRadius: "8px" }}>
                             <div
-                                className={`progress-bar ${isDone ? 'bg-success' : isError ? 'bg-danger' : 'bg-primary progress-bar-striped progress-bar-animated'}`}
-                                style={{ width: `${isDone || isError ? 100 : progressPct}%`, borderRadius: "10px", transition: "width 0.5s ease" }}
+                                className={`progress-bar ${isDone ? 'bg-success shadow-glow' : isError ? 'bg-danger' : 'bg-primary shadow-glow progress-bar-striped progress-bar-animated'}`}
+                                style={{ width: `${isDone || isError ? 100 : progressPct}%`, borderRadius: "8px", transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
                             />
                         </div>
                         {isRunning && current_query && (
-                            <div className="mt-2 text-center">
-                                <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 rounded-pill fw-normal px-3 py-2 animate-pulse">
-                                    <i className="bi bi-search me-2"></i>
-                                    Scanning: "{current_query}"
+                            <div className="mt-2 text-center animate-slide-up">
+                                <span className="badge bg-primary-10 text-primary border border-primary-20 rounded-pill fw-normal px-3 py-1 font-monospace small">
+                                    <i className="bi bi-crosshair me-2"></i>
+                                    TARGET: "{current_query}"
                                 </span>
                             </div>
                         )}
@@ -130,69 +129,58 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
 
                 {/* Stats Grid */}
                 <div className="row g-3">
-                    <div className="col-6 col-md-3">
-                        <div className="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
-                            <div className="display-6 fw-bold text-white mb-0">{jobs_new || 0}</div>
-                            <div className="text-secondary small">New Jobs</div>
+                    {[
+                        { label: 'New Intel', value: jobs_new, color: 'text-white' },
+                        { label: 'Duplicates', value: jobs_duplicates, color: 'text-warning' },
+                        { label: 'Skipped', value: jobs_skipped, color: 'text-secondary' },
+                        { label: 'Errors', value: errors, color: 'text-danger' }
+                    ].map((stat, i) => (
+                        <div key={i} className="col-6 col-md-3">
+                            <div className="p-3 rounded-4 bg-black-20 border border-white-5 text-center">
+                                <div className={`display-6 fw-bold mb-0 ${stat.color}`}>{stat.value || 0}</div>
+                                <div className="text-secondary x-small text-uppercase tracking-wide opacity-75">{stat.label}</div>
+                            </div>
                         </div>
-                    </div>
-                    <div className="col-6 col-md-3">
-                        <div className="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
-                            <div className="display-6 fw-bold text-warning mb-0">{jobs_duplicates || 0}</div>
-                            <div className="text-secondary small">Duplicates</div>
-                        </div>
-                    </div>
-                    <div className="col-6 col-md-3">
-                        <div className="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
-                            <div className="display-6 fw-bold text-info mb-0">{jobs_skipped || 0}</div>
-                            <div className="text-secondary small">Skipped</div>
-                        </div>
-                    </div>
-                    <div className="col-6 col-md-3">
-                        <div className="p-3 rounded-4 bg-dark bg-opacity-50 border border-secondary border-opacity-25 text-center">
-                            <div className="display-6 fw-bold text-danger mb-0">{errors || 0}</div>
-                            <div className="text-secondary small">Errors</div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
 
-            <div className="row g-4">
+            <div className="row g-4 flex-grow-1" style={{ minHeight: '400px' }}>
                 {/* Generated Plan */}
-                <div className="col-md-5">
-                    <div className="glass-card p-0 h-100 overflow-hidden d-flex flex-column">
-                        <div className="p-3 border-bottom border-secondary border-opacity-10 bg-white bg-opacity-5">
-                            <h6 className="mb-0 fw-bold text-white"><i className="bi bi-diagram-3 me-2 text-primary"></i>Search Plan</h6>
+                <div className="col-lg-5 d-flex flex-column">
+                    <div className="glass-panel p-0 h-100 overflow-hidden d-flex flex-column">
+                        <div className="p-3 border-bottom border-white-10 bg-white-5">
+                            <h6 className="mb-0 fw-bold text-white small text-uppercase tracking-wide"><i className="bi bi-diagram-3 me-2 text-primary"></i>Tactical Plan</h6>
                         </div>
-                        <div className="flex-grow-1 overflow-auto" style={{ maxHeight: "300px" }}>
+                        <div className="flex-grow-1 overflow-auto custom-scrollbar p-0">
                             <ul className="list-group list-group-flush">
                                 {searches_generated?.map((s, i) => {
-                                    // current_search_index is 1-based from backend
                                     const currentIndex = (current_search_index || 1) - 1;
                                     const isDone = i < currentIndex;
                                     const isCurrent = i === currentIndex;
 
                                     return (
-                                        <li key={i} className={`list-group-item bg-transparent border-bottom border-secondary border-opacity-10 px-3 py-2 d-flex gap-3 ${isCurrent ? 'bg-primary bg-opacity-10' : ''}`}>
+                                        <li key={i} className={`list-group-item bg-transparent border-bottom border-white-5 px-3 py-3 d-flex gap-3 ${isCurrent ? 'bg-primary-10' : ''}`}>
                                             <div className="mt-1">
                                                 {isDone ? (
                                                     <i className="bi bi-check-circle-fill text-success"></i>
                                                 ) : isCurrent ? (
                                                     <div className="spinner-border spinner-border-sm text-primary"></div>
                                                 ) : (
-                                                    <div className="rounded-circle bg-secondary bg-opacity-25" style={{ width: 16, height: 16 }}></div>
+                                                    <div className="rounded-circle bg-white-10 border border-white-10" style={{ width: 16, height: 16 }}></div>
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="text-xs text-uppercase tracking-wider opacity-50 mb-1">{s.type}</div>
-                                                <div className={`text-sm fw-medium ${isCurrent ? 'text-white' : 'text-secondary'}`}>{s.query}</div>
+                                                <div className="x-small text-uppercase tracking-wider opacity-50 mb-1 text-secondary">{s.type}</div>
+                                                <div className={`text-sm fw-medium font-monospace ${isCurrent ? 'text-primary' : 'text-secondary'}`}>{s.query}</div>
                                             </div>
                                         </li>
                                     );
                                 })}
                                 {(!searches_generated || searches_generated.length === 0) && (
-                                    <div className="p-4 text-center text-secondary small opacity-50">
-                                        Planning search strategy...
+                                    <div className="p-5 text-center text-secondary opacity-50 d-flex flex-column align-items-center">
+                                        <div className="spinner-grow spinner-grow-sm mb-3"></div>
+                                        <span className="small">Formulating strategy...</span>
                                     </div>
                                 )}
                             </ul>
@@ -201,28 +189,28 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
                 </div>
 
                 {/* Live Logs */}
-                <div className="col-md-7">
-                    <div className="glass-card p-0 h-100 overflow-hidden d-flex flex-column">
-                        <div className="p-3 border-bottom border-secondary border-opacity-10 bg-black bg-opacity-20 d-flex justify-content-between align-items-center">
-                            <h6 className="mb-0 fw-bold text-white font-monospace"><i className="bi bi-terminal me-2"></i>Live Output</h6>
-                            <div className="d-flex gap-1">
-                                <div className="rounded-circle bg-danger opacity-50" style={{ width: 8, height: 8 }}></div>
-                                <div className="rounded-circle bg-warning opacity-50" style={{ width: 8, height: 8 }}></div>
-                                <div className="rounded-circle bg-success opacity-50" style={{ width: 8, height: 8 }}></div>
+                <div className="col-lg-7 d-flex flex-column">
+                    <div className="glass-panel p-0 h-100 overflow-hidden d-flex flex-column border-0 shadow-lg">
+                        <div className="p-2 border-bottom border-white-10 bg-black d-flex justify-content-between align-items-center">
+                            <div className="d-flex align-items-center px-2">
+                                <i className="bi bi-terminal-fill text-secondary me-2"></i>
+                                <span className="text-secondary x-small fw-bold font-monospace">AGENT_LOG_OUTPUT</span>
                             </div>
                         </div>
-                        <div className="flex-grow-1 overflow-auto bg-black bg-opacity-50 p-3" style={{ maxHeight: "300px", fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                        <div className="flex-grow-1 overflow-auto bg-black p-3 custom-scrollbar" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8rem' }}>
                             {log && log.length > 0 ? (
                                 log.map((entry, i) => (
                                     <div key={i} className="mb-1 d-flex">
-                                        <span className="text-secondary opacity-50 me-2" style={{ minWidth: '60px' }}>
-                                            {new Date(entry.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                        <span className="text-secondary opacity-50 me-2 select-none" style={{ minWidth: '70px' }}>
+                                            [{new Date(entry.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
                                         </span>
-                                        <span className="text-light">{entry.message}</span>
+                                        <span className="text-light text-break">{entry.message}</span>
                                     </div>
                                 ))
                             ) : (
-                                <span className="text-secondary opacity-25">Waiting for logs...</span>
+                                <div className="h-100 d-flex align-items-center justify-content-center text-secondary opacity-25">
+                                    <span>_waiting_for_stream</span>
+                                </div>
                             )}
                             <div ref={logEndRef} />
                         </div>
