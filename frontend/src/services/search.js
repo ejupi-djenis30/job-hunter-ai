@@ -9,6 +9,10 @@ export const SearchService = {
         return ApiClient.get(`/search/status/${profileId}`);
     },
 
+    getAllStatuses() {
+        return ApiClient.get("/search/status/all");
+    },
+
     getProfiles() {
         return ApiClient.get("/profiles/");
     },

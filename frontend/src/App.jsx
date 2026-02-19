@@ -19,9 +19,9 @@ function App() {
   const [view, setView] = useState('jobs'); // jobs | new | progress | schedules
   const [jobs, setJobs] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeProfileId, setActiveProfileId] = useState(null);
-  const [searchState, setSearchState] = useState(null); // null | "running" | "done" | "error"
-  const [searchStatus, setSearchStatus] = useState(null);
+  const [activeProfileIds, setActiveProfileIds] = useState([]);
+  const [visibleProfileId, setVisibleProfileId] = useState(null);
+  const [searchStatuses, setSearchStatuses] = useState({}); // { profileId: statusObj }
   const [prefillProfile, setPrefillProfile] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false); // Desktop sidebar state
@@ -78,6 +78,36 @@ function App() {
     }
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (isLoggedIn && view === 'progress') {
+      const pollStatuses = async () => {
+        try {
+          const res = await SearchService.getAllStatuses();
+          setSearchStatuses(res);
+          
+          // Check if any tracked profile finished this tick
+          let shouldFetchJobs = false;
+          activeProfileIds.forEach(id => {
+            const s = res[id];
+            if (s && (s.state === "done" || s.state === "error")) {
+              // We could trigger specific behavior here if needed
+              shouldFetchJobs = true;
+            }
+          });
+          if (shouldFetchJobs) {
+            fetchJobs(true);
+          }
+        } catch (e) {
+          console.error("Failed to poll statuses:", e);
+        }
+      };
+      
+      pollStatuses();
+      const interval = setInterval(pollStatuses, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn, view, activeProfileIds]);
+
   const fetchJobs = async (isPolling = false) => {
     try {
       // Use the ref value for polling to avoid closure staleness
@@ -116,19 +146,20 @@ function App() {
     setIsLoggedIn(false);
     setUsername("");
     setJobs([]);
-    setActiveProfileId(null);
-    setSearchState(null);
+    setActiveProfileIds([]);
+    setVisibleProfileId(null);
+    setSearchStatuses({});
     setView('jobs');
   };
 
   const handleStartSearch = async (profile) => {
     setIsSearching(true);
-    setSearchStatus(null);
     setPrefillProfile(null);
     try {
       const result = await SearchService.start(profile);
-      setActiveProfileId(result.profile_id);
-      setSearchState("running");
+      const pid = result.profile_id;
+      setActiveProfileIds(prev => prev.includes(pid) ? prev : [...prev, pid]);
+      setVisibleProfileId(pid);
       setView('progress');
     } catch (error) {
       if (error.message === "UNAUTHORIZED") { handleLogout(); return; }
@@ -154,16 +185,21 @@ function App() {
 
   const handleSearchStateChange = (state) => {
     if (state === "done" || state === "error") {
-      setSearchState(state === "done" ? "done" : "error");
       fetchJobs();
     }
   };
 
-  const handleClearSearch = () => {
-    setActiveProfileId(null);
-    setSearchState(null);
-    setSearchStatus(null);
-    setView('jobs');
+  const handleClearSearch = (profileId) => {
+    setActiveProfileIds(prev => {
+      const next = prev.filter(id => id !== profileId);
+      if (next.length === 0) {
+        setView('jobs');
+        setVisibleProfileId(null);
+      } else if (visibleProfileId === profileId) {
+        setVisibleProfileId(next[next.length - 1]);
+      }
+      return next;
+    });
   };
 
   const toggleApplied = async (job) => {
@@ -202,8 +238,16 @@ function App() {
   );
 
   return (
-    <div className="d-flex min-vh-100 position-relative">
-      {/* Mobile Sidebar Backdrop */}
+    <>
+      {/* Animated Background */}
+      <div className="animated-bg">
+        <div className="animated-bg-blob blob-1"></div>
+        <div className="animated-bg-blob blob-2"></div>
+        <div className="animated-bg-blob blob-3"></div>
+      </div>
+      
+      <div className="d-flex min-vh-100 position-relative overflow-hidden">
+        {/* Mobile Sidebar Backdrop */}
       <div 
         className={`sidebar-backdrop ${isSidebarOpen ? 'show' : ''}`}
         onClick={() => setIsSidebarOpen(false)}
@@ -213,7 +257,7 @@ function App() {
       <Sidebar 
         view={view} 
         setView={setView} 
-        searchState={searchState} 
+        searchState={Object.values(searchStatuses).some(s => ['generating', 'searching', 'analyzing'].includes((s || {}).state)) ? 'running' : null} 
         totalJobs={totalJobs}
         username={username}
         onLogout={handleLogout}
@@ -335,21 +379,41 @@ function App() {
             ) : null}
           </div>
 
-          {/* SearchProgress stays mounted (hidden) to preserve polling state */}
-          {activeProfileId && (
-            <div style={{ display: view === 'progress' ? 'block' : 'none' }}>
-              <SearchProgress
-                profileId={activeProfileId}
-                status={searchStatus}
-                setStatus={setSearchStatus}
-                onStateChange={handleSearchStateChange}
-                onClear={handleClearSearch}
-              />
+          {/* Optional Tabs for Active Searches */}
+          {view === 'progress' && activeProfileIds.length > 1 && (
+            <div className="d-flex gap-2 mb-4 overflow-auto pb-2 custom-scrollbar">
+              {activeProfileIds.map(pid => {
+                const s = searchStatuses[pid];
+                const label = s ? (s.state === 'running' || s.state === 'generating' || s.state === 'searching' || s.state === 'analyzing' ? `Search #${pid} (Active)` : `Search #${pid} (${s.state})`) : `Search #${pid}`;
+                return (
+                  <button 
+                    key={pid}
+                    className={`btn rounded-pill px-4 whitespace-nowrap ${visibleProfileId === pid ? 'btn-primary' : 'btn-outline-secondary bg-black-20 text-white'}`}
+                    onClick={() => setVisibleProfileId(pid)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           )}
+
+          {/* Render Search Progress instances for all active profiles, but only show the visible one */}
+          {activeProfileIds.map(pid => (
+            <div key={pid} style={{ display: (view === 'progress' && visibleProfileId === pid) ? 'block' : 'none' }}>
+              <SearchProgress
+                profileId={pid}
+                status={searchStatuses[pid]}
+                setStatus={(newStatus) => setSearchStatuses(prev => ({...prev, [pid]: newStatus}))}
+                onStateChange={handleSearchStateChange}
+                onClear={() => handleClearSearch(pid)}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>
+    </>
   );
 }
 

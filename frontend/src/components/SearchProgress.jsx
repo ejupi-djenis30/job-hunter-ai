@@ -6,51 +6,13 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
     const reportedState = useRef(null);
 
     useEffect(() => {
-        if (!profileId) return;
-
-        let intervalId;
-
-        const poll = async () => {
-            try {
-                const data = await SearchService.getStatus(profileId);
-                setStatus(data);
-
-                // Notify parent of state changes
-                const s = data.state;
-                if ((s === "done" || s === "error") && reportedState.current !== s) {
-                    reportedState.current = s;
-                    onStateChange?.(s);
-                }
-
-                if (s === "done" || s === "error" || s === "stopped") {
-                    clearInterval(intervalId);
-                }
-            } catch (e) {
-                console.error("Status poll error:", e);
-            }
-        };
-
-        const startPolling = () => {
-            poll(); // Immediate poll
-            clearInterval(intervalId);
-            intervalId = setInterval(poll, 1500);
-        };
-
-        startPolling();
-
-        const handleVisibilityChange = () => {
-            if (!document.hidden) {
-                startPolling();
-            }
-        };
-
-        document.addEventListener("visibilitychange", handleVisibilityChange);
-
-        return () => {
-            clearInterval(intervalId);
-            document.removeEventListener("visibilitychange", handleVisibilityChange);
-        };
-    }, [profileId, setStatus]);
+        if (!status) return;
+        const s = status.state;
+        if ((s === "done" || s === "error") && reportedState.current !== s) {
+            reportedState.current = s;
+            onStateChange?.(s);
+        }
+    }, [status, onStateChange]);
 
     useEffect(() => {
         logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,7 +40,38 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
     const isDone = state === "done";
     const isError = state === "error" || state === "stopped";
 
-    const progressPct = total_searches > 0 ? Math.round((current_search_index / total_searches) * 100) : 0;
+    // Enhanced Progress calculation
+    let progressPct = 0;
+    let analyzingText = "ANALYZING TARGETS...";
+
+    if (state === "generating") {
+        progressPct = 5;
+    } else if (state === "searching" && total_searches > 0) {
+        // Searching phase accounts for 5% to 50%
+        progressPct = 5 + Math.round((current_search_index / total_searches) * 45);
+    } else if (state === "analyzing") {
+        progressPct = 50;
+        if (log && log.length > 0) {
+            // Find the most recent "Analyzing X/Y" log entry
+            for (let i = log.length - 1; i >= 0; i--) {
+                const msg = log[i].message;
+                if (msg.startsWith("Analyzing ")) {
+                    const match = msg.match(/Analyzing (\d+)\/(\d+)/);
+                    if (match) {
+                        const current = parseInt(match[1], 10);
+                        const total = parseInt(match[2], 10);
+                        if (total > 0) {
+                            progressPct = 50 + Math.round((current / total) * 50);
+                            analyzingText = `ANALYZING TARGETS (${current}/${total})...`;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    } else if (isDone) {
+        progressPct = 100;
+    }
 
     return (
         <div className="animate-fade-in py-3 h-100 d-flex flex-column">
@@ -121,7 +114,7 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
                 </div>
 
                 {/* Progress Bar */}
-                {total_searches > 0 && (
+                {(state !== "pending") && (
                     <div className="mb-4">
                         <div className="d-flex justify-content-between text-secondary x-small fw-bold text-uppercase tracking-wider mb-2">
                             <span>Mission Progress</span>
@@ -133,11 +126,11 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
                                 style={{ width: `${isDone || isError ? 100 : progressPct}%`, borderRadius: "8px", transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
                             />
                         </div>
-                        {isRunning && current_query && (
+                        {isRunning && (
                             <div className="mt-2 text-center animate-slide-up">
                                 <span className="badge bg-primary-10 text-primary border border-primary-20 rounded-pill fw-normal px-3 py-1 font-monospace small">
                                     <i className="bi bi-crosshair me-2"></i>
-                                    TARGET: "{current_query}"
+                                    {state === "analyzing" ? analyzingText : (current_query ? `TARGET: "${current_query}"` : 'ACQUIRING STRATEGY...')}
                                 </span>
                             </div>
                         )}
@@ -162,15 +155,15 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
                 </div>
             </div>
 
-            <div className="row g-4 flex-grow-1" style={{ minHeight: '400px' }}>
+            <div className="row g-4 flex-grow-1" style={{ minHeight: '400px', height: '500px', maxHeight: '50vh' }}>
                 {/* Generated Plan */}
-                <div className="col-lg-5 d-flex flex-column">
+                <div className="col-lg-5 d-flex flex-column h-100">
                     <div className="glass-panel p-0 h-100 overflow-hidden d-flex flex-column">
                         <div className="p-3 border-bottom border-white-10 bg-white-5">
                             <h6 className="mb-0 fw-bold text-white small text-uppercase tracking-wide"><i className="bi bi-diagram-3 me-2 text-primary"></i>Tactical Plan</h6>
                         </div>
-                        <div className="flex-grow-1 overflow-auto custom-scrollbar p-0">
-                            <ul className="list-group list-group-flush">
+                        <div className="flex-grow-1 overflow-y-auto custom-scrollbar p-0">
+                            <ul className="list-group list-group-flush mb-0">
                                 {searches_generated?.map((s, i) => {
                                     const currentIndex = (current_search_index || 1) - 1;
                                     const isDone = i < currentIndex;
@@ -206,7 +199,7 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
                 </div>
 
                 {/* Live Logs */}
-                <div className="col-lg-7 d-flex flex-column">
+                <div className="col-lg-7 d-flex flex-column h-100">
                     <div className="glass-panel p-0 h-100 overflow-hidden d-flex flex-column border-0 shadow-lg">
                         <div className="p-2 border-bottom border-white-10 bg-black d-flex justify-content-between align-items-center">
                             <div className="d-flex align-items-center px-2">

@@ -178,7 +178,7 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                     </thead>
                     <tbody>
                         {jobs.map((job) => (
-                            <tr key={job.id} className="job-row border-bottom border-white-5" style={{ transition: 'background-color 0.2s' }}>
+                            <tr key={job.id} className="job-row border-bottom border-white-5 hover-elevation" style={{ transition: 'all 0.2s' }}>
                                 <td className="ps-4 py-4 border-0">
                                     <div className="fw-bold text-white text-truncate" style={{ maxWidth: 280 }} title={job.title}>
                                         {job.title}
