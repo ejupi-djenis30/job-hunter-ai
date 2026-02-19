@@ -49,6 +49,7 @@ async def start_search(
         if not profile or profile.user_id != user_id:
             raise HTTPException(status_code=403, detail="Unauthorized profile access")
         # Update existing if needed (e.g. if settings changed before re-run)
+        profile_data["is_stopped"] = False
         profile = profile_repo.update(profile, profile_data)
     else:
         # New manual search -> create history entry
@@ -59,6 +60,7 @@ async def start_search(
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
             profile_data["name"] = f"Search {timestamp}"
             
+        profile_data["is_stopped"] = False
         profile = profile_repo.create(profile_data)
 
     # Trigger search in background
@@ -69,6 +71,35 @@ async def start_search(
 
     return {"message": "Search started", "profile_id": profile.id}
 
+
+@router.post("/stop/{profile_id}")
+async def stop_search(
+    profile_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    profile_repo = ProfileRepository(db)
+    profile = profile_repo.get(profile_id)
+    
+    if not profile or profile.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized profile access")
+        
+    profile.is_stopped = True
+    profile_repo.update(profile, {"is_stopped": True})
+    
+    # Also update the in-memory status so frontend sees it immediately
+    from backend.services.search_status import update_status
+    update_status(profile_id, state="stopped", error="Search stopped by user.")
+    
+    return {"message": "Search stopped successfully"}
+
+
+@router.get("/status/all")
+def get_all_search_statuses(
+    user_id: int = Depends(get_current_user_id),
+):
+    from backend.services.search_status import get_all_statuses
+    return get_all_statuses()
 
 @router.get("/status/{profile_id}")
 def get_search_status(

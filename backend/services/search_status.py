@@ -58,6 +58,15 @@ def get_status(profile_id: int) -> Dict[str, Any]:
         return dict(_statuses.get(profile_id, {"state": "unknown"}))
 
 
+def get_all_statuses() -> Dict[int, Dict[str, Any]]:
+    """Get all current statuses."""
+    with _lock:
+        # Filter for only active/running or recently finished searches if needed,
+        # but returning all keeps frontend in sync. We'll return a copy.
+        import copy
+        return copy.deepcopy(_statuses)
+
+
 def clear_status(profile_id: int):
     """Remove status (optional cleanup)."""
     with _lock:

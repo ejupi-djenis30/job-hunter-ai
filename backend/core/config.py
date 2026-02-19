@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "sqlite:///./job_hunter.db"
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
     
     # Security
     SECRET_KEY: str = "changeme"
