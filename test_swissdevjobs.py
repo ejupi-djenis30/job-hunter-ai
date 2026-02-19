@@ -1,39 +1,47 @@
 import asyncio
 import logging
 from backend.providers.jobs.swissdevjobs.client import SwissDevJobsProvider
-from backend.providers.jobs.models import JobSearchRequest, RadiusSearchRequest, Coordinates
+from backend.providers.jobs.models import JobSearchRequest, WorkForm, LanguageSkillRequest
 
 logging.basicConfig(level=logging.INFO)
 
-async def test_search():
+async def test_advanced_search():
     provider = SwissDevJobsProvider(include_raw_data=False)
-    
-    # Test 1: Health check
-    print("--- Test 1: Health check ---")
-    health = await provider.health_check()
-    print(f"Health: {health.status} ({health.latency_ms}ms)")
-    print(health)
 
-    # Test 2: Standard keywords search
-    print("\n--- Test 2: Search for 'React' in 'Zurich' ---")
+    print("\n--- Test 1: Search React, English Language ---")
     req1 = JobSearchRequest(
-        query="React",
-        location="Zurich",
+        query="React frontend",
+        language_skills=[LanguageSkillRequest(language_code="en")],
         page=0,
-        page_size=2
+        page_size=5
     )
     res1 = await provider.search(req1)
-    print(f"Total found: {res1.total_count}")
-    print(f"Returned items: {len(res1.items)}")
-    for item in res1.items:
-        print(f" - {item.title} @ {item.company.name} ({item.location.city})")
-        print(f"   URL: {item.external_url}")
-        print(f"   Email: {item.application.email if item.application else 'N/A'}")
-        raw_desc = item.descriptions[0].description if item.descriptions else ""
-        print(f"   Desc length: {len(raw_desc)}")
-        print("   ---")
+    print(f"Total found (EN): {res1.total_count}")
+    
+    print("\n--- Test 2: Search React, German Language ---")
+    req2 = JobSearchRequest(
+        query="React frontend",
+        language_skills=[LanguageSkillRequest(language_code="de")],
+        page=0,
+        page_size=5
+    )
+    res2 = await provider.search(req2)
+    print(f"Total found (DE): {res2.total_count}")
+
+    print("\n--- Test 3: Search React, Remote only, Full Time ---")
+    req3 = JobSearchRequest(
+        query="React",
+        work_forms=[WorkForm.HOME_OFFICE],
+        workload_min=100,
+        page=0,
+        page_size=5
+    )
+    res3 = await provider.search(req3)
+    print(f"Total found (Remote Full-Time): {res3.total_count}")
+    if res3.items:
+        print(f"Sample: {res3.items[0].title} at {res3.items[0].company.name if res3.items[0].company else 'N/A'}")
 
     await provider.close()
 
 if __name__ == "__main__":
-    asyncio.run(test_search())
+    asyncio.run(test_advanced_search())

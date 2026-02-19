@@ -112,13 +112,15 @@ class SwissDevJobsProvider(BaseJobProvider):
             location_query = request.location.lower() if request.location else ""
             
             for job in all_jobs_light:
-                # 1. Filter by keyword
+                # 1. Filter by keyword (Tokenized Match)
                 if query:
                    title = job.get("name", "").lower()
-                   techs = [t.lower() for t in job.get("technologies", [])]
-                   tags = [t.lower() for t in job.get("filterTags", [])]
+                   techs = " ".join([t.lower() for t in job.get("technologies", [])])
+                   tags = " ".join([t.lower() for t in job.get("filterTags", [])])
+                   combined_text = f"{title} {techs} {tags}"
                    
-                   match = query in title or query in techs or query in tags
+                   tokens = query.split()
+                   match = all(token in combined_text for token in tokens)
                    if not match:
                         continue
                 
@@ -149,6 +151,30 @@ class SwissDevJobsProvider(BaseJobProvider):
                     company = job.get("company", "").lower()
                     if request.company_name.lower() not in company:
                         continue
+                        
+                # 5. Filter by Workload
+                job_type = job.get("jobType", "").lower()
+                if "part-time" in job_type and request.workload_min >= 90:
+                    continue # Exclude part time if looking for >=90%
+                if "full-time" in job_type and request.workload_max <= 80:
+                    continue # Exclude full time if looking for <=80%
+                    
+                # 6. Filter by Language
+                if request.language_skills:
+                    req_langs = [ls.language_code.lower() for ls in request.language_skills]
+                    job_lang = job.get("language", "").lower()
+                    lang_map = {"en": "english", "de": "german", "fr": "french", "it": "italian"}
+                    allowed_job_langs = [lang_map.get(code, code) for code in req_langs]
+                    if job_lang and job_lang not in allowed_job_langs:
+                        continue
+                        
+                # 7. Filter by WorkForm (remote/home_office)
+                if request.work_forms:
+                    wf_values = [wf.value for wf in request.work_forms]
+                    job_workplace = job.get("workplace", "").lower()
+                    if "home_office" in wf_values:
+                        if job_workplace not in ["remote", "hybrid"]:
+                            continue
 
                 filtered_jobs.append(job)
 
