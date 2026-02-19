@@ -114,18 +114,37 @@ class SearchService:
         add_log(profile_id, f"Total raw results: {len(all_jobs)}")
 
         # ── Step 3: Deduplicate ──
-        seen_urls: set = set()
+        seen_keys: set = set()
         unique_jobs: list = []
-        existing_urls = {
-            j.url for j in self.job_repo.get_by_user(profile.user_id)
+        
+        # We need a robust way to identify existing jobs. We will use a composite string pattern "platform:id"
+        existing_jobs = self.job_repo.get_by_user(profile.user_id)
+        existing_keys = {
+            f"{j.platform}:{j.platform_job_id}" for j in existing_jobs
+            if j.platform and j.platform_job_id
         }
+        
+        # Fallback to URLs for older jobs that didn't have platform tags
+        existing_urls = {j.url for j in existing_jobs if j.url}
 
-        for job in all_jobs:
-            url = job.external_url or job.id
-            if url in seen_urls or url in existing_urls:
-                continue
-            seen_urls.add(url)
-            unique_jobs.append(job)
+        for listing in all_jobs:
+            # listing is a JobListing which has `.source` (e.g. "job_room") and `.id`
+            platform = getattr(listing, "source", "unknown")
+            platform_id = str(getattr(listing, "id", ""))
+            
+            key = f"{platform}:{platform_id}"
+            url = getattr(listing, "external_url", None) or getattr(listing, "url", None) or platform_id
+            
+            if (platform and platform_id and (key in seen_keys or key in existing_keys)) or \
+               (url and (url in existing_urls and key not in existing_keys)):
+                   continue
+                   
+            if platform and platform_id:
+                seen_keys.add(key)
+            if url:
+                existing_urls.add(url) # Track temporarily for this session
+                
+            unique_jobs.append(listing)
 
         duplicates = len(all_jobs) - len(unique_jobs)
         add_log(
@@ -147,6 +166,12 @@ class SearchService:
 
         async def process_with_limit(job, idx, total):
             async with semaphore:
+                # Re-fetch profile to check if aborted during analysis
+                current_profile = self.profile_repo.get(profile_id)
+                if current_profile and current_profile.is_stopped:
+                    logger.info(f"Skipping job analysis for {job.id} as search was stopped.")
+                    return False
+                    
                 add_log(profile_id, f"Analyzing {idx + 1}/{total}: {job.title}")
                 try:
                     return await self._process_job(job, profile, profile_dict)
@@ -304,6 +329,8 @@ class SearchService:
             location=location_str,
             url=listing.external_url or jobroom_url,
             jobroom_url=jobroom_url,
+            platform=getattr(listing, "source", "unknown"),
+            platform_job_id=str(getattr(listing, "id", "")),
             application_email=app_email or None,
             workload=workload_str or None,
             publication_date=pub_date,

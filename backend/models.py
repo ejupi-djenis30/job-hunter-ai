@@ -32,6 +32,10 @@ class Job(Base):
     workload = Column(String)
     publication_date = Column(DateTime(timezone=True))
     
+    # Platform Tracking
+    platform = Column(String, index=True, nullable=True)
+    platform_job_id = Column(String, index=True, nullable=True)
+    
     # Metadata
     is_scraped = Column(Boolean, default=False)
     source_query = Column(String)

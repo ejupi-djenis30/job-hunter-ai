@@ -43,9 +43,9 @@ class LLMService:
            - Ensure queries are distinct and high-quality.
 
         Generate queries in this EXACT order:
-        1. "combined" queries in EN, DE, FR, IT (Prioritize these!).
+        1. "combined" queries in EN, DE, FR, IT.
         2. "occupation" queries in EN, DE, FR, IT.
-        3. "keyword" queries for specific assets (Limit these).
+        3. "keyword" queries for specific assets.
         
         {limit_instruction}
         Do NOT worry about token limits. 
