@@ -7,6 +7,7 @@ from backend.repositories.profile_repository import ProfileRepository
 from backend.services.llm_service import llm_service
 from backend.services.utils import haversine_distance, clean_html_tags
 from backend.providers.jobs.jobroom.client import JobRoomProvider
+from backend.providers.jobs.swissdevjobs.client import SwissDevJobsProvider
 from backend.providers.jobs.models import JobSearchRequest, SortOrder, RadiusSearchRequest, Coordinates
 from backend.models import Job
 from backend.core.config import settings
@@ -73,7 +74,11 @@ class SearchService:
 
         # ── Step 2: Execute searches ──
         update_status(profile_id, state="searching")
-        provider = JobRoomProvider()
+        
+        providers = [
+            JobRoomProvider(),
+            SwissDevJobsProvider()
+        ]
         all_jobs: list = []
 
         for idx, search in enumerate(searches):
@@ -96,11 +101,24 @@ class SearchService:
 
             try:
                 request = self._build_search_request(profile, query)
-                response = await provider.search(request)
-                all_jobs.extend(response.items)
+                
+                # Execute search across all providers concurrently
+                provider_tasks = [provider.search(request) for provider in providers]
+                results = await asyncio.gather(*provider_tasks, return_exceptions=True)
+                
+                jobs_found_for_query = 0
+                for i, result in enumerate(results):
+                    provider_name = providers[i].name
+                    if isinstance(result, Exception):
+                        logger.warning(f"Provider {provider_name} failed for query «{query}»: {result}")
+                        add_log(profile_id, f"⚠ {provider_name} search failed: {result}")
+                    else:
+                        all_jobs.extend(result.items)
+                        jobs_found_for_query += len(result.items)
+                        
                 add_log(
                     profile_id,
-                    f"Found {len(response.items)} jobs for «{query}»",
+                    f"Found {jobs_found_for_query} jobs total for «{query}»",
                 )
             except Exception as e:
                 logger.warning(f"Search query «{query}» failed: {e}")
