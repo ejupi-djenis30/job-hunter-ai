@@ -1,6 +1,6 @@
 import React from "react";
 
-export function FilterBar({ filters, onChange, onClear }) {
+export function FilterBar({ filters, onChange, onClear, onRefresh }) {
     const handleChange = (key, value) => {
         onChange({ ...filters, [key]: value });
     };
@@ -69,6 +69,17 @@ export function FilterBar({ filters, onChange, onClear }) {
                     <option value="affinity_score:desc" className="bg-dark">Best Match</option>
                     <option value="distance_km:asc" className="bg-dark">Closest</option>
                 </select>
+
+                {/* Refresh Data */}
+                {onRefresh && (
+                    <button
+                        className="btn btn-icon btn-secondary rounded-circle ms-2"
+                        onClick={onRefresh}
+                        title="Refresh Data"
+                    >
+                        <i className="bi bi-arrow-clockwise"></i>
+                    </button>
+                )}
 
                 {/* Clear Filters */}
                 <button

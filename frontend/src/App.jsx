@@ -24,6 +24,7 @@ function App() {
   const [searchStatus, setSearchStatus] = useState(null);
   const [prefillProfile, setPrefillProfile] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar state
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false); // Desktop sidebar state
 
   // Pagination State
   const [pagination, setPagination] = useState({
@@ -55,6 +56,18 @@ function App() {
       fetchJobs();
     }
   }, [filters, pagination.page, isLoggedIn]); // Reload when filters or page change
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isLoggedIn) {
+        console.log("Tab visible - refreshing data...");
+        fetchJobs(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -206,11 +219,13 @@ function App() {
         onLogout={handleLogout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        isCollapsed={isDesktopSidebarCollapsed}
+        onToggleCollapse={() => setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)}
       />
 
       {/* Main Content - Offset */}
-      <div className="flex-grow-1 d-lg-ml-280 w-100" style={{ transition: 'margin 0.3s ease' }}>
-        <div className="container-fluid p-3 p-lg-5">
+      <div className={`flex-grow-1 w-100 ${isDesktopSidebarCollapsed ? 'd-lg-ml-80' : 'd-lg-ml-280'}`} style={{ transition: 'margin 0.3s ease, width 0.3s ease' }}>
+        <div className="container-fluid p-2 p-lg-5">
           
           {/* Header Area */}
           <div className="d-flex justify-content-between align-items-start mb-4 mb-lg-5 animate-fade-in pt-4 pt-lg-0">
@@ -248,12 +263,7 @@ function App() {
               </div>
             </div>
 
-            {view === 'jobs' && (
-               <button onClick={() => fetchJobs()} className="btn btn-secondary d-flex align-items-center gap-2">
-                 <i className="bi bi-arrow-clockwise"></i> <span className="d-none d-md-inline">Refresh Data</span>
-               </button>
-            )}
-          </div>
+            </div>
 
           <div className="animate-slide-up">
             {view === 'new' ? (
@@ -304,6 +314,7 @@ function App() {
                      <FilterBar
                       filters={filters}
                       onChange={setFilters}
+                      onRefresh={() => fetchJobs()}
                       onClear={() => setFilters({
                         min_score: "",
                         max_distance: "",

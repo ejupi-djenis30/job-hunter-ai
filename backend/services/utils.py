@@ -1,6 +1,18 @@
 import math
+import re
 import fitz  # PyMuPDF
 from fastapi import UploadFile, HTTPException
+
+def clean_html_tags(text: str) -> str:
+    """Remove HTML tags like <em>, &nbsp;, etc. from text."""
+    if not text:
+        return ""
+    # Remove HTML tags
+    clean = re.sub(r'<[^>]+>', '', text)
+    # Decode HTML entities
+    clean = clean.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    # Normalize whitespace
+    return " ".join(clean.split())
 
 async def extract_text_from_file(file: UploadFile) -> str:
     content_type = file.content_type

@@ -37,11 +37,15 @@ class LLMService:
            - "combined": Exactly ONE occupation combined with 1-3 critical technical keywords (e.g. "Python Developer React").
            - "occupation": Exactly ONE occupation title, translated. ABSOLUTELY NO keywords in this type.
            - "keyword": Single specific skill or technology.
-        
+        4. DIVERSITY & ACCURACY:
+           - Do NOT generate slightly different versions of the same query (e.g. "Software Engineer" vs "Software-Engineer").
+           - Use synonyms and different languages (DE, FR, EN) to maximize coverage.
+           - Ensure queries are distinct and high-quality.
+
         Generate queries in this EXACT order:
-        1. "combined" queries in EN, DE, FR, IT.
+        1. "combined" queries in EN, DE, FR, IT (Prioritize these!).
         2. "occupation" queries in EN, DE, FR, IT.
-        3. "keyword" queries for specific assets.
+        3. "keyword" queries for specific assets (Limit these).
         
         {limit_instruction}
         Do NOT worry about token limits. 

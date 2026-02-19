@@ -38,24 +38,46 @@ function JobCard({ job, onToggleApplied }) {
     const isJobRoomOnly = job.jobroom_url && (!job.url || job.url === job.jobroom_url);
     const applyUrl = isJobRoomOnly ? null : job.url;
 
+    const handleCopy = (job) => {
+        const text = JSON.stringify({
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            description: job.description,
+            url: job.url || job.jobroom_url
+        }, null, 2);
+        
+        navigator.clipboard.writeText(text).then(() => {
+            // Optional: Show a toast? For now just log or rely on user knowing
+            console.log("Copied to clipboard");
+        });
+    };
+
     return (
-        <div className="glass-panel p-4 mb-3 position-relative hover-card">
-            <div className="d-flex justify-content-between align-items-start mb-3">
-                <div className="pe-3">
-                    <h5 className="fw-bold mb-1 text-white">{job.title}</h5>
-                    <div className="text-secondary small d-flex align-items-center flex-wrap gap-2 mt-2">
+        <div className="glass-panel p-3 mb-3 position-relative hover-card">
+            <div className="d-flex justify-content-between align-items-start mb-2">
+                <div className="pe-2">
+                    <h6 className="fw-bold mb-1 text-white text-break">{job.title}</h6>
+                    <div className="text-secondary x-small d-flex align-items-center flex-wrap gap-2 mt-1">
                         <span className="text-white-50"><i className="bi bi-building me-1"></i>{job.company}</span>
-                        <span className="text-secondary">•</span>
-                        <span className="text-white-50"><i className="bi bi-geo-alt me-1"></i>{job.location || "Remote"}</span>
                     </div>
                 </div>
-                {job.affinity_score != null && (
-                    <ScoreBadge score={Math.round(job.affinity_score)} />
-                )}
+                <div className="d-flex flex-column align-items-end gap-2">
+                    {job.affinity_score != null && (
+                        <ScoreBadge score={Math.round(job.affinity_score)} />
+                    )}
+                    <span className="badge-pill bg-white-10 text-secondary border border-white-10">
+                         {new Date(job.created_at).toLocaleDateString()}
+                    </span>
+                </div>
             </div>
 
-            <div className="d-flex flex-wrap gap-3 mb-4">
-                <DistanceBadge km={job.distance_km} />
+            <div className="d-flex flex-wrap gap-2 mb-3 bg-black-20 p-2 rounded">
+                <div className="d-flex align-items-center text-secondary x-small">
+                    <i className="bi bi-geo-alt me-1 text-info"></i>
+                    {job.location || "Remote"} 
+                    {job.distance_km != null && <span className="text-white-50 ms-1">({job.distance_km}km)</span>}
+                </div>
                 
                 {job.worth_applying && (
                     <span className="badge-pill badge-success">
@@ -67,18 +89,18 @@ function JobCard({ job, onToggleApplied }) {
                         {job.workload}%
                     </span>
                 )}
-                <span className="badge-pill bg-white-10 text-secondary border border-white-10">
-                    {new Date(job.created_at).toLocaleDateString()}
-                </span>
             </div>
 
             <div className="d-flex justify-content-between align-items-center pt-3 border-top border-white-10">
                 <div className="d-flex gap-2">
                     {applyUrl && (
-                        <a href={applyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary rounded-pill px-3 fw-medium">
+                        <a href={applyUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-primary rounded-pill px-3 fw-medium" style={{ minHeight: '32px' }}>
                             Apply <i className="bi bi-box-arrow-up-right ms-1"></i>
                         </a>
                     )}
+                    <button onClick={() => handleCopy(job)} className="btn btn-sm btn-secondary rounded-circle btn-icon" title="Copy Details">
+                        <i className="bi bi-clipboard"></i>
+                    </button>
                     {job.application_email && (
                         <a href={`mailto:${job.application_email}`} className="btn btn-sm btn-secondary rounded-circle btn-icon" title="Email">
                             <i className="bi bi-envelope"></i>
@@ -109,6 +131,16 @@ function JobCard({ job, onToggleApplied }) {
 }
 
 export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
+    const handleCopy = (job) => {
+        const text = JSON.stringify({
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            description: job.description,
+            url: job.url || job.jobroom_url
+        }, null, 2);
+        navigator.clipboard.writeText(text);
+    };
     if (!jobs || jobs.length === 0) {
         return (
             <div className="glass-panel text-center py-5 animate-fade-in align-items-center d-flex flex-column justify-content-center h-100">
@@ -137,12 +169,9 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                 <table className="table table-hover align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: '0' }}>
                     <thead className="sticky-top bg-dark" style={{ zIndex: 10 }}>
                         <tr>
-                            <th className="ps-4 py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "25%" }}>Job Title</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "15%" }}>Company</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "12%" }}>Location</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "8%" }}>Dist</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "8%" }}>Match</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "10%" }}>Tags</th>
+                            <th className="ps-4 py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "30%" }}>Job Title</th>
+                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Company & Location</th>
+                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Match & Details</th>
                             <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "8%" }}>Applied</th>
                             <th className="pe-4 py-3 bg-black-50 text-end text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "12%" }}>Actions</th>
                         </tr>
@@ -166,33 +195,33 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                                     </div>
                                 </td>
                                 <td className="border-0">
-                                    <div className="text-white-50 text-truncate" style={{ maxWidth: 160 }} title={job.company}>
+                                    <div className="text-white fw-medium text-truncate" style={{ maxWidth: 200 }} title={job.company}>
                                         {job.company}
                                     </div>
-                                </td>
-                                <td className="border-0">
-                                    <div className="text-secondary text-truncate" style={{ maxWidth: 120 }}>
+                                    <div className="text-secondary small d-flex align-items-center gap-2">
+                                        <i className="bi bi-geo-alt opacity-50"></i>
                                         {job.location || "Remote"}
+                                        {job.distance_km != null && <span className="text-white-50 opacity-75">({job.distance_km}km)</span>}
                                     </div>
                                 </td>
-                                <td className="border-0"><DistanceBadge km={job.distance_km} /></td>
                                 <td className="border-0">
-                                    {job.affinity_score != null ? (
-                                        <ScoreBadge score={Math.round(job.affinity_score)} />
-                                    ) : <span className="text-muted opacity-25">—</span>}
-                                </td>
-                                <td className="border-0">
-                                    <div className="d-flex flex-column gap-1 align-items-start">
-                                        {job.worth_applying && (
-                                            <span className="badge-pill badge-success border-0 py-1" style={{fontSize: '0.65rem'}}>
-                                                Top Pick
-                                            </span>
-                                        )}
-                                        {job.workload && job.workload < 100 && (
-                                            <span className="badge-pill badge-info border-0 py-1" style={{fontSize: '0.65rem'}}>
-                                                {job.workload}%
-                                            </span>
-                                        )}
+                                    <div className="d-flex align-items-center gap-3">
+                                        {job.affinity_score != null ? (
+                                            <ScoreBadge score={Math.round(job.affinity_score)} />
+                                        ) : <span className="text-muted opacity-25">—</span>}
+                                        
+                                        <div className="d-flex flex-wrap gap-1">
+                                            {job.worth_applying && (
+                                                <span className="badge-pill badge-success border-0 py-1" style={{fontSize: '0.65rem'}}>
+                                                    Top Pick
+                                                </span>
+                                            )}
+                                            {job.workload && job.workload < 100 && (
+                                                <span className="badge-pill badge-info border-0 py-1" style={{fontSize: '0.65rem'}}>
+                                                    {job.workload}%
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </td>
                                 <td className="border-0">
@@ -219,6 +248,9 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                                                             Apply
                                                         </a>
                                                     )}
+                                                    <button onClick={() => handleCopy(job)} className="btn btn-sm btn-secondary btn-icon" title="Copy Details">
+                                                        <i className="bi bi-clipboard"></i>
+                                                    </button>
                                                     {job.jobroom_url && (
                                                         <a href={job.jobroom_url} target="_blank" rel="noopener noreferrer"
                                                             className={`btn btn-sm btn-icon ${isJobRoomOnly ? 'btn-secondary text-info' : 'btn-secondary'}`}

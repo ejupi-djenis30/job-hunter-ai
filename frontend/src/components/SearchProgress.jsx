@@ -30,9 +30,26 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
             }
         };
 
-        poll();
-        intervalId = setInterval(poll, 1500);
-        return () => clearInterval(intervalId);
+        const startPolling = () => {
+            poll(); // Immediate poll
+            clearInterval(intervalId);
+            intervalId = setInterval(poll, 1500);
+        };
+
+        startPolling();
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                startPolling();
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(intervalId);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [profileId, setStatus]);
 
     useEffect(() => {

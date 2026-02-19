@@ -5,7 +5,7 @@ from datetime import datetime
 from backend.repositories.job_repository import JobRepository
 from backend.repositories.profile_repository import ProfileRepository
 from backend.services.llm_service import llm_service
-from backend.services.utils import haversine_distance
+from backend.services.utils import haversine_distance, clean_html_tags
 from backend.providers.jobs.jobroom.client import JobRoomProvider
 from backend.providers.jobs.models import JobSearchRequest, SortOrder, RadiusSearchRequest, Coordinates
 from backend.models import Job
@@ -57,8 +57,19 @@ class SearchService:
             update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
             return
 
-        init_status(profile_id, total_searches=len(searches), searches=searches)
-        add_log(profile_id, f"Generated {len(searches)} search queries")
+        # Deduplicate searches based on query string
+        unique_searches = []
+        seen_queries = set()
+        for s in searches:
+            q_str = s.get("query", "").lower().strip()
+            if q_str and q_str not in seen_queries:
+                seen_queries.add(q_str)
+                unique_searches.append(s)
+
+        init_status(profile_id, total_searches=len(unique_searches), searches=unique_searches)
+        add_log(profile_id, f"Generated {len(searches)} queries -> {len(unique_searches)} unique")
+        
+        searches = unique_searches
 
         # ── Step 2: Execute searches ──
         update_status(profile_id, state="searching")
@@ -287,9 +298,9 @@ class SearchService:
 
         job = Job(
             user_id=profile.user_id,
-            title=listing.title,
+            title=clean_html_tags(listing.title),
             company=company,
-            description=desc_text if desc_text else None,
+            description=clean_html_tags(desc_text) if desc_text else None,
             location=location_str,
             url=listing.external_url or jobroom_url,
             jobroom_url=jobroom_url,

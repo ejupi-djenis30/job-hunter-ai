@@ -79,11 +79,11 @@ export function SearchForm({ onStartSearch, isLoading, prefill }) {
 
     return (
         <div className="animate-fade-in w-100 h-100 d-flex flex-column">
-            <div className="glass-panel p-4 h-100 d-flex flex-column">
+            <div className="glass-panel p-3 p-lg-4 h-100 d-flex flex-column">
                 <form onSubmit={handleSubmit} className="d-flex flex-column h-100">
                     
                     {/* Header */}
-                    <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom border-white-10">
+                    <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 pb-3 border-bottom border-white-10 gap-3">
                         <div className="d-flex align-items-center gap-3">
                             <div className="d-flex align-items-center justify-content-center p-2 rounded-circle bg-primary-10 border border-primary-20 shadow-glow" style={{width: 42, height: 42}}>
                                 <i className="bi bi-rocket-takeoff-fill text-primary fs-5"></i>
@@ -94,11 +94,11 @@ export function SearchForm({ onStartSearch, isLoading, prefill }) {
                             </div>
                         </div>
                         
-                        <div className="d-flex align-items-center gap-2">
+                        <div className="d-flex align-items-center gap-2 align-self-stretch align-self-md-auto">
                              <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="btn btn-primary rounded-pill px-4 shadow-glow hover-scale fw-bold d-flex align-items-center gap-2"
+                                className="btn btn-primary rounded-pill px-4 shadow-glow hover-scale fw-bold d-flex align-items-center justify-content-center gap-2 w-100 w-md-auto"
                             >
                                 {isLoading ? (
                                     <span className="spinner-border spinner-border-sm"></span>
@@ -138,7 +138,7 @@ export function SearchForm({ onStartSearch, isLoading, prefill }) {
                                 />
                             </div>
                              
-                             <div className="p-3 rounded-3 border border-dashed border-secondary border-opacity-25 bg-black-20 hover-bg-white-5 transition-all">
+                             <div className="p-3 rounded-3 border border-dashed border-secondary border-opacity-25 bg-black-20 hover-bg-white-5 transition-all mb-3 mb-lg-0">
                                 <label className="d-flex align-items-center justify-content-between cursor-pointer mb-0 w-100">
                                     <div className="d-flex align-items-center gap-3">
                                         <div className={`rounded-circle d-flex align-items-center justify-content-center ${profile.cv_content ? 'bg-success text-white' : 'bg-white-5 text-secondary'}`} style={{width: 36, height: 36}}>

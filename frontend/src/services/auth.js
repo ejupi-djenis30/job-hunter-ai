@@ -12,7 +12,12 @@ export const AuthService = {
     },
 
     async register(username, password) {
-        return ApiClient.post("/auth/register", { username, password });
+        const resData = await ApiClient.post("/auth/register", { username, password });
+        if (resData.access_token) {
+            localStorage.setItem("jh_token", resData.access_token);
+            localStorage.setItem("jh_username", username);
+        }
+        return resData;
     },
 
     logout() {
