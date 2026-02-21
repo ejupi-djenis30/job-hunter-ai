@@ -59,6 +59,14 @@ class SwissDevJobsProvider(BaseJobProvider):
     def display_name(self) -> str:
         return "SwissDevJobs.ch"
 
+    def get_provider_info(self) -> "ProviderInfo":
+        from backend.providers.jobs.models import ProviderInfo
+        return ProviderInfo(
+            name=self.name,
+            description="Exclusive job board for Software Engineers and IT professionals in Switzerland. Do NOT use this for non-IT jobs (e.g. HR, marketing, medical).",
+            domain="swissdevjobs.ch"
+        )
+
     @property
     def capabilities(self) -> ProviderCapabilities:
         return ProviderCapabilities(

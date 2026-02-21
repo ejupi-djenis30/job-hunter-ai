@@ -4,6 +4,12 @@ from sqlalchemy.orm import Session
 from backend.db.base import get_db
 from backend.services.auth import decode_access_token
 from backend.models import User
+import os
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+is_testing = os.environ.get("TESTING") == "1"
+limiter = Limiter(key_func=get_remote_address, enabled=not is_testing)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -23,3 +29,11 @@ def get_current_user_id(token: str = Depends(oauth2_scheme), db: Session = Depen
     if user is None:
          raise HTTPException(status_code=401, detail="User not found")
     return user.id
+
+def get_job_service(db: Session = Depends(get_db)):
+    from backend.services.job_service import get_job_service
+    return get_job_service(db)
+
+def get_profile_service(db: Session = Depends(get_db)):
+    from backend.services.profile_service import get_profile_service
+    return get_profile_service(db)

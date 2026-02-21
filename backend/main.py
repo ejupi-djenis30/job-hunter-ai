@@ -8,10 +8,13 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-
-from backend.api import auth, jobs, search, profiles, schedules
+from backend.api.api import api_router
 from backend.core.config import settings
 from backend.core.exceptions import CoreException
+from backend.api.deps import limiter
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.errors import RateLimitExceeded
 
 # ─── Logging ───
 logging.basicConfig(
@@ -46,6 +49,17 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan,
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 # ─── Basic Production Middlewares ───
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -89,11 +103,7 @@ async def generic_exception_handler(request, exc):
 
 
 # ─── Routes ───
-app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
-app.include_router(jobs.router, prefix=f"{settings.API_V1_STR}/jobs", tags=["jobs"])
-app.include_router(search.router, prefix=f"{settings.API_V1_STR}/search", tags=["search"])
-app.include_router(profiles.router, prefix=f"{settings.API_V1_STR}/profiles", tags=["profiles"])
-app.include_router(schedules.router, prefix=f"{settings.API_V1_STR}/schedules", tags=["schedules"])
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get(f"{settings.API_V1_STR}/health")

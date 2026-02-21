@@ -41,12 +41,20 @@ class SearchService:
         # Initialize status tracker immediately so frontend sees progress
         init_status(profile_id)
 
+        # Map available providers
+        available_providers = {
+            "job_room": JobRoomProvider(),
+            "swissdevjobs": SwissDevJobsProvider()
+        }
+        
+        provider_infos = [p.get_provider_info() for p in available_providers.values()]
+
         # ── Step 1: Generate keywords using LLM (run in thread to avoid blocking) ──
-        add_log(profile_id, "Generating search keywords with AI…")
+        add_log(profile_id, "Generating search plan with AI…")
 
         try:
             searches = await asyncio.to_thread(
-                llm_service.generate_search_keywords, profile_dict, profile.max_queries
+                llm_service.generate_search_plan, profile_dict, provider_infos, profile.max_queries
             )
         except Exception as e:
             logger.error(f"LLM keyword generation failed: {e}")
@@ -58,13 +66,15 @@ class SearchService:
             update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
             return
 
-        # Deduplicate searches based on query string
+        # Deduplicate searches based on query string and provider
         unique_searches = []
         seen_queries = set()
         for s in searches:
             q_str = s.get("query", "").lower().strip()
-            if q_str and q_str not in seen_queries:
-                seen_queries.add(q_str)
+            p_str = s.get("provider", "").strip()
+            key = f"{q_str}:{p_str}"
+            if q_str and p_str and key not in seen_queries:
+                seen_queries.add(key)
                 unique_searches.append(s)
 
         init_status(profile_id, total_searches=len(unique_searches), searches=unique_searches)
@@ -75,22 +85,14 @@ class SearchService:
         # ── Step 2: Execute searches ──
         update_status(profile_id, state="searching")
         
-        providers = [
-            JobRoomProvider(),
-            SwissDevJobsProvider()
-        ]
         all_jobs: list = []
 
         for idx, search in enumerate(searches):
             query = search.get("query", "")
-            add_log(profile_id, f"Searching: «{query}» ({idx + 1}/{len(searches)})")
-            # Check if search was stopped
-            # Refresh the profile object to get the latest state from the DB
-            # Assuming profile_repo has a method to refresh an object or access to the session
-            # If profile_repo.db is the session, use self.profile_repo.db.refresh(profile)
-            # Otherwise, re-fetch the profile: profile = self.profile_repo.get(profile_id)
-            # For this change, we'll assume profile_repo has a refresh method or we re-fetch.
-            # Given the instruction, we'll re-fetch to ensure the latest state.
+            provider_name = search.get("provider", "")
+            
+            add_log(profile_id, f"Searching {provider_name}: «{query}» ({idx + 1}/{len(searches)})")
+            
             profile = self.profile_repo.get(profile_id) # Re-fetch to get latest state
             if profile and profile.is_stopped:
                 logger.info(f"Search profile {profile_id} was stopped by user.")
@@ -98,31 +100,29 @@ class SearchService:
                 break
 
             update_status(profile_id, current_search_index=idx + 1)
+            
+            provider = available_providers.get(provider_name)
+            if not provider:
+                logger.warning(f"AI requested unknown provider: {provider_name}")
+                add_log(profile_id, f"⚠ Skipped unknown provider: {provider_name}")
+                continue
 
             try:
                 request = self._build_search_request(profile, query)
                 
-                # Execute search across all providers concurrently
-                provider_tasks = [provider.search(request) for provider in providers]
-                results = await asyncio.gather(*provider_tasks, return_exceptions=True)
+                # Execute search on specific provider
+                result = await provider.search(request)
                 
-                jobs_found_for_query = 0
-                for i, result in enumerate(results):
-                    provider_name = providers[i].name
-                    if isinstance(result, Exception):
-                        logger.warning(f"Provider {provider_name} failed for query «{query}»: {result}")
-                        add_log(profile_id, f"⚠ {provider_name} search failed: {result}")
-                    else:
-                        all_jobs.extend(result.items)
-                        jobs_found_for_query += len(result.items)
+                jobs_found_for_query = len(result.items)
+                all_jobs.extend(result.items)
                         
                 add_log(
                     profile_id,
-                    f"Found {jobs_found_for_query} jobs total for «{query}»",
+                    f"Found {jobs_found_for_query} jobs total for «{query}» on {provider_name}",
                 )
             except Exception as e:
-                logger.warning(f"Search query «{query}» failed: {e}")
-                add_log(profile_id, f"⚠ Search «{query}» failed: {e}")
+                logger.warning(f"Search query «{query}» on {provider_name} failed: {e}")
+                add_log(profile_id, f"⚠ Search «{query}» on {provider_name} failed: {e}")
 
         if not all_jobs:
             add_log(profile_id, "No jobs found across all queries")
@@ -347,6 +347,7 @@ class SearchService:
             location=location_str,
             url=listing.external_url or jobroom_url,
             jobroom_url=jobroom_url,
+            search_profile_id=profile.id,
             platform=getattr(listing, "source", "unknown"),
             platform_job_id=str(getattr(listing, "id", "")),
             application_email=app_email or None,

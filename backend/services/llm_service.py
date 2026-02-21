@@ -9,7 +9,7 @@ class LLMService:
     def __init__(self):
         self.provider = get_llm_provider()
 
-    def generate_search_keywords(self, profile: Dict[str, Any], max_queries: int | None = None) -> List[Dict[str, Any]]:
+    def generate_search_plan(self, profile: Dict[str, Any], providers_info: List[Any], max_queries: int | None = None) -> List[Dict[str, Any]]:
         system_prompt = (
             "You are an expert Job Hunter AI specialized in the Swiss job market. "
             "You are fluent in English, German, French, and Italian. "
@@ -19,40 +19,42 @@ class LLMService:
         limit_instruction = (
             f"Generate as MANY queries as needed to ensure comprehensive coverage. There is NO limit on the total number of queries."
             if max_queries is None else
-            f"Generate at most {max_queries} queries total. prioritize the most relevant combined and occupation queries first."
+            f"Generate at most {max_queries} queries total. prioritize the most relevant occupation queries first."
         )
 
         user_prompt = f"""
-        Analyze the user's profile and strategies to generate search queries for Swiss job boards (Job Room).
+        Analyze the user's profile and strategies to generate an optimal search plan mapping queries to specific job boards.
         
-        Profile content:
+        AVAILABLE PROVIDERS:
+        {[dict(p) for p in providers_info]}
+
+        PROFILE CONTENT:
         Role/What they are looking for: {profile.get('role_description')}
         Strategy/AI Instructions: {profile.get('search_strategy')}
         CV Summary: {profile.get('cv_content')}
         
         STRICT QUERY GENERATION RULES:
-        1. NO "OR" OPERATORS: Never use "OR" or any other boolean operator in the query field.
-        2. ONE OCCUPATION: Each query must contain ONLY ONE specific job title/occupation.
-        3. QUERY TYPES:
-           - "combined": Exactly ONE occupation combined with 1-3 critical technical keywords (e.g. "Python Developer React").
+        1. PROVIDER SELECTION: For each query, select ONE relevant provider from the available list based on its description. Do NOT send non-IT jobs to an IT-only board. If a board is generalist, it can take anything.
+        2. NO "OR" OPERATORS: Never use "OR" or any other boolean operator in the query field.
+        3. ONE OCCUPATION: Each query must contain ONLY ONE specific job title/occupation.
+        4. QUERY TYPES:
            - "occupation": Exactly ONE occupation title, translated. ABSOLUTELY NO keywords in this type.
            - "keyword": Single specific skill or technology.
-        4. DIVERSITY & ACCURACY:
-           - Do NOT generate slightly different versions of the same query (e.g. "Software Engineer" vs "Software-Engineer").
+        5. DIVERSITY & ACCURACY:
            - Use synonyms and different languages (DE, FR, EN) to maximize coverage.
            - Ensure queries are distinct and high-quality.
 
-        Generate queries in this EXACT order:
-        1. "combined" queries in EN, DE, FR, IT.
-        2. "occupation" queries in EN, DE, FR, IT.
-        3. "keyword" queries for specific assets.
-        
         {limit_instruction}
         Do NOT worry about token limits. 
         
         Return pure JSON with a 'searches' list.
-        Format: {{ "searches": [ {{ "language": "en", "type": "combined", "query": "..." }}, ... ] }}
-        """ 
+        Format example: 
+        {{ 
+            "searches": [ 
+                {{ "provider": "provider_name", "language": "en", "type": "occupation", "query": "Software Engineer" }} 
+            ] 
+        }}
+        """
         
         try:
             result = self.provider.generate_json(system_prompt, user_prompt)
