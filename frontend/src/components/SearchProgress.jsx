@@ -88,7 +88,7 @@ export function SearchProgress({ profileId, status, onStateChange, onClear }) {
     if (state === "analyzing" && log) {
         let currentJob = null;
         log.forEach(entry => {
-            const analyzingMatch = entry.message.match(/Analyzing (\d+)\/(\d+): (.*)/);
+            const analyzingMatch = entry.message.match(/Analyzing (\d+)\/(\d+)[:\s]*(.*)/);
             if (analyzingMatch) {
                 if (currentJob) {
                     currentJob.status = 'done';
