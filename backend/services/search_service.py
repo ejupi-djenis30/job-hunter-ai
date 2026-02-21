@@ -136,14 +136,15 @@ class SearchService:
         unique_jobs: list = []
         
         # We need a robust way to identify existing jobs. We will use a composite string pattern "platform:id"
-        existing_jobs = self.job_repo.get_by_user(profile.user_id)
+        # Fetch ALL lightweight job identifiers for the user to ensure deduplication scales past 100
+        existing_identifiers = self.job_repo.get_user_job_identifiers(profile.user_id)
         existing_keys = {
-            f"{j.platform}:{j.platform_job_id}" for j in existing_jobs
-            if j.platform and j.platform_job_id
+            f"{row.platform}:{row.platform_job_id}" for row in existing_identifiers
+            if row.platform and row.platform_job_id
         }
         
         # Fallback to URLs for older jobs that didn't have platform tags
-        existing_urls = {j.url for j in existing_jobs if j.url}
+        existing_urls = {row.url for row in existing_identifiers if row.url}
 
         for listing in all_jobs:
             # listing is a JobListing which has `.source` (e.g. "job_room") and `.id`

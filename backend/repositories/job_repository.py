@@ -21,6 +21,18 @@ class JobRepository(BaseRepository[Job]):
             .all()
         )
 
+    def get_user_job_identifiers(self, user_id: int):
+        """Returns lightweight tuples of (platform, platform_job_id, url) for all user jobs."""
+        return (
+            self.db.query(
+                self.model.platform,
+                self.model.platform_job_id,
+                self.model.url
+            )
+            .filter(self.model.user_id == user_id)
+            .all()
+        )
+
     def _build_filter_query(
         self,
         user_id: int,

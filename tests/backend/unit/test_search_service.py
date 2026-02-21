@@ -89,7 +89,8 @@ async def test_search_service_deduplication(mock_profile):
     mock_job = MagicMock()
     mock_job.platform = "job_room"
     mock_job.platform_job_id = "123"
-    service.job_repo.get_by_user = lambda user_id: [mock_job]
+    mock_job.url = "DUMMY"
+    service.job_repo.get_user_job_identifiers = lambda user_id: [mock_job]
     
     class MockListing:
         source = "job_room"
