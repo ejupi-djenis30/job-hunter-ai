@@ -40,6 +40,12 @@ export function ProgressPage() {
     const next = activeProfileIds.filter(id => id !== String(profileId));
     removeProfileId(profileId);
     
+    // Clear search param if needed so it doesn't automatically remount
+    if (searchParams.get('pid') === String(profileId)) {
+      searchParams.delete('pid');
+      navigate({ search: searchParams.toString() }, { replace: true });
+    }
+
     if (next.length === 0) {
       navigate('/jobs');
     } else if (String(visibleProfileId) === String(profileId)) {

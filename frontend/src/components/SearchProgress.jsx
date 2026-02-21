@@ -30,7 +30,6 @@ export function SearchProgress({ profileId, status, onStateChange, onClear }) {
     }, [displayStatus?.current_search_index, displayStatus?.log?.length]);
 
     const handleStop = async () => {
-        if (!window.confirm("Are you sure you want to stop the search?")) return;
         try {
             await SearchService.stopSearch(profileId);
         } catch (e) {
@@ -139,7 +138,7 @@ export function SearchProgress({ profileId, status, onStateChange, onClear }) {
                         )}
                         {(isDone || isError) && (
                             <button className="btn btn-secondary rounded-pill px-5 shadow-glow" onClick={onClear}>
-                                Close Debrief
+                                Close
                             </button>
                         )}
                     </div>

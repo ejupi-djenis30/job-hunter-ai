@@ -15,6 +15,7 @@ The cmd\_outputs/ directory is your designated safe workspace and scratchpad. It
 * **Manual Start Fallback**: ONLY if docker-compose fails and you cannot resolve the Docker issue, you may fall back to starting the frontend (npm run dev) and backend (uvicorn backend.main:app \--reload) manually.  
 * **Test Integrity**: Before committing any code, you MUST ensure that all automated tests pass. If you write new features, you must write corresponding tests.  
 * **CI/CD Awareness**: After writing tests and verifying them locally, consider how they affect the GitHub Actions (CI/CD) pipelines. Do not introduce tests that are fundamentally incompatible with automated CI environments unless you update the .github/workflows/ accordingly.
+* **Frontend Testing**: When testing the frontend, you MUST use the browser tools to verify the UI and UX. Do not rely solely on the terminal output.
 
 ## **3\. Project Architecture Principles**
 
