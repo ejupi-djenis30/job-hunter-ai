@@ -18,7 +18,7 @@ class BaseRepository(Generic[ModelType]):
         if isinstance(obj_in, dict):
             db_obj = self.model(**obj_in)
         else:
-            db_obj = self.model(**obj_in.dict())
+            db_obj = self.model(**obj_in.model_dump())
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
@@ -28,7 +28,7 @@ class BaseRepository(Generic[ModelType]):
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
-            update_data = obj_in.dict(exclude_unset=True)
+            update_data = obj_in.model_dump(exclude_unset=True)
         
         for field, value in update_data.items():
             setattr(db_obj, field, value)

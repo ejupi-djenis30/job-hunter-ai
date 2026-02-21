@@ -25,7 +25,7 @@ class TestAdvancedJobsAPI:
     def test_get_all_jobs_pagination(self, client, auth_headers, setup_job_data):
         prof_id, job_ids = setup_job_data
         
-        response = client.get("/api/v1/jobs/?page=1&limit=2", headers=auth_headers)
+        response = client.get("/api/v1/jobs/?page=1&page_size=2", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 2 # Testing strict limit adherence
@@ -43,7 +43,7 @@ class TestAdvancedJobsAPI:
 
     def test_get_jobs_filter_by_status_applied(self, client, auth_headers, setup_job_data):
         prof_id, job_ids = setup_job_data
-        response = client.get(f"/api/v1/jobs/?status=applied", headers=auth_headers)
+        response = client.get(f"/api/v1/jobs/?applied=true", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         applied_titles = [j["title"] for j in data["items"]]
@@ -65,16 +65,16 @@ class TestAdvancedJobsAPI:
         # QA Auto is job_ids[2] which is already applied, let's mark Backend Dev (job_ids[0]) as applied
         job_to_apply = job_ids[0]
         
-        response = client.put(f"/api/v1/jobs/{job_to_apply}/apply?applied=true", headers=auth_headers)
+        response = client.patch(f"/api/v1/jobs/{job_to_apply}", json={"applied": True}, headers=auth_headers)
         assert response.status_code == 200
         assert response.json()["applied"] is True
 
         # Unapply it
-        response2 = client.put(f"/api/v1/jobs/{job_to_apply}/apply?applied=false", headers=auth_headers)
+        response2 = client.patch(f"/api/v1/jobs/{job_to_apply}", json={"applied": False}, headers=auth_headers)
         assert response2.status_code == 200
         assert response2.json()["applied"] is False
 
     def test_apply_job_not_found(self, client, auth_headers):
-        response = client.put("/api/v1/jobs/999999/apply?applied=true", headers=auth_headers)
+        response = client.patch("/api/v1/jobs/999999", json={"applied": True}, headers=auth_headers)
         assert response.status_code == 404
         assert response.json()["detail"] == "Job not found"

@@ -31,6 +31,10 @@ class SearchProfileCreate(SearchProfileBase):
     pass
 
 
+class StartSearchRequest(SearchProfileBase):
+    id: Optional[int] = None
+
+
 class SearchProfile(SearchProfileBase):
     model_config = ConfigDict(from_attributes=True)
 

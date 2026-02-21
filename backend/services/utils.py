@@ -25,12 +25,7 @@ async def extract_text_from_file(file: UploadFile) -> str:
             content = await file.read()
             return content.decode("utf-8")
         else:
-             # Fallback: try to decode as text
-            content = await file.read()
-            try:
-                return content.decode("utf-8")
-            except UnicodeDecodeError:
-                raise HTTPException(status_code=400, detail="Unsupported file type or encoding. Please upload PDF, TXT, or MD.")
+            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF, TXT, or MD.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to process file: {str(e)}")
 

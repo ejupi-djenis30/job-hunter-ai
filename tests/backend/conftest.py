@@ -48,20 +48,18 @@ def db_session(setup_database):
 def test_user(db_session):
     user = User(
         username="globaladmin",
-        hashed_password=get_password_hash("globalpass")
+        hashed_password=get_password_hash("Globalpass1")
     )
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
     yield user
-    db_session.delete(user)
-    db_session.commit()
 
 @pytest.fixture(scope="session")
 def auth_headers(client, test_user):
     response = client.post(
         "/api/v1/auth/login",
-        data={"username": "globaladmin", "password": "globalpass"}
+        data={"username": "globaladmin", "password": "Globalpass1"}
     )
     token = response.json().get("access_token")
     return {"Authorization": f"Bearer {token}"}

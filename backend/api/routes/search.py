@@ -24,9 +24,11 @@ async def upload_cv(
     return {"text": text, "filename": file.filename}
 
 
+from backend.schemas.profile import StartSearchRequest
+
 @router.post("/start")
 async def start_search(
-    profile_data: dict,
+    profile_request: StartSearchRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
@@ -37,9 +39,11 @@ async def start_search(
     # create a new History entry.
     # Otherwise if it has an ID, use that (re-run).
     # Sanitize profile_data: convert empty strings to None for numeric fields
+    profile_data = profile_request.model_dump(exclude_unset=True)
     numeric_fields = ["max_queries", "posted_within_days", "max_distance", "schedule_interval_hours"]
     for field in numeric_fields:
-        if profile_data.get(field) == "":
+        val = getattr(profile_request, field, None)
+        if val == "":
             profile_data[field] = None
 
     profile_id = profile_data.get("id")

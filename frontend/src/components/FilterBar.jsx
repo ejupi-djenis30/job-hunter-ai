@@ -92,7 +92,7 @@ export function FilterBar({ filters, onChange, searchProfiles = [], onClear, onR
                 >
                     <option value="created_at:desc" className="bg-dark">Newest</option>
                     <option value="created_at:asc" className="bg-dark">Oldest</option>
-                    <option value="affinity_score:desc" className="bg-dark">Best Match</option>
+                    {!isGlobal && <option value="affinity_score:desc" className="bg-dark">Best Match</option>}
                     <option value="distance_km:asc" className="bg-dark">Closest</option>
                 </select>
 

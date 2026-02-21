@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { SearchProgress } from '../components/SearchProgress';
 import { useSearchContext } from '../context/SearchContext';
+import { SearchService } from '../services/search';
 
 export function ProgressPage() {
   const [searchParams] = useSearchParams();
@@ -10,6 +11,19 @@ export function ProgressPage() {
 
   const { searchStatuses, activeProfileIds, addProfileId, removeProfileId } = useSearchContext();
   const [visibleProfileId, setVisibleProfileId] = React.useState(singlePid);
+  const [profiles, setProfiles] = React.useState({});
+
+  useEffect(() => {
+    SearchService.getProfiles()
+      .then(res => {
+        const mapping = {};
+        (res || []).forEach(p => {
+            mapping[p.id] = p.name || p.role_description || `Search #${p.id}`;
+        });
+        setProfiles(mapping);
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     // If we land here from an external route with a specific PID, ensure it's tracked
@@ -52,7 +66,8 @@ export function ProgressPage() {
           {activeProfileIds.map(pid => {
             const s = searchStatuses[pid];
             const isRunning = s && ['running', 'generating', 'searching', 'analyzing'].includes(s.state);
-            const label = s ? (isRunning ? `Search #${pid} (Active)` : `Search #${pid} (${s.state})`) : `Search #${pid}`;
+            const baseName = profiles[pid] || `Search #${pid}`;
+            const label = s ? (isRunning ? `${baseName} (Active)` : `${baseName} (${s.state})`) : baseName;
             return (
               <button 
                 key={pid}
