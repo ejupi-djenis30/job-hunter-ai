@@ -22,6 +22,7 @@ export function SearchForm({ onStartSearch, isLoading, prefill }) {
 
     useEffect(() => {
         if (prefill) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setProfile(prev => ({
                 ...prev,
                 ...prefill,

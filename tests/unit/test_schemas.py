@@ -16,16 +16,16 @@ class TestAuthSchemas:
     """Test authentication schemas."""
 
     def test_user_create_valid(self):
-        user = UserCreate(username="alice", password="secret123")
+        user = UserCreate(username="alice", password="Secret123!")
         assert user.username == "alice"
-        assert user.password == "secret123"
+        assert user.password == "Secret123!"
 
     def test_user_create_missing_field(self):
         with pytest.raises(ValidationError):
             UserCreate(username="alice")
 
     def test_user_login_valid(self):
-        login = UserLogin(username="alice", password="secret123")
+        login = UserLogin(username="alice", password="Secret123!")
         assert login.username == "alice"
 
     def test_token_defaults(self):

@@ -1,0 +1,42 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { History } from '../components/History';
+import { SearchService } from '../services/search';
+
+export function HistoryPage() {
+  const navigate = useNavigate();
+
+  const handleStartSearch = async (profile) => {
+    try {
+      const result = await SearchService.start(profile);
+      const pid = result.profile_id;
+      navigate(`/progress?pid=${pid}`);
+    } catch (error) {
+       // 401 intercepted globally
+      console.error("Failed to start search:", error);
+    }
+  };
+
+  const handleEditHistory = (profile) => {
+    navigate('/new', { state: { prefillProfile: profile } });
+  };
+
+  const handleSaveAsSchedule = async (profile) => {
+    try {
+      await SearchService.toggleSchedule(profile.id, true, profile.schedule_interval_hours || 24);
+      alert("Search profile added to schedules!");
+    } catch (error) {
+      alert("Failed to save schedule: " + error.message);
+    }
+  };
+
+  return (
+    <div className="animate-slide-up">
+      <History 
+        onStartSearch={handleStartSearch} 
+        onEdit={handleEditHistory} 
+        onSaveAsSchedule={handleSaveAsSchedule} 
+      />
+    </div>
+  );
+}

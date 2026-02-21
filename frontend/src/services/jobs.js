@@ -10,6 +10,7 @@ export const JobService = {
      * @param {number}  [filters.max_distance]
      * @param {boolean} [filters.worth_applying]
      * @param {boolean} [filters.applied]
+     * @param {number}  [filters.search_profile_id]
      * @param {string}  [filters.sort_by]      - created_at | affinity_score | distance_km | title
      * @param {string}  [filters.sort_order]   - asc | desc
      */

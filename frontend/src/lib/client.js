@@ -29,13 +29,21 @@ export class ApiClient {
         const response = await fetch(url, config);
 
         if (response.status === 401) {
-            // Handle unauthorized (logout?)
+            window.dispatchEvent(new Event("jh_unauthorized"));
             throw new Error("UNAUTHORIZED");
         }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || "API Request Failed");
+            let errMsg = "API Request Failed";
+            if (errorData.detail) {
+                if (typeof errorData.detail === 'string') errMsg = errorData.detail;
+                else if (Array.isArray(errorData.detail)) errMsg = errorData.detail.map(e => e.msg).join(", ");
+                else errMsg = JSON.stringify(errorData.detail);
+            } else if (errorData.message) {
+                errMsg = errorData.message;
+            }
+            throw new Error(errMsg);
         }
 
         return response.json();

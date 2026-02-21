@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { AuthService } from "../services/auth";
+import { useAuth } from "../context/AuthContext";
 
-export function Login({ onLogin }) {
+export function Login() {
     const [mode, setMode] = useState("login"); // login | register
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const { login, register } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -15,16 +17,16 @@ export function Login({ onLogin }) {
 
         try {
             if (mode === "register") {
-                if (password.length < 4) {
-                    setError("Password must be at least 4 characters");
+                if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+                    setError("Password must be at least 8 characters, contain an uppercase letter and a number.");
                     setLoading(false);
                     return;
                 }
-                await AuthService.register(username, password);
+                await register(username, password);
             } else {
-                await AuthService.login(username, password);
+                await login(username, password);
             }
-            onLogin(username);
+            // `isLoggedIn` state will automatically flip to true from AuthContext, triggering App.jsx to render DashboardLayout
         } catch (err) {
             setError(err.message);
         } finally {

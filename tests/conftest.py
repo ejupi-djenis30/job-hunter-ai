@@ -15,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # Set required env vars BEFORE any backend imports
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test_job_hunter.db")
+os.environ.setdefault("TESTING", "1")
 
 
 # ─── Pytest Markers ───

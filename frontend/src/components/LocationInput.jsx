@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 
 export function LocationInput({
     location,
-    latitude,
-    longitude,
     onLocationChange
 }) {
     const [query, setQuery] = useState(location || "");
@@ -89,6 +87,7 @@ export function LocationInput({
             }
         }, 500);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [query]);
 
     const handleSelect = (item) => {

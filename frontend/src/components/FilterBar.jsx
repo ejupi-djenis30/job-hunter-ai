@@ -1,54 +1,80 @@
 import React from "react";
 
-export function FilterBar({ filters, onChange, onClear, onRefresh }) {
+export function FilterBar({ filters, onChange, searchProfiles = [], onClear, onRefresh }) {
     const handleChange = (key, value) => {
         onChange({ ...filters, [key]: value });
     };
 
+    const isGlobal = !filters.search_profile_id;
+
     return (
         <div className="d-flex flex-wrap gap-3 align-items-center">
-            {/* Filter Group: Score */}
-            <div className="d-flex align-items-center bg-white-5 rounded-pill px-2 py-1 border border-white-5">
-                <span className="x-small text-secondary fw-bold text-uppercase px-2">Score</span>
+            {/* Filter Group: Scope */}
+            <div className="d-flex align-items-center bg-primary bg-opacity-10 border border-primary rounded-pill px-2 py-1">
+                <i className="bi bi-radar text-primary ms-1 me-2 text-primary"></i>
                 <select
-                    className="form-select form-select-sm border-0 bg-transparent text-white py-0 shadow-none"
-                    value={filters.min_score || ""}
-                    onChange={(e) => handleChange("min_score", e.target.value ? Number(e.target.value) : "")}
-                    style={{ width: 'auto', minWidth: '70px', paddingRight: '1.5rem', backgroundPosition: 'right center' }}
+                    className="form-select form-select-sm border-0 bg-transparent text-primary fw-bold py-0 shadow-none ps-0"
+                    value={filters.search_profile_id || ""}
+                    onChange={(e) => handleChange("search_profile_id", e.target.value ? Number(e.target.value) : "")}
+                    style={{ width: 'auto', minWidth: '150px' }}
                 >
-                    <option value="" className="bg-dark text-white">Any</option>
-                    <option value="50" className="bg-dark text-white">50%+</option>
-                    <option value="70" className="bg-dark text-white">70%+</option>
-                    <option value="85" className="bg-dark text-white">85%+</option>
-                    <option value="90" className="bg-dark text-white">90%+</option>
+                    <option value="" className="bg-dark text-white">Global Dashboard</option>
+                    {searchProfiles.map(p => (
+                        <option key={p.id} value={p.id} className="bg-dark text-white">
+                            Search: {p.name || p.role_description || 'Unknown'}
+                        </option>
+                    ))}
                 </select>
             </div>
 
-            {/* Filter Group: Distance */}
-            <div className="d-flex align-items-center bg-white-5 rounded-pill px-2 py-1 border border-white-5">
-                <span className="x-small text-secondary fw-bold text-uppercase px-2">Dist</span>
-                <select
-                    className="form-select form-select-sm border-0 bg-transparent text-white py-0 shadow-none"
-                    value={filters.max_distance || ""}
-                    onChange={(e) => handleChange("max_distance", e.target.value ? Number(e.target.value) : "")}
-                    style={{ width: 'auto', minWidth: '80px', paddingRight: '1.5rem', backgroundPosition: 'right center' }}
-                >
-                    <option value="" className="bg-dark text-white">Any</option>
-                    <option value="10" className="bg-dark text-white">10 km</option>
-                    <option value="25" className="bg-dark text-white">25 km</option>
-                    <option value="50" className="bg-dark text-white">50 km</option>
-                    <option value="100" className="bg-dark text-white">100 km</option>
-                </select>
-            </div>
+            {/* AI Filters (Only when scoped) */}
+            {!isGlobal && (
+                <>
+                    {/* Filter Group: Score */}
+                    <div className="d-flex align-items-center bg-white-5 rounded-pill px-2 py-1 border border-white-5">
+                        <span className="x-small text-secondary fw-bold text-uppercase px-2">Score</span>
+                        <select
+                            className="form-select form-select-sm border-0 bg-transparent text-white py-0 shadow-none"
+                            value={filters.min_score || ""}
+                            onChange={(e) => handleChange("min_score", e.target.value ? Number(e.target.value) : "")}
+                            style={{ width: 'auto', minWidth: '70px', paddingRight: '1.5rem', backgroundPosition: 'right center' }}
+                        >
+                            <option value="" className="bg-dark text-white">Any</option>
+                            <option value="50" className="bg-dark text-white">50%+</option>
+                            <option value="70" className="bg-dark text-white">70%+</option>
+                            <option value="85" className="bg-dark text-white">85%+</option>
+                            <option value="90" className="bg-dark text-white">90%+</option>
+                        </select>
+                    </div>
 
-            {/* Filter Toggle: Top Picks */}
-            <button 
-                className={`btn btn-sm rounded-pill px-3 d-flex align-items-center gap-2 border transition-all ${filters.worth_applying ? 'bg-primary-10 border-primary text-primary' : 'bg-white-5 border-white-5 text-secondary hover-bg-white-10'}`}
-                onClick={() => handleChange("worth_applying", !filters.worth_applying)}
-            >
-                <i className={`bi ${filters.worth_applying ? 'bi-star-fill' : 'bi-star'}`}></i>
-                <span className="fw-medium">Top Picks</span>
-            </button>
+                    {/* Filter Group: Distance */}
+                    <div className="d-flex align-items-center bg-white-5 rounded-pill px-2 py-1 border border-white-5">
+                        <span className="x-small text-secondary fw-bold text-uppercase px-2">Dist</span>
+                        <select
+                            className="form-select form-select-sm border-0 bg-transparent text-white py-0 shadow-none"
+                            value={filters.max_distance || ""}
+                            onChange={(e) => handleChange("max_distance", e.target.value ? Number(e.target.value) : "")}
+                            style={{ width: 'auto', minWidth: '80px', paddingRight: '1.5rem', backgroundPosition: 'right center' }}
+                        >
+                            <option value="" className="bg-dark text-white">Any</option>
+                            <option value="10" className="bg-dark text-white">10 km</option>
+                            <option value="25" className="bg-dark text-white">25 km</option>
+                            <option value="50" className="bg-dark text-white">50 km</option>
+                            <option value="100" className="bg-dark text-white">100 km</option>
+                        </select>
+                    </div>
+
+                    {/* Filter Toggle: Top Picks */}
+                    <button 
+                        type="button"
+                        className={`btn btn-sm rounded-pill px-3 d-flex align-items-center gap-2 border transition-all ${filters.worth_applying ? 'bg-primary-10 border-primary text-primary' : 'bg-white-5 border-white-5 text-secondary hover-bg-white-10'}`}
+                        onClick={() => handleChange("worth_applying", !filters.worth_applying)}
+                    >
+                        <i className={`bi ${filters.worth_applying ? 'bi-star-fill' : 'bi-star'}`}></i>
+                        <span className="fw-medium">Top Picks</span>
+                    </button>
+                </>
+            )}
 
             <div className="vr mx-1 bg-white opacity-10"></div>
 
@@ -73,6 +99,7 @@ export function FilterBar({ filters, onChange, onClear, onRefresh }) {
                 {/* Refresh Data */}
                 {onRefresh && (
                     <button
+                        type="button"
                         className="btn btn-icon btn-secondary rounded-circle ms-2"
                         onClick={onRefresh}
                         title="Refresh Data"
@@ -83,6 +110,7 @@ export function FilterBar({ filters, onChange, onClear, onRefresh }) {
 
                 {/* Clear Filters */}
                 <button
+                    type="button"
                     className="btn btn-icon btn-secondary rounded-circle ms-2"
                     onClick={onClear}
                     title="Clear filters"

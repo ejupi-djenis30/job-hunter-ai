@@ -34,7 +34,7 @@ function DistanceBadge({ km }) {
 }
 
 // Mobile Card Component
-function JobCard({ job, onToggleApplied }) {
+function JobCard({ job, isGlobalView, onToggleApplied }) {
     const isJobRoomOnly = job.jobroom_url && (!job.url || job.url === job.jobroom_url);
     const applyUrl = isJobRoomOnly ? null : job.url;
 
@@ -63,7 +63,7 @@ function JobCard({ job, onToggleApplied }) {
                     </div>
                 </div>
                 <div className="d-flex flex-column align-items-end gap-2">
-                    {job.affinity_score != null && (
+                    {!isGlobalView && job.affinity_score != null && (
                         <ScoreBadge score={Math.round(job.affinity_score)} />
                     )}
                     <span className="badge-pill bg-white-10 text-secondary border border-white-10">
@@ -79,7 +79,7 @@ function JobCard({ job, onToggleApplied }) {
                     {job.distance_km != null && <span className="text-white-50 ms-1">({job.distance_km}km)</span>}
                 </div>
                 
-                {job.worth_applying && (
+                {!isGlobalView && job.worth_applying && (
                     <span className="badge-pill badge-success">
                         <i className="bi bi-star-fill me-1"></i>Top Pick
                     </span>
@@ -130,7 +130,7 @@ function JobCard({ job, onToggleApplied }) {
     );
 }
 
-export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
+export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPageChange }) {
     const handleCopy = (job) => {
         const text = JSON.stringify({
             title: job.title,
@@ -160,7 +160,7 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
             {/* Mobile View (Cards) */}
             <div className="d-lg-none">
                 {jobs.map(job => (
-                    <JobCard key={job.id} job={job} onToggleApplied={onToggleApplied} />
+                    <JobCard key={job.id} job={job} isGlobalView={isGlobalView} onToggleApplied={onToggleApplied} />
                 ))}
             </div>
 
@@ -171,7 +171,7 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                         <tr>
                             <th className="ps-4 py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "30%" }}>Job Title</th>
                             <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Company & Location</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Match & Details</th>
+                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>{!isGlobalView ? 'Match & Details' : 'Details'}</th>
                             <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "8%" }}>Applied</th>
                             <th className="pe-4 py-3 bg-black-50 text-end text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "12%" }}>Actions</th>
                         </tr>
@@ -206,12 +206,14 @@ export function JobTable({ jobs, onToggleApplied, pagination, onPageChange }) {
                                 </td>
                                 <td className="border-0">
                                     <div className="d-flex align-items-center gap-3">
-                                        {job.affinity_score != null ? (
-                                            <ScoreBadge score={Math.round(job.affinity_score)} />
-                                        ) : <span className="text-muted opacity-25">—</span>}
+                                        {!isGlobalView ? (
+                                            job.affinity_score != null ? (
+                                                <ScoreBadge score={Math.round(job.affinity_score)} />
+                                            ) : <span className="text-muted opacity-25">—</span>
+                                        ) : null}
                                         
                                         <div className="d-flex flex-wrap gap-1">
-                                            {job.worth_applying && (
+                                            {!isGlobalView && job.worth_applying && (
                                                 <span className="badge-pill badge-success border-0 py-1" style={{fontSize: '0.65rem'}}>
                                                     Top Pick
                                                 </span>

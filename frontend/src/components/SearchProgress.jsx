@@ -1,22 +1,30 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SearchService } from "../services/search";
 
-export function SearchProgress({ profileId, status, setStatus, onStateChange, onClear }) {
+export function SearchProgress({ profileId, status, onStateChange, onClear }) {
     const logEndRef = useRef(null);
     const reportedState = useRef(null);
+    const [cachedStatus, setCachedStatus] = useState(status);
 
     useEffect(() => {
-        if (!status) return;
-        const s = status.state;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (status) setCachedStatus(status);
+    }, [status]);
+
+    const displayStatus = status || cachedStatus;
+
+    useEffect(() => {
+        if (!displayStatus) return;
+        const s = displayStatus.state;
         if ((s === "done" || s === "error") && reportedState.current !== s) {
             reportedState.current = s;
             onStateChange?.(s);
         }
-    }, [status, onStateChange]);
+    }, [displayStatus, onStateChange]);
 
     useEffect(() => {
         logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [status?.log?.length]);
+    }, [displayStatus?.log?.length]);
 
     const handleStop = async () => {
         if (!window.confirm("Are you sure you want to stop the search?")) return;
@@ -27,15 +35,15 @@ export function SearchProgress({ profileId, status, setStatus, onStateChange, on
         }
     };
 
-    if (!status) return (
+    if (!displayStatus) return (
         <div className="glass-panel p-5 text-center mt-4 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '400px' }}>
             <div className="spinner-border text-primary mb-4" role="status" style={{ width: '3rem', height: '3rem' }}></div>
             <h5 className="text-white fw-bold">Initializing Uplink</h5>
-            <p className="text-secondary mb-0 font-monospace small">Connecting to agent swarm...</p>
+            <p className="text-secondary mb-0 font-monospace small">Establishing connection to agent...</p>
         </div>
     );
 
-    const { state, total_searches, current_search_index, current_query, searches_generated, jobs_new, jobs_duplicates, jobs_skipped, errors, log } = status;
+    const { state, total_searches, current_search_index, current_query, searches_generated, jobs_new, jobs_duplicates, jobs_skipped, errors, log } = displayStatus;
     const isRunning = state === "generating" || state === "searching" || state === "analyzing";
     const isDone = state === "done";
     const isError = state === "error" || state === "stopped";

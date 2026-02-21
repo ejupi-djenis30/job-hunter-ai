@@ -1,39 +1,50 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { useSearchContext } from '../../context/SearchContext';
 
-export function Sidebar({ view, setView, searchState, totalJobs, username, onLogout, isOpen, onClose, isCollapsed, onToggleCollapse }) {
-  // Adjusted NavItem to handle collapsed state
-  const NavItem = ({ id, label, icon, badge, specialClass = '' }) => (
-    <button
-      onClick={() => {
-        setView(id);
-        if (window.innerWidth < 992) onClose(); // Auto-close on mobile
-      }}
-      className={`w-100 btn text-start d-flex align-items-center ${isCollapsed ? 'justify-content-center px-0' : 'justify-content-start px-3'} mb-1 py-2 border-0
-        ${view === id ? 'bg-primary-subtle text-white' : 'text-secondary hover-bg-white-5'}
-        ${specialClass}
-      `}
-      title={isCollapsed ? label : ''}
-      style={{ 
-        transition: 'all 0.2s ease',
-        borderRadius: 'var(--radius-md)',
-        background: view === id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-        color: view === id ? 'var(--primary-glow)' : 'var(--text-secondary)'
-      }}
-    >
-      <i className={`bi ${icon} fs-5 ${isCollapsed ? 'm-0' : 'me-3'}`}></i>
-      {!isCollapsed && <span className="fw-medium text-nowrap">{label}</span>}
-      {!isCollapsed && badge && (
-        <span className="ms-auto badge bg-white text-dark rounded-pill fw-bold" style={{ fontSize: '0.7em' }}>
-          {badge}
-        </span>
-      )}
-      {isCollapsed && badge && (
-        <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light p-1" style={{fontSize: '0.5em'}}>
-           <span className="visually-hidden">unread messages</span>
-        </span>
-      )}
-    </button>
-  );
+// NavItem component moved outside Sidebar to prevent "cannot create components during render" error
+const NavItem = ({ to, label, icon, badge, specialClass = '', onClick, isCollapsed }) => (
+  <NavLink
+    to={to}
+    onClick={onClick}
+    className={({ isActive }) => `w-100 btn text-start d-flex align-items-center ${isCollapsed ? 'justify-content-center px-0' : 'justify-content-start px-3'} mb-1 py-2 border-0
+      ${isActive ? 'bg-primary-subtle text-white' : 'text-secondary hover-bg-white-5'}
+      ${specialClass}
+    `}
+    title={isCollapsed ? label : ''}
+    style={({ isActive }) => ({ 
+      transition: 'all 0.2s ease',
+      borderRadius: 'var(--radius-md)',
+      background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+      color: isActive ? 'var(--primary-glow)' : 'var(--text-secondary)'
+    })}
+  >
+    <i className={`bi ${icon} fs-5 ${isCollapsed ? 'm-0' : 'me-3'}`}></i>
+    {!isCollapsed && <span className="fw-medium text-nowrap">{label}</span>}
+    {isCollapsed && badge && (
+      <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light p-1" style={{fontSize: '0.5em'}}>
+         <span className="visually-hidden">unread messages</span>
+      </span>
+    )}
+  </NavLink>
+);
+
+export function Sidebar({ username, onLogout, isOpen, onClose, isCollapsed, onToggleCollapse }) {
+  const { searchStatuses } = useSearchContext();
+  
+  // Compute global dynamic search state
+  const isRunning = Object.values(searchStatuses).some(s => s && ['generating', 'searching', 'analyzing'].includes(s.state));
+  const hasDone = Object.values(searchStatuses).some(s => s && s.state === 'done');
+  const hasError = Object.values(searchStatuses).some(s => s && (s.state === 'error' || s.state === 'stopped'));
+  
+  let searchState = null;
+  if (isRunning) searchState = 'running';
+  else if (hasError) searchState = 'error';
+  else if (hasDone) searchState = 'done';
+
+  const handleNavClick = () => {
+    if (window.innerWidth < 992) onClose(); // Auto-close on mobile
+  };
 
   return (
     <div className={`d-flex flex-column h-100 p-3 border-0 rounded-0 sidebar-mobile ${isOpen ? 'show' : ''} d-lg-flex`} 
@@ -82,22 +93,35 @@ export function Sidebar({ view, setView, searchState, totalJobs, username, onLog
         )}
         
         <NavItem 
-          id="jobs" 
+          to="/jobs" 
           label="Dashboard" 
           icon="bi-grid-fill" 
-          badge={totalJobs > 0 ? totalJobs : null} 
+          onClick={handleNavClick}
+          isCollapsed={isCollapsed}
         />
         
         <NavItem 
-          id="schedules" 
+          to="/new" 
+          label="New Search" 
+          icon="bi-search" 
+          onClick={handleNavClick}
+          isCollapsed={isCollapsed}
+        />
+
+        <NavItem 
+          to="/schedules" 
           label="Schedules" 
           icon="bi-alarm-fill" 
+          onClick={handleNavClick}
+          isCollapsed={isCollapsed}
         />
         
         <NavItem 
-          id="history" 
+          to="/history" 
           label="History" 
           icon="bi-clock-history" 
+          onClick={handleNavClick}
+          isCollapsed={isCollapsed}
         />
 
         <div className="my-4 border-top border-white-10"></div>
@@ -108,40 +132,19 @@ export function Sidebar({ view, setView, searchState, totalJobs, username, onLog
             </div>
         )}
 
-        <button
-          onClick={() => {
-            setView('new');
-            if (window.innerWidth < 992) onClose();
-          }}
-          className={`w-100 btn mb-2 py-2 px-3 d-flex align-items-center ${isCollapsed ? 'justify-content-center px-0' : 'justify-content-center'} fw-bold`}
-          title={isCollapsed ? "New Search" : ""}
-          style={{ 
-            background: 'linear-gradient(135deg, var(--bg-card), var(--bg-sidebar))',
-            border: '1px solid var(--border-highlight)',
-            color: 'white',
-            borderRadius: 'var(--radius-md)'
-          }}
-        >
-          <i className={`bi bi-plus-circle-fill text-primary ${isCollapsed ? 'fs-4 m-0' : 'me-2'}`}></i>
-          {!isCollapsed && "New Search"}
-        </button>
-
         {/* Dynamic Search Status */}
         {searchState && (
           <NavItem 
-            id="progress" 
+            to="/progress" 
             label={
               searchState === 'running' ? 'Searching...' : 
-              searchState === 'done' ? 'Results Ready' : 'Search Error'
+              searchState === 'done' ? 'Results Ready' : 'Process'
             }
-            icon={
-              searchState === 'running' ? 'bi-arrow-clockwise spinner-border-sm' : 
-              searchState === 'done' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'
-            }
-            specialClass={
-              searchState === 'running' ? 'text-warning' : 
-              searchState === 'done' ? 'text-success' : 'text-danger'
-            }
+            icon={searchState === 'running' ? 'bi-cpu' : 'bi-check-circle-fill'}
+            badge={searchState === 'done'}
+            specialClass={searchState === 'running' ? 'pulsing-border' : ''}
+            onClick={handleNavClick}
+            isCollapsed={isCollapsed}
           />
         )}
       </div>

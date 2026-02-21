@@ -18,26 +18,28 @@ class TestLLMService:
         with patch("backend.services.llm_service.get_llm_provider", return_value=mock_provider):
             return LLMService()
 
-    def test_generate_search_keywords(self, llm_service, mock_provider):
+    def test_generate_search_plan(self, llm_service, mock_provider):
         """Should return searches from provider."""
         mock_provider.generate_json.return_value = {
             "searches": [
-                {"type": "keyword", "value": "Python"},
-                {"type": "occupation", "value": "Software Engineer"}
+                {"provider": "job_room", "type": "keyword", "value": "Python"},
+                {"provider": "swissdevjobs", "type": "occupation", "value": "Software Engineer"}
             ]
         }
         
-        result = llm_service.generate_search_keywords({"role_description": "dev"})
+        providers_info = [{"name": "job_room", "description": "Generalist"}]
+        result = llm_service.generate_search_plan({"role_description": "dev"}, providers_info)
         
         assert len(result) == 2
         assert result[0]["value"] == "Python"
         mock_provider.generate_json.assert_called_once()
 
-    def test_generate_search_keywords_error(self, llm_service, mock_provider):
+    def test_generate_search_plan_error(self, llm_service, mock_provider):
         """Should handle error gracefully."""
         mock_provider.generate_json.side_effect = Exception("API Error")
         
-        result = llm_service.generate_search_keywords({"role_description": "dev"})
+        providers_info = [{"name": "job_room", "description": "Generalist"}]
+        result = llm_service.generate_search_plan({"role_description": "dev"}, providers_info)
         
         assert result == []
 
