@@ -1,0 +1,40 @@
+import logging
+from backend.providers.jobs.models import JobSearchRequest, SortOrder, RadiusSearchRequest, Coordinates
+
+logger = logging.getLogger(__name__)
+
+def build_search_request(profile, query: str) -> JobSearchRequest:
+    """Create a JobSearchRequest from profile settings and a keyword query."""
+    workload_min, workload_max = 0, 100
+    if profile.workload_filter:
+        parts = profile.workload_filter.replace("%", "").split("-")
+        try:
+            workload_min = int(parts[0])
+            workload_max = int(parts[1]) if len(parts) > 1 else int(parts[0])
+        except ValueError:
+            pass
+
+    radius_request = None
+    if profile.latitude and profile.longitude:
+        # Default to 30km if not specified, or use profile preference if available
+        # Assuming profile has no explicit distance pref, defaulting to 50 as per user payload example
+        dist = 50 
+        if hasattr(profile, 'search_radius') and profile.search_radius:
+             dist = int(profile.search_radius)
+        
+        radius_request = RadiusSearchRequest(
+            geo_point=Coordinates(lat=profile.latitude, lon=profile.longitude),
+            distance=dist
+        )
+
+    return JobSearchRequest(
+        query=query,
+        location=profile.location_filter or "",
+        posted_within_days=profile.posted_within_days or 30,
+        workload_min=workload_min,
+        workload_max=workload_max,
+        page_size=50,
+        sort=SortOrder.DATE_DESC,
+        radius_search=radius_request,
+        communal_codes=[] # Clear communal codes if using radius to avoid conflict? usually they can coexist or radius overrides.
+    )

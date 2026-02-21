@@ -1,109 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { JobService } from '../services/jobs';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { JobTable } from '../components/JobTable';
 import { FilterBar } from '../components/FilterBar';
-import { SearchService } from '../services/search';
+import { useJobs } from '../hooks/useJobs';
 
 export function JobsPage() {
   const { logout } = useAuth();
-  const [jobs, setJobs] = useState([]);
-  const [searchProfiles, setSearchProfiles] = useState([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pages: 1,
-    total: 0,
-    pageSize: 20,
-    total_applied: 0,
-    avg_score: 0
-  });
-
-  const [filters, setFilters] = useState({
-    search_profile_id: "",
-    min_score: "",
-    max_distance: "",
-    worth_applying: "",
-    sort_by: "created_at",
-    sort_order: "desc"
-  });
-
-  const filtersRef = useRef(filters);
-  const paginationRef = useRef(pagination);
-
-  const fetchJobs = async (isPolling = false) => {
-    try {
-      const currentFilters = isPolling ? filtersRef.current : filters;
-      const currentPage = isPolling ? paginationRef.current.page : pagination.page;
-      const res = await JobService.getAll({
-        ...currentFilters,
-        page: currentPage,
-        page_size: pagination.pageSize
-      });
-      setJobs(res.items || []);
-      setPagination(prev => ({
-        ...prev,
-        total: res.total || 0,
-        pages: res.pages || 1,
-        page: res.page || 1,
-        total_applied: res.total_applied || 0,
-        avg_score: res.avg_score || 0
-      }));
-    } catch (error) {
-      if (error.message === "UNAUTHORIZED") {
-        logout();
-        return;
-      }
-      console.error("Fetch jobs error:", error);
-    }
-  };
-
-  useEffect(() => {
-    filtersRef.current = filters;
-    paginationRef.current = pagination;
-    fetchJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, pagination.page]);
-
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        const res = await SearchService.getProfiles();
-        setSearchProfiles(res || []);
-      } catch (err) {
-        console.error("Failed to load search profiles", err);
-      }
-    };
-    fetchProfiles();
-  }, []);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchJobs(true);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchJobs(true);
-    }, 10000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const toggleApplied = async (job) => {
-    try {
-      const updated = await JobService.toggleApplied(job.id, !job.applied);
-      setJobs(prev => prev.map(j => j.id === job.id ? updated : j));
-    } catch (error) {
-      if (error.message === "UNAUTHORIZED") { logout(); return; }
-      console.error("Failed to update job", error);
-    }
-  };
+  
+  // Extract all state and lifecycle from the custom hook
+  const {
+    jobs,
+    pagination,
+    setPagination,
+    filters,
+    setFilters,
+    searchProfiles,
+    fetchJobs,
+    toggleApplied,
+    clearFilters
+  } = useJobs(logout);
 
   const totalJobs = pagination.total;
   const appliedCount = pagination.total_applied;
@@ -142,15 +57,8 @@ export function JobsPage() {
             filters={filters}
             onChange={setFilters}
             searchProfiles={searchProfiles}
-            onRefresh={() => fetchJobs()}
-            onClear={() => setFilters({
-                search_profile_id: "",
-                min_score: "",
-                max_distance: "",
-                worth_applying: "",
-                sort_by: "created_at",
-                sort_order: "desc"
-            })}
+            onRefresh={() => fetchJobs(false)}
+            onClear={clearFilters}
             />
         </div>
         <JobTable

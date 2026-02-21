@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { SearchService } from "../services/search";
+import { ProgressHeader } from "./SearchProgress/ProgressHeader";
+import { ProgressBar } from "./SearchProgress/ProgressBar";
+import { TargetQueue } from "./SearchProgress/TargetQueue";
+import { LiveLogs } from "./SearchProgress/LiveLogs";
 
 export function SearchProgress({ profileId, status, onStateChange, onClear }) {
     const logEndRef = useRef(null);
@@ -110,63 +114,26 @@ export function SearchProgress({ profileId, status, onStateChange, onClear }) {
             <div className="glass-panel p-4 mb-4 position-relative overflow-hidden">
                 {/* Background Ambient Glow Removed */}
 
-                <div className="d-flex flex-wrap justify-content-between align-items-center gap-4 mb-4">
-                    <div className="d-flex align-items-center gap-4">
-                        <div className={`rounded-circle d-flex align-items-center justify-content-center text-white shadow-lg border border-white-10 ${isDone ? 'bg-success' : isError ? 'bg-danger' : 'bg-primary'}`} style={{ width: 64, height: 64 }}>
-                            {isRunning ? <span className="spinner-border spinner-border-sm" style={{ width: '2rem', height: '2rem' }}></span>
-                                : isDone ? <i className="bi bi-check-lg fs-2"></i>
-                                    : <i className="bi bi-exclamation-triangle fs-2"></i>}
-                        </div>
-                        <div>
-                            <h2 className="mb-0 fw-bold text-white tracking-tight">
-                                {isDone ? "Mission Complete" : isError ? (state === "stopped" ? "Mission Aborted" : "Mission Failed") : "Agent Active"}
-                            </h2>
-                            <p className="text-white-50 mb-0 font-monospace small">
-                                {state === "generating" && "Generating tactical search vector..."}
-                                {state === "searching" && `Executing vector ${current_search_index} / ${total_searches}...`}
-                                {state === "analyzing" && "Analyzing intelligence data..."}
-                                {state === "done" && "All objectives secured."}
-                            </p>
-                        </div>
-                    </div>
+                <ProgressHeader 
+                    isDone={isDone} 
+                    isError={isError} 
+                    isRunning={isRunning} 
+                    state={state} 
+                    current_search_index={current_search_index} 
+                    total_searches={total_searches} 
+                    handleStop={handleStop} 
+                    onClear={onClear} 
+                />
 
-                    <div className="d-flex gap-3">
-                        {isRunning && (
-                            <button className="btn btn-outline-danger border-white-10 bg-black-20 rounded-pill px-4 hover-bg-danger hover-text-white transition-all" onClick={handleStop}>
-                                <i className="bi bi-stop-circle me-2"></i>Abort
-                            </button>
-                        )}
-                        {(isDone || isError) && (
-                            <button className="btn btn-secondary rounded-pill px-5 shadow-glow" onClick={onClear}>
-                                Close
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* Progress Bar */}
-                {(state !== "pending") && (
-                    <div className="mb-4">
-                        <div className="d-flex justify-content-between text-secondary x-small fw-bold text-uppercase tracking-wider mb-2">
-                            <span>Mission Progress</span>
-                            <span className="text-white">{isDone ? '100%' : `${progressPct}%`}</span>
-                        </div>
-                        <div className="progress bg-black-50 border border-white-5" style={{ height: "8px", borderRadius: "8px" }}>
-                            <div
-                                className={`progress-bar ${isDone ? 'bg-success shadow-glow' : isError ? 'bg-danger' : 'bg-primary shadow-glow progress-bar-striped progress-bar-animated'}`}
-                                style={{ width: `${isDone || isError ? 100 : progressPct}%`, borderRadius: "8px", transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)" }}
-                            />
-                        </div>
-                        {isRunning && (
-                            <div className="mt-2 text-center animate-slide-up">
-                                <span className="badge bg-primary-10 text-primary border border-primary-20 rounded-pill fw-normal px-3 py-1 font-monospace small">
-                                    <i className="bi bi-crosshair me-2"></i>
-                                    {state === "analyzing" ? analyzingText : (current_query ? `TARGET: "${current_query}"` : 'ACQUIRING STRATEGY...')}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                )}
+                <ProgressBar 
+                    state={state} 
+                    isDone={isDone} 
+                    isError={isError} 
+                    isRunning={isRunning} 
+                    progressPct={progressPct} 
+                    analyzingText={analyzingText} 
+                    current_query={current_query} 
+                />
 
                 {/* Stats Grid */}
                 <div className="row g-3">
@@ -187,100 +154,18 @@ export function SearchProgress({ profileId, status, onStateChange, onClear }) {
             </div>
 
             <div className="row g-4 flex-grow-1" style={{ minHeight: '400px', height: '500px', maxHeight: '50vh' }}>
-                {/* Generated Plan / Analysis Queue */}
-                <div className="col-lg-5 d-flex flex-column h-100">
-                    <div className="glass-panel p-0 h-100 overflow-hidden d-flex flex-column">
-                        <div className="p-3 border-bottom border-white-10 bg-white-5">
-                            <h6 className="mb-0 fw-bold text-white small text-uppercase tracking-wide">
-                                <i className={`bi ${state === "analyzing" ? "bi-search" : "bi-diagram-3"} me-2 text-primary`}></i>
-                                {state === "analyzing" ? "Analysis Queue" : "Tactical Plan"}
-                            </h6>
-                        </div>
-                        <div className="flex-grow-1 overflow-y-auto custom-scrollbar p-0">
-                            <ul className="list-group list-group-flush mb-0">
-                                {state === "analyzing" ? (
-                                    analyzedJobs.map((j, i) => {
-                                        const isCurrent = j.status === 'analyzing';
-                                        return (
-                                            <li key={i} ref={isCurrent ? activeItemRef : null} className={`list-group-item bg-transparent border-bottom border-white-5 px-3 py-3 d-flex gap-3 ${isCurrent ? 'bg-primary-10' : ''}`}>
-                                                <div className="mt-1">
-                                                    {j.status === 'done' ? (
-                                                        <i className="bi bi-check-circle-fill text-success"></i>
-                                                    ) : (
-                                                        <div className="spinner-border spinner-border-sm text-primary"></div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="x-small text-uppercase tracking-wider opacity-50 mb-1 text-secondary">Target {j.idx}/{j.total}</div>
-                                                    <div className={`text-sm fw-medium font-monospace ${isCurrent ? 'text-primary' : 'text-secondary'}`}>{j.title}</div>
-                                                </div>
-                                            </li>
-                                        );
-                                    })
-                                ) : (
-                                    searches_generated?.map((s, i) => {
-                                        const currentIndex = (current_search_index || 1) - 1;
-                                        const isDone = i < currentIndex;
-                                        const isCurrent = i === currentIndex;
+                <TargetQueue 
+                    state={state} 
+                    analyzedJobs={analyzedJobs} 
+                    searches_generated={searches_generated} 
+                    current_search_index={current_search_index} 
+                    activeItemRef={activeItemRef} 
+                />
 
-                                        return (
-                                            <li key={i} ref={isCurrent ? activeItemRef : null} className={`list-group-item bg-transparent border-bottom border-white-5 px-3 py-3 d-flex gap-3 ${isCurrent ? 'bg-primary-10' : ''}`}>
-                                                <div className="mt-1">
-                                                    {isDone ? (
-                                                        <i className="bi bi-check-circle-fill text-success"></i>
-                                                    ) : isCurrent ? (
-                                                        <div className="spinner-border spinner-border-sm text-primary"></div>
-                                                    ) : (
-                                                        <div className="rounded-circle bg-white-10 border border-white-10" style={{ width: 16, height: 16 }}></div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="x-small text-uppercase tracking-wider opacity-50 mb-1 text-secondary">{s.type || s.provider}</div>
-                                                    <div className={`text-sm fw-medium font-monospace ${isCurrent ? 'text-primary' : 'text-secondary'}`}>{s.query}</div>
-                                                </div>
-                                            </li>
-                                        );
-                                    })
-                                )}
-                                {(!searches_generated || searches_generated.length === 0) && state === "generating" && (
-                                    <div className="p-5 text-center text-secondary opacity-50 d-flex flex-column align-items-center">
-                                        <div className="spinner-grow spinner-grow-sm mb-3"></div>
-                                        <span className="small">Formulating strategy...</span>
-                                    </div>
-                                )}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Live Logs */}
-                <div className="col-lg-7 d-flex flex-column h-100">
-                    <div className="glass-panel p-0 h-100 overflow-hidden d-flex flex-column border-0 shadow-lg">
-                        <div className="p-2 border-bottom border-white-10 bg-black d-flex justify-content-between align-items-center">
-                            <div className="d-flex align-items-center px-2">
-                                <i className="bi bi-terminal-fill text-secondary me-2"></i>
-                                <span className="text-secondary x-small fw-bold font-monospace">AGENT_LOG_OUTPUT</span>
-                            </div>
-                        </div>
-                        <div className="flex-grow-1 overflow-auto bg-black p-3 custom-scrollbar" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.8rem' }}>
-                            {log && log.length > 0 ? (
-                                log.map((entry, i) => (
-                                    <div key={i} className="mb-1 d-flex">
-                                        <span className="text-secondary opacity-50 me-2 select-none" style={{ minWidth: '70px' }}>
-                                            [{new Date(entry.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
-                                        </span>
-                                        <span className="text-light text-break">{entry.message}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="h-100 d-flex align-items-center justify-content-center text-secondary opacity-25">
-                                    <span>_waiting_for_stream</span>
-                                </div>
-                            )}
-                            <div ref={logEndRef} />
-                        </div>
-                    </div>
-                </div>
+                <LiveLogs 
+                    log={log} 
+                    logEndRef={logEndRef} 
+                />
             </div>
         </div>
     );

@@ -63,7 +63,7 @@ logs/
 *.log
 tmp/
 *.tmp
-cmd_output/
+cmd_outputs/
 
 # ─── Poetry / packaging ───
 poetry.lock

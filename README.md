@@ -453,16 +453,6 @@ There is a dedicated file titled `AGENTS.md` located in the root directory. **An
 
 ---
 
-## 13. Roadmap
-
-Future integrations planned for the Job Hunter AI ecosystem:
-- [ ] Incorporate comprehensive LinkedIn automated scraping (via authenticated cookie session injection).
-- [ ] Add `swissdevjobs.ch` and `jobs.ch` native providers to expanding caching capabilities.
-- [ ] Implement an automated Cover Letter Generator utilizing the specific `<job_description>` context paired with the `<cv_content>`.
-- [ ] Provide analytical charts visually plotting application success rates over time.
-
----
-
 ## 14. License
 
-This highly robust and opinionated project is licensed freely under the MIT License. You are free to copy, modify, distribute, and self-host for your own personal career advantage. See the [LICENSE](LICENSE) file for exhaustive legal details. Happy Hunting! 🚀
+See the [LICENSE](LICENSE) file for exhaustive legal details.
