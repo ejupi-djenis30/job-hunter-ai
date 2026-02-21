@@ -204,15 +204,17 @@ class SearchService:
         ]
         
         results = await asyncio.gather(*tasks)
-        saved_count = sum(1 for r in results if r)
+        saved_count = sum(1 for r in results if r is True)
+        skipped_count = sum(1 for r in results if r is False)
 
-        add_log(profile_id, f"✓ Search complete – {saved_count} jobs saved")
+        add_log(profile_id, f"✓ Search complete – {saved_count} jobs saved, {skipped_count} skipped")
         update_status(
             profile_id,
             state="done",
             jobs_found=len(all_jobs),
             jobs_new=saved_count,
             jobs_duplicates=duplicates,
+            jobs_skipped=skipped_count
         )
 
     # ───────────────────────── private helpers ─────────────────────────
