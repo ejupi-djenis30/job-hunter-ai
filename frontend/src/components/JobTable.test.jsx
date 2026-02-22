@@ -43,7 +43,6 @@ describe('JobTable', () => {
         expect(screen.getByText('Job Title')).toBeInTheDocument();
         expect(screen.getByText('Company & Location')).toBeInTheDocument();
         expect(screen.getByText('Match & Details')).toBeInTheDocument();
-        expect(screen.getByText('Analysis')).toBeInTheDocument();
         expect(screen.getByText('Applied')).toBeInTheDocument();
         expect(screen.getByText('Actions')).toBeInTheDocument();
     });
@@ -61,7 +60,7 @@ describe('JobTable', () => {
         expect(screen.getByText('2')).toBeInTheDocument();
         // Match the pagination separator specifically
         expect(screen.getByText((content, element) => content.includes('/') && element.tagName === 'SPAN' && element.className.includes('text-secondary'))).toBeInTheDocument();
-        expect(screen.getByText((content, element) => content.includes('Showing'))).toBeInTheDocument();
+        expect(screen.getByText((content) => content.includes('Showing'))).toBeInTheDocument();
         expect(screen.getByText('21-40')).toBeInTheDocument();
         expect(screen.getByText('50')).toBeInTheDocument();
     });

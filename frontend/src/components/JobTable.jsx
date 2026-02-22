@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { MobileJobCard } from "./JobTable/MobileJobCard";
 import { DesktopJobRow } from "./JobTable/DesktopJobRow";
+import { ScoreBadge } from "./JobTable/Badges";
 
 export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPageChange }) {
+    const [selectedJobForAnalysis, setSelectedJobForAnalysis] = useState(null);
     const handleCopy = (job) => {
         const text = JSON.stringify({
             title: job.title,
@@ -49,11 +52,10 @@ export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPa
                     <thead className="sticky-top bg-dark" style={{ zIndex: 10 }}>
                         <tr>
                             <th className="ps-4 py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "30%" }}>Job Title</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Company & Location</th>
+                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "25%" }}>Company & Location</th>
                             {!isGlobalView && (
                                 <>
-                                    <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "15%" }}>Match & Details</th>
-                                    <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "15%" }}>Analysis</th>
+                                    <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Match & Details</th>
                                 </>
                             )}
                             <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "8%" }}>Applied</th>
@@ -76,7 +78,7 @@ export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPa
             </div>
 
             {/* Top-level Analysis Modal - Centered on screen */}
-            {selectedJobForAnalysis && (
+            {selectedJobForAnalysis && createPortal(
                 <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center animate-fade-in" 
                      style={{ zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
                     <div className="glass-panel p-4 m-3 animate-slide-up shadow-2xl" 
@@ -103,7 +105,7 @@ export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPa
                             <button className="btn btn-secondary px-5 rounded-pill fw-bold" onClick={() => setSelectedJobForAnalysis(null)}>Close</button>
                         </div>
                     </div>
-                </div>
+                </div>, document.body
             )}
 
             {/* Pagination Footer */}

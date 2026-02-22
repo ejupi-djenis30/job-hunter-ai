@@ -56,15 +56,6 @@ describe('HistoryCard', () => {
         expect(onEdit).toHaveBeenCalledWith(mockProfile);
     });
 
-    it('calls onDelete when Delete button is clicked', () => {
-        const onDelete = vi.fn();
-        render(<HistoryCard profile={mockProfile} onDelete={onDelete} />);
-        
-        const deleteButton = screen.getByTitle('Delete');
-        fireEvent.click(deleteButton);
-        
-        expect(onDelete).toHaveBeenCalledWith(mockProfile.id);
-    });
 
     it('shows Add to Schedule button only if schedule is disabled', () => {
         const onSaveAsSchedule = vi.fn();

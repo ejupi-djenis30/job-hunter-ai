@@ -49,7 +49,7 @@ describe('DesktopJobRow', () => {
         expect(screen.getByText(/Zürich/)).toBeInTheDocument();
     });
 
-    it('shows email copy button when application_email is present', () => {
+    it('shows email button when application_email is present', () => {
         render(
             <table>
                 <tbody>
@@ -57,12 +57,12 @@ describe('DesktopJobRow', () => {
                 </tbody>
             </table>
         );
-        const emailBtn = screen.getByTitle(/Copy Email/);
-        expect(emailBtn).toBeInTheDocument();
-        expect(emailBtn.querySelector('.bi-envelope')).toBeInTheDocument();
+        const emailLink = screen.getByTitle(/Email:/);
+        expect(emailLink).toBeInTheDocument();
+        expect(emailLink.querySelector('.bi-envelope')).toBeInTheDocument();
     });
 
-    it('hides email copy button when application_email is missing', () => {
+    it('hides email button when application_email is missing', () => {
         const jobNoEmail = { ...mockJob, application_email: null };
         render(
             <table>
@@ -71,10 +71,10 @@ describe('DesktopJobRow', () => {
                 </tbody>
             </table>
         );
-        expect(screen.queryByTitle(/Copy Email/)).not.toBeInTheDocument();
+        expect(screen.queryByTitle(/Email:/)).not.toBeInTheDocument();
     });
 
-    it('copies email to clipboard when email button is clicked', () => {
+    it('copies details to clipboard when copy button is clicked', () => {
         render(
             <table>
                 <tbody>
@@ -82,33 +82,24 @@ describe('DesktopJobRow', () => {
                 </tbody>
             </table>
         );
-        const emailBtn = screen.getByTitle(/Copy Email/);
-        fireEvent.click(emailBtn);
-        expect(mockWriteText).toHaveBeenCalledWith('jobs@techcorp.com');
+        const copyBtn = screen.getByTitle('Copy Details');
+        fireEvent.click(copyBtn);
+        expect(defaultProps.onCopy).toHaveBeenCalledWith(mockJob);
     });
 
-    it('toggles affinity analysis visibility', () => {
+    it('calls onViewAnalysis when analysis button is clicked', () => {
+        const onViewAnalysis = vi.fn();
         render(
             <table>
                 <tbody>
-                    <DesktopJobRow {...defaultProps} />
+                    <DesktopJobRow {...defaultProps} onViewAnalysis={onViewAnalysis} />
                 </tbody>
             </table>
         );
         
-        // Initial state: Analysis not visible
-        expect(screen.queryByText('Great match for your Python skills.')).not.toBeInTheDocument();
-        
-        const toggleBtn = screen.getByText(/View Analysis/);
+        const toggleBtn = screen.getByTitle('View Analysis');
         fireEvent.click(toggleBtn);
         
-        // After click: Analysis visible
-        expect(screen.getByText('Great match for your Python skills.')).toBeInTheDocument();
-        expect(screen.getByText(/Hide Analysis/)).toBeInTheDocument();
-        
-        fireEvent.click(screen.getByText(/Hide Analysis/));
-        
-        // After second click: Analysis hidden again
-        expect(screen.queryByText('Great match for your Python skills.')).not.toBeInTheDocument();
+        expect(onViewAnalysis).toHaveBeenCalledWith(mockJob);
     });
 });

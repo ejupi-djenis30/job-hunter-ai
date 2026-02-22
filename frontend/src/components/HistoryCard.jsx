@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function HistoryCard({ profile, onStartSearch, onEdit, onSaveAsSchedule, onDelete }) {
+export function HistoryCard({ profile, onStartSearch, onEdit, onSaveAsSchedule }) {
     return (
         <div className="glass-panel p-3 px-md-4 py-md-3 hover-bg-white-5 transition-colors group">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-3">

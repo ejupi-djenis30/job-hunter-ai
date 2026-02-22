@@ -2,7 +2,7 @@ import React from "react";
 import { ScoreBadge } from "./Badges";
 
 export function MobileJobCard({ job, isGlobalView, onToggleApplied, onCopy, onViewAnalysis }) {
-    const applyUrl = job.application_url;
+    const applyUrl = job.application_url || job.external_url;
     const sourceUrl = job.external_url;
     const mailtoUrl = job.application_email ? `mailto:${job.application_email}` : null;
 
@@ -45,7 +45,7 @@ export function MobileJobCard({ job, isGlobalView, onToggleApplied, onCopy, onVi
                 <div><i className="bi bi-clock me-1"></i> {new Date(job.created_at).toLocaleDateString()}</div>
                 {job.publication_date && <div><i className="bi bi-megaphone me-1"></i> {new Date(job.publication_date).toLocaleDateString()}</div>}
                 {job.distance_km != null && <div><i className="bi bi-geo-alt me-1"></i> {job.distance_km}km</div>}
-                {job.workload && job.workload < 100 && <div className="text-info fw-bold">{job.workload}%</div>}
+                {job.workload != null && <div className="text-info fw-bold">{job.workload}%</div>}
             </div>
 
             <div className="d-flex justify-content-between align-items-center pt-3 border-top border-white-10">

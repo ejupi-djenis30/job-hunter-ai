@@ -53,7 +53,7 @@ describe('useJobs', () => {
   it('toggles applied status correctly', async () => {
     const { result } = renderHook(() => useJobs());
     
-    await waitFor(() => expect(result.current.jobs.length).toBe(2));
+    await waitFor(() => expect(result.current.isInitialLoad).toBe(false));
 
     const updatedJob = { ...mockJobs[0], applied: true };
     JobService.toggleApplied.mockResolvedValue(updatedJob);
@@ -68,6 +68,7 @@ describe('useJobs', () => {
 
   it('clears filters to default values', async () => {
     const { result } = renderHook(() => useJobs());
+    await waitFor(() => expect(result.current.isInitialLoad).toBe(false));
 
     await act(async () => {
       result.current.setFilters({ ...result.current.filters, min_score: 50 });

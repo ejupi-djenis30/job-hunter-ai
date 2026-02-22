@@ -30,7 +30,7 @@ describe('MobileJobCard', () => {
         expect(screen.getByText('Software Engineer')).toBeInTheDocument();
         expect(screen.getByText('Tech Corp')).toBeInTheDocument();
         expect(screen.getByText('Zürich')).toBeInTheDocument();
-        expect(screen.getByText('(10km)')).toBeInTheDocument();
+        expect(screen.getByText('10km')).toBeInTheDocument();
         expect(screen.getByText('100%')).toBeInTheDocument();
     });
 
@@ -46,7 +46,7 @@ describe('MobileJobCard', () => {
 
     it('renders Top Pick badge when worth applying', () => {
         render(<MobileJobCard job={mockJob} isGlobalView={false} {...mockHandlers} />);
-        expect(screen.getByText('Top Pick')).toBeInTheDocument();
+        expect(screen.getByTitle('Top Pick')).toBeInTheDocument();
     });
 
     it('calls onToggleApplied when checkbox clicked', () => {
@@ -58,7 +58,7 @@ describe('MobileJobCard', () => {
 
     it('calls onCopy when copy button clicked', () => {
         render(<MobileJobCard job={mockJob} {...mockHandlers} />);
-        const copyBtn = screen.getByTitle('Copy Details');
+        const copyBtn = screen.getByTitle('Copy Info');
         fireEvent.click(copyBtn);
         expect(mockHandlers.onCopy).toHaveBeenCalledWith(mockJob);
     });

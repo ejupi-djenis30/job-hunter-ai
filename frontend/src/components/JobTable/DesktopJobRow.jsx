@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { ScoreBadge } from "./Badges";
 
 export function DesktopJobRow({ job, isGlobalView, onToggleApplied, onCopy, onViewAnalysis }) {
-    const applyUrl = job.application_url; // Use application_url for 'Apply'
+    const applyUrl = job.application_url || job.external_url; // Use application_url falling back to external_url for 'Apply'
     const sourceUrl = job.external_url;   // Use external_url for 'Source'
     const mailtoUrl = job.application_email ? `mailto:${job.application_email}` : null;
 
@@ -42,7 +42,7 @@ export function DesktopJobRow({ job, isGlobalView, onToggleApplied, onCopy, onVi
                             <ScoreBadge score={Math.round(job.affinity_score)} />
                         ) : <span className="text-muted opacity-25">—</span>}
                         
-                        <div className="d-flex flex-wrap gap-1">
+                        <div className="d-flex flex-wrap gap-1 align-items-center">
                             {job.worth_applying && (
                                 <span className="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" 
                                       style={{width: '18px', height: '18px'}} title="Top Pick">
@@ -54,26 +54,21 @@ export function DesktopJobRow({ job, isGlobalView, onToggleApplied, onCopy, onVi
                                     {job.workload}%
                                 </span>
                             )}
+                            {job.affinity_analysis && (
+                                <button 
+                                    className="btn btn-sm btn-icon btn-secondary rounded-circle d-flex align-items-center justify-content-center border-0 bg-white-5 hover-bg-white-10 ms-1"
+                                    onClick={() => onViewAnalysis(job)}
+                                    style={{ width: '28px', height: '28px' }}
+                                    title="View Analysis"
+                                >
+                                    <i className="bi bi-robot"></i>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </td>
             )}
-            {!isGlobalView && (
-                <td className="border-0">
-                    {job.affinity_analysis ? (
-                        <button 
-                            className="btn btn-sm btn-icon btn-secondary rounded-circle d-flex align-items-center justify-content-center border-0 bg-white-5 hover-bg-white-10"
-                            onClick={() => onViewAnalysis(job)}
-                            style={{ width: '28px', height: '28px' }}
-                            title="View Analysis"
-                        >
-                            <i className="bi bi-robot"></i>
-                        </button>
-                    ) : (
-                        <span className="text-muted opacity-25">N/A</span>
-                    )}
-                </td>
-            )}
+
             <td className="border-0">
                 <div className="form-check form-switch ms-1">
                     <input

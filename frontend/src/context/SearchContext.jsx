@@ -22,6 +22,25 @@ export function SearchProvider({ children }) {
             try {
                 const res = await SearchService.getAllStatuses();
                 setSearchStatuses(res);
+
+                // Auto-hydrate activeProfileIds with any that are actually running (useful on page reload)
+                const runningIds = Object.entries(res)
+                    .filter(([, status]) => status && ['generating', 'searching', 'analyzing'].includes(status.state))
+                    .map(([id]) => String(id));
+                
+                if (runningIds.length > 0) {
+                    setActiveProfileIds(prev => {
+                        const next = [...prev];
+                        let changed = false;
+                        for (const id of runningIds) {
+                            if (!next.includes(id)) {
+                                next.push(id);
+                                changed = true;
+                            }
+                        }
+                        return changed ? next : prev;
+                    });
+                }
             } catch (e) {
                 console.error("Failed to poll statuses:", e);
             }
