@@ -14,7 +14,7 @@ def llm_service(mock_provider):
 def test_generate_search_plan_success(llm_service, mock_provider):
     mock_provider.generate_json.return_value = {
         "searches": [
-            {"provider": "swissdevjobs", "language": "en", "type": "occupation", "query": "Software Engineer"}
+            {"domain": "it", "language": "en", "type": "occupation", "query": "Software Engineer"}
         ]
     }
     

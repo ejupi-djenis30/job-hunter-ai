@@ -60,7 +60,8 @@ class SwissDevJobsProvider(BaseJobProvider):
         return ProviderInfo(
             name=self.name,
             description="Exclusive job board for Software Engineers and IT professionals in Switzerland. Do NOT use this for non-IT jobs (e.g. HR, marketing, medical).",
-            domain="swissdevjobs.ch"
+            domain="swissdevjobs.ch",
+            accepted_domains=["it"],
         )
 
     @property

@@ -84,44 +84,48 @@ async def process_job_listing(listing, profile_dict: dict, db_session) -> bool:
             1,
         )
 
-    # 1. UPSERT ScrapedJob
-    scraped_job = db_session.query(ScrapedJob).filter(
-        ScrapedJob.platform == listing.source,
-        ScrapedJob.platform_job_id == str(listing.id)
-    ).first()
+    # 1. UPSERT ScrapedJob + 2. CREATE Job (with rollback on error)
+    try:
+        scraped_job = db_session.query(ScrapedJob).filter(
+            ScrapedJob.platform == listing.source,
+            ScrapedJob.platform_job_id == str(listing.id)
+        ).first()
 
-    if not scraped_job:
-        scraped_job = ScrapedJob(
-            platform=listing.source,
-            platform_job_id=str(listing.id),
-            title=clean_html_tags(listing.title),
-            company=company,
-            description=clean_html_tags(desc_text) if desc_text else None,
-            location=location_str,
-            external_url=final_external_url or str(listing.id),
-            application_url=app_url or None,
-            application_email=app_email or None,
-            workload=workload_str or None,
-            publication_date=pub_date,
-            raw_metadata=listing.raw_data,
-            source_query=listing.title,
+        if not scraped_job:
+            scraped_job = ScrapedJob(
+                platform=listing.source,
+                platform_job_id=str(listing.id),
+                title=clean_html_tags(listing.title),
+                company=company,
+                description=clean_html_tags(desc_text) if desc_text else None,
+                location=location_str,
+                external_url=final_external_url or str(listing.id),
+                application_url=app_url or None,
+                application_email=app_email or None,
+                workload=workload_str or None,
+                publication_date=pub_date,
+                raw_metadata=listing.raw_data,
+                source_query=listing.title,
+            )
+            db_session.add(scraped_job)
+            db_session.flush() # flush to get the ID for the Job
+
+        job = Job(
+            user_id=profile_dict["user_id"],
+            search_profile_id=profile_dict["id"],
+            scraped_job_id=scraped_job.id,
+            is_scraped=True,
+            affinity_score=score,
+            affinity_analysis=reasoning if reasoning else None,
+            worth_applying=worth,
+            distance_km=distance_km,
         )
-        db_session.add(scraped_job)
-        db_session.flush() # flush to get the ID for the Job
 
-    # 2. CREATE Job
-    job = Job(
-        user_id=profile_dict["user_id"],
-        search_profile_id=profile_dict["id"],
-        scraped_job_id=scraped_job.id,
-        is_scraped=True,
-        affinity_score=score,
-        affinity_analysis=reasoning if reasoning else None,
-        worth_applying=worth,
-        distance_km=distance_km,
-    )
-
-    db_session.add(job)
-    db_session.commit()
-    return True
+        db_session.add(job)
+        db_session.commit()
+        return True
+    except Exception as db_err:
+        logger.error(f"DB error saving job '{listing.title}': {db_err}")
+        db_session.rollback()
+        return False
 

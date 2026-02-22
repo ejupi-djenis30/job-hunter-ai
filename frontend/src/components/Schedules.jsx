@@ -31,12 +31,12 @@ export function Schedules() {
     };
 
     const handleDelete = async (profileId) => {
-        if (!window.confirm("Delete this profile and its schedule?")) return;
+        if (!window.confirm("Remove this schedule? The history will be preserved.")) return;
         try {
-            await SearchService.deleteProfile(profileId);
+            await SearchService.toggleSchedule(profileId, false);
             loadProfiles();
         } catch (e) {
-            alert("Failed to delete profile: " + e.message);
+            alert("Failed to remove schedule: " + e.message);
         }
     };
 

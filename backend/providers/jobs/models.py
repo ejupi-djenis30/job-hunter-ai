@@ -174,6 +174,10 @@ class ProviderInfo(BaseModel):
     name: str = Field(description="The unique identifier/name of the provider")
     description: str = Field(description="Detailed description of what kind of jobs this provider has (e.g. IT only, generalist, remote only, etc.)")
     domain: str = Field(description="The domain of the job board")
+    accepted_domains: List[str] = Field(
+        default=["*"],
+        description="Job domains this provider accepts. ['*'] = generalist (all domains). ['it'] = IT-only."
+    )
 
 class ProviderCapabilities(BaseModel):
     supports_radius_search: bool = False

@@ -1,11 +1,13 @@
 import logging
-from typing import AsyncGenerator
+import time
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from backend.providers.jobs.base import JobProvider
 from backend.providers.jobs.models import (
     JobSearchRequest,
+    JobSearchResponse,
     JobListing,
     ProviderInfo,
     JobLocation,
@@ -28,6 +30,7 @@ class LocalDbProvider(JobProvider):
             name="local_db",
             description="Searches the local application database for previously scraped jobs.",
             domain="internal",
+            accepted_domains=["*"],
         )
 
     def _db_job_to_listing(self, db_job: ScrapedJob, distance_km: float = None) -> JobListing:
@@ -63,8 +66,9 @@ class LocalDbProvider(JobProvider):
             raw_data=db_job.raw_metadata or {},
         )
 
-    async def search(self, request: JobSearchRequest) -> AsyncGenerator[JobListing, None]:
+    async def search(self, request: JobSearchRequest) -> JobSearchResponse:
         logger.info(f"[{self.name()}] Starting search for '{request.query}' in '{request.location}'")
+        start_time = time.time()
 
         # Start building the ORM query
         q = self.db.query(ScrapedJob)
@@ -87,18 +91,31 @@ class LocalDbProvider(JobProvider):
 
         # 2. Location filtering
         if request.location:
-            # We can only perform exact or fuzzy match on the string since we don't store lat/lon explicitly in ScrapedJob right now
             ilike_city = f"%{request.location}%"
             q = q.filter(ScrapedJob.location.ilike(ilike_city))
+
+        # Get total count before pagination
+        total_count = q.count()
 
         # 3. Pagination (Local limit)
         q = q.limit(request.page_size)
 
         scraped_jobs = q.all()
 
-        count = 0
+        results = []
         for db_job in scraped_jobs:
-            yield self._db_job_to_listing(db_job)
-            count += 1
+            results.append(self._db_job_to_listing(db_job))
 
-        logger.info(f"[{self.name()}] Found {count} internal jobs")
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        logger.info(f"[{self.name()}] Found {len(results)} internal jobs in {elapsed_ms}ms")
+        
+        return JobSearchResponse(
+            items=results,
+            total_count=total_count,
+            page=request.page,
+            page_size=request.page_size,
+            total_pages=max(1, (total_count + request.page_size - 1) // request.page_size),
+            source=self.name(),
+            search_time_ms=elapsed_ms,
+            request=request,
+        )

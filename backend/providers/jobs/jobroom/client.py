@@ -101,7 +101,8 @@ class JobRoomProvider(BaseJobProvider):
         return ProviderInfo(
             name=self.name,
             description="Generalist Swiss federal job portal. Contains jobs across all industries and professions (IT, construction, hospitality, medical, etc.). Good default choice.",
-            domain="job-room.ch"
+            domain="job-room.ch",
+            accepted_domains=["*"],
         )
 
     @property

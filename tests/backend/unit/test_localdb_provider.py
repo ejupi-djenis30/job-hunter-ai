@@ -24,6 +24,7 @@ async def test_search_builds_query_correctly(local_db_provider, mock_db_session)
     mock_db_session.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.limit.return_value = mock_query
+    mock_query.count.return_value = 1
     
     # Mock data exactly one row
     mock_scraped_job = ScrapedJob(
@@ -43,9 +44,8 @@ async def test_search_builds_query_correctly(local_db_provider, mock_db_session)
         page_size=10,
     )
 
-    results = []
-    async for listing in local_db_provider.search(req):
-        results.append(listing)
+    result = await local_db_provider.search(req)
+    results = result.items
 
     assert len(results) == 1
     listing = results[0]
@@ -57,6 +57,10 @@ async def test_search_builds_query_correctly(local_db_provider, mock_db_session)
     assert listing.employment.workload_min == 80
     assert listing.employment.workload_max == 100
     assert listing.external_url == "http://example.com/123"
+    
+    # Verify response metadata
+    assert result.source == "local_db"
+    assert result.total_count == 1
 
     # Verify db calls
     mock_db_session.query.assert_called_once()

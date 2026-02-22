@@ -22,16 +22,6 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
         }
     };
 
-    const handleDelete = async (profileId) => {
-        if (!window.confirm("Delete this history entry?")) return;
-        try {
-            await SearchService.deleteProfile(profileId);
-            loadProfiles();
-        } catch (e) {
-            alert("Failed to delete: " + e.message);
-        }
-    };
-
     if (loading) {
         return (
             <div className="d-flex justify-content-center align-items-center h-100">
@@ -74,7 +64,6 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
                         onStartSearch={onStartSearch}
                         onEdit={onEdit}
                         onSaveAsSchedule={onSaveAsSchedule}
-                        onDelete={handleDelete}
                     />
                 ))}
             </div>

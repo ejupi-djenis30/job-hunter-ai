@@ -60,16 +60,6 @@ export function HistoryCard({ profile, onStartSearch, onEdit, onSaveAsSchedule, 
                                 <i className="bi bi-clock"></i>
                             </button>
                         )}
-
-                        <div className="vr bg-white opacity-25 mx-2 d-none d-md-block" ></div>
-
-                        <button
-                            className="btn btn-sm btn-icon btn-outline-danger border-0 rounded-circle text-danger hover-bg-danger hover-text-white transition-colors d-flex align-items-center justify-content-center"
-                            onClick={() => onDelete(profile.id)}
-                            title="Delete"
-                        >
-                            <i className="bi bi-trash"></i>
-                        </button>
                     </div>
                 </div>
             </div>

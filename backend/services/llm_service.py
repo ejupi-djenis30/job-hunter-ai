@@ -23,18 +23,16 @@ class LLMService:
         )
 
         user_prompt = f"""
-        Analyze the user's profile and strategies to generate an optimal search plan mapping queries to specific job boards.
+        Analyze the user's profile and strategies to generate an optimal search plan.
+        You do NOT need to assign queries to specific job boards — the system will route them automatically.
         
-        AVAILABLE PROVIDERS:
-        {[dict(p) for p in providers_info]}
-
         PROFILE CONTENT:
         Role/What they are looking for: {profile.get('role_description')}
         Strategy/AI Instructions: {profile.get('search_strategy')}
         CV Summary: {profile.get('cv_content')}
         
         STRICT QUERY GENERATION RULES:
-        1. PROVIDER SELECTION: For each query, select ONE relevant provider from the available list based on its description. Do NOT send non-IT jobs to an IT-only board. If a board is generalist, it can take anything.
+        1. DOMAIN TAGGING: For each query, specify its professional domain (e.g. "it", "finance", "medical", "engineering", "hospitality", "general"). The system uses this to route queries to the right job boards.
         2. NO "OR" OPERATORS: Never use "OR" or any other boolean operator in the query field.
         3. ONE OCCUPATION: Each query must contain ONLY ONE specific job title/occupation.
         4. QUERY TYPES:
@@ -51,7 +49,9 @@ class LLMService:
         Format example: 
         {{ 
             "searches": [ 
-                {{ "provider": "provider_name", "language": "en", "type": "occupation", "query": "Software Engineer" }} 
+                {{ "domain": "it", "language": "en", "type": "occupation", "query": "Software Engineer" }},
+                {{ "domain": "it", "language": "de", "type": "keyword", "query": "React" }},
+                {{ "domain": "finance", "language": "en", "type": "occupation", "query": "Financial Analyst" }}
             ] 
         }}
         """
@@ -65,9 +65,6 @@ class LLMService:
                 searches = searches[:max_queries]
                 
             return searches
-        except Exception as e:
-            logger.error(f"Error generating keywords: {e}")
-            return []
         except Exception as e:
             logger.error(f"Error generating keywords: {e}")
             return []

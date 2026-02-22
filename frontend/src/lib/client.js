@@ -74,6 +74,39 @@ export class ApiClient {
         });
     }
 
+    static async postMultipart(endpoint, formData) {
+        const token = this.getToken();
+        const headers = {};
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+        // NOTE: We do NOT set Content-Type for multipart/form-data, 
+        // the browser needs to set the boundary.
+
+        const url = `${API_BASE}${endpoint}`;
+        const config = {
+            method: "POST",
+            headers,
+            body: formData,
+        };
+
+        const response = await fetch(url, config);
+
+        if (response.status === 401) {
+            window.dispatchEvent(new Event("jh_unauthorized"));
+            throw new Error("UNAUTHORIZED");
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            let errMsg = "Upload Failed";
+            if (errorData.detail) errMsg = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail);
+            throw new Error(errMsg);
+        }
+
+        return response.json();
+    }
+
     static async patch(endpoint, body) {
         return this.request(endpoint, {
             method: "PATCH",

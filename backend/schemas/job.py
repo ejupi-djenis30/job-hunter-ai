@@ -54,7 +54,7 @@ class Job(JobBase):
     distance_km: Optional[float] = None
     applied: bool
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     raw_metadata: Optional[Dict[str, Any]] = None
 
 
