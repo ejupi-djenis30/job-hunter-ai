@@ -1,0 +1,58 @@
+import pytest
+from unittest.mock import MagicMock
+from backend.services.job_service import JobService
+from backend.schemas import JobUpdate
+
+@pytest.fixture
+def mock_repo():
+    return MagicMock()
+
+@pytest.fixture
+def job_service(mock_repo):
+    service = JobService(MagicMock())
+    service.repo = mock_repo
+    return service
+
+def test_get_jobs_by_user(job_service, mock_repo):
+    mock_repo.get_by_user_filtered.return_value = ["job1", "job2"]
+    mock_repo.count_by_user_filtered.return_value = 2
+    mock_repo.get_stats_by_user_filtered.return_value = {"total_applied": 1, "avg_score": 85.0}
+    
+    result = job_service.get_jobs_by_user(1, page=1, page_size=10, filters={"sort_by": "created_at"})
+    
+    assert result["total"] == 2
+    assert len(result["items"]) == 2
+    assert result["total_applied"] == 1
+    mock_repo.get_by_user_filtered.assert_called_once()
+
+def test_create_job(job_service, mock_repo):
+    job_in = {"title": "New Job"}
+    job_service.create_job(1, job_in)
+    mock_repo.create.assert_called_once()
+    args = mock_repo.create.call_args[0][0]
+    assert args["user_id"] == 1
+    assert args["applied"] is False
+
+def test_update_job_success(job_service, mock_repo):
+    mock_job = MagicMock()
+    mock_job.user_id = 1
+    mock_repo.get.return_value = mock_job
+    
+    updates = JobUpdate(applied=True)
+    job_service.update_job(1, 101, updates)
+    mock_repo.update.assert_called_once_with(mock_job, updates)
+
+def test_update_job_not_found(job_service, mock_repo):
+    mock_repo.get.return_value = None
+    with pytest.raises(Exception) as exc: # HTTPException
+        job_service.update_job(1, 999, JobUpdate())
+    assert "404" in str(exc.value)
+
+def test_update_job_forbidden(job_service, mock_repo):
+    mock_job = MagicMock()
+    mock_job.user_id = 2 # Different user
+    mock_repo.get.return_value = mock_job
+    
+    with pytest.raises(Exception) as exc:
+        job_service.update_job(1, 101, JobUpdate())
+    assert "403" in str(exc.value)

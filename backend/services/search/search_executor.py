@@ -3,15 +3,15 @@ import asyncio
 from datetime import datetime
 from backend.services.llm_service import llm_service
 from backend.services.utils import haversine_distance, clean_html_tags
-from backend.models import Job
+from backend.models import Job, ScrapedJob
 
 logger = logging.getLogger(__name__)
 
-async def process_job_listing(listing, profile, profile_dict: dict, db_session) -> bool:
+async def process_job_listing(listing, profile_dict: dict, db_session) -> bool:
     """Analyse a single job listing via LLM and save it to DB."""
     # Step A: Title Relevance Check First (User Request)
     relevance = await asyncio.to_thread(
-        llm_service.check_title_relevance, listing.title, profile.role_description or ""
+        llm_service.check_title_relevance, listing.title, profile_dict.get("role_description", "")
     )
     if not relevance.get("relevant", True):
         logger.info(f"Skipping job due to title irrelevance: {listing.title}")
@@ -51,49 +51,70 @@ async def process_job_listing(listing, profile, profile_dict: dict, db_session) 
         wmax = listing.employment.workload_max
         workload_str = f"{wmin}-{wmax}%" if wmin != wmax else f"{wmin}%"
 
-    app_email = ""
-    if listing.application and listing.application.email:
-        app_email = listing.application.email
+    app_url = listing.application.form_url if listing.application else None
+    app_email = listing.application.email if listing.application else None
+
+    # Fallback for JobRoom if external_url is missing
+    final_external_url = listing.external_url
+    if not final_external_url and listing.source == "job_room":
+        final_external_url = f"https://www.job-room.ch/job-search/{listing.id}"
 
     pub_date = None
     if listing.publication and listing.publication.start_date:
         try:
-            date_str = listing.publication.start_date.replace('Z', '+00:00')
-            pub_date = datetime.fromisoformat(date_str)
+            date_raw = listing.publication.start_date
+            if "T" in date_raw:
+                date_str = date_raw.replace('Z', '+00:00')
+                pub_date = datetime.fromisoformat(date_str)
+            else:
+                pub_date = datetime.strptime(date_raw, "%Y-%m-%d")
         except (ValueError, TypeError):
             pass
 
-    jobroom_url = f"https://www.job-room.ch/job-search/{listing.id}"
-
     distance_km = None
-    if (profile.latitude and profile.longitude and 
+    if (profile_dict.get("latitude") is not None and profile_dict.get("longitude") is not None and 
         listing.location and listing.location.coordinates):
         distance_km = round(
             haversine_distance(
-                profile.latitude,
-                profile.longitude,
+                profile_dict["latitude"],
+                profile_dict["longitude"],
                 listing.location.coordinates.lat,
                 listing.location.coordinates.lon,
             ),
             1,
         )
 
+    # 1. UPSERT ScrapedJob
+    scraped_job = db_session.query(ScrapedJob).filter(
+        ScrapedJob.platform == listing.source,
+        ScrapedJob.platform_job_id == str(listing.id)
+    ).first()
+
+    if not scraped_job:
+        scraped_job = ScrapedJob(
+            platform=listing.source,
+            platform_job_id=str(listing.id),
+            title=clean_html_tags(listing.title),
+            company=company,
+            description=clean_html_tags(desc_text) if desc_text else None,
+            location=location_str,
+            external_url=final_external_url or str(listing.id),
+            application_url=app_url or None,
+            application_email=app_email or None,
+            workload=workload_str or None,
+            publication_date=pub_date,
+            raw_metadata=listing.raw_data,
+            source_query=listing.title,
+        )
+        db_session.add(scraped_job)
+        db_session.flush() # flush to get the ID for the Job
+
+    # 2. CREATE Job
     job = Job(
-        user_id=profile.user_id,
-        title=clean_html_tags(listing.title),
-        company=company,
-        description=clean_html_tags(desc_text) if desc_text else None,
-        location=location_str,
-        url=listing.external_url or jobroom_url,
-        jobroom_url=jobroom_url,
-        search_profile_id=profile.id,
-        platform=getattr(listing, "source", "unknown"),
-        platform_job_id=str(getattr(listing, "id", "")),
-        application_email=app_email or None,
-        workload=workload_str or None,
-        publication_date=pub_date,
+        user_id=profile_dict["user_id"],
+        search_profile_id=profile_dict["id"],
+        scraped_job_id=scraped_job.id,
         is_scraped=True,
-        source_query=listing.title,
         affinity_score=score,
         affinity_analysis=reasoning if reasoning else None,
         worth_applying=worth,
@@ -103,3 +124,4 @@ async def process_job_listing(listing, profile, profile_dict: dict, db_session) 
     db_session.add(job)
     db_session.commit()
     return True
+

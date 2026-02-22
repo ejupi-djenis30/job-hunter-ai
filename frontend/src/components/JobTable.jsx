@@ -9,7 +9,7 @@ export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPa
             company: job.company,
             location: job.location,
             description: job.description,
-            url: job.url || job.jobroom_url
+            url: job.external_url || job.application_url
         }, null, 2);
         navigator.clipboard.writeText(text);
     };
@@ -43,7 +43,8 @@ export function JobTable({ jobs, isGlobalView, onToggleApplied, pagination, onPa
                         <tr>
                             <th className="ps-4 py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "30%" }}>Job Title</th>
                             <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>Company & Location</th>
-                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "20%" }}>{!isGlobalView ? 'Match & Details' : 'Details'}</th>
+                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "15%" }}>{!isGlobalView ? 'Match & Details' : 'Details'}</th>
+                            <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "15%" }}>Analysis</th>
                             <th className="py-3 bg-black-50 text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "8%" }}>Applied</th>
                             <th className="pe-4 py-3 bg-black-50 text-end text-secondary text-uppercase x-small tracking-wider border-bottom border-white-10" style={{ width: "12%" }}>Actions</th>
                         </tr>

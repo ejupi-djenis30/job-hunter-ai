@@ -60,18 +60,30 @@ async def start_search(
         profile_data["user_id"] = user_id
         profile_data["is_history"] = True
         # If it doesn't have a name, give it a timestamped one
-        if not profile_data.get("name") or profile_data["name"] == "Default Profile":
+        if not profile_data.get("name") or profile_data["name"] in ["Default Profile", "My Profile"]:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
             profile_data["name"] = f"Search {timestamp}"
             
         profile_data["is_stopped"] = False
         profile = profile_repo.create(profile_data)
 
-    # Trigger search in background
-    from backend.services.search_service import get_search_service
-
-    service = get_search_service(db)
-    background_tasks.add_task(service.run_search, profile.id)
+    # Cancel any existing task for this profile before starting a new one
+    from backend.services.search_status import cancel_task
+    cancel_task(profile.id)
+    
+    # The FastAPI dependency session `db` is closed as soon as this HTTP route returns,
+    # so the background task needs its own fresh session to avoid DetachedInstanceError.
+    async def run_search_background(_profile_id: int):
+        from backend.db.base import SessionLocal
+        from backend.services.search_service import get_search_service
+        fresh_db = SessionLocal()
+        try:
+            svc = get_search_service(fresh_db)
+            await svc.run_search(_profile_id)
+        finally:
+            fresh_db.close()
+            
+    background_tasks.add_task(run_search_background, profile.id)
 
     return {"message": "Search started", "profile_id": profile.id}
 
@@ -92,8 +104,11 @@ async def stop_search(
     profile_repo.update(profile, {"is_stopped": True})
     
     # Also update the in-memory status so frontend sees it immediately
-    from backend.services.search_status import update_status
+    from backend.services.search_status import update_status, cancel_task
     update_status(profile_id, state="stopped", error="Search stopped by user.")
+    
+    # Explicitly cancel the background task if it exists
+    cancel_task(profile_id)
     
     return {"message": "Search stopped successfully"}
 

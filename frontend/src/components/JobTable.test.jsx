@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { JobTable } from './JobTable';
 
@@ -43,6 +43,7 @@ describe('JobTable', () => {
         expect(screen.getByText('Job Title')).toBeInTheDocument();
         expect(screen.getByText('Company & Location')).toBeInTheDocument();
         expect(screen.getByText('Match & Details')).toBeInTheDocument();
+        expect(screen.getByText('Analysis')).toBeInTheDocument();
         expect(screen.getByText('Applied')).toBeInTheDocument();
         expect(screen.getByText('Actions')).toBeInTheDocument();
     });
@@ -58,10 +59,23 @@ describe('JobTable', () => {
         render(<JobTable jobs={mockJobs} isGlobalView={false} onToggleApplied={vi.fn()} pagination={mockPagination} onPageChange={vi.fn()} />);
 
         expect(screen.getByText('2')).toBeInTheDocument();
-        // Match the string fragments regardless of exact spacing
-        expect(screen.getByText((content, element) => content.includes('/'))).toBeInTheDocument();
+        // Match the pagination separator specifically
+        expect(screen.getByText((content, element) => content.includes('/') && element.tagName === 'SPAN' && element.className.includes('text-secondary'))).toBeInTheDocument();
         expect(screen.getByText((content, element) => content.includes('Showing'))).toBeInTheDocument();
         expect(screen.getByText('21-40')).toBeInTheDocument();
         expect(screen.getByText('50')).toBeInTheDocument();
+    });
+
+    it('calls onPageChange when next button clicked', () => {
+        const mockJobs = [{ id: '1', title: 'Job 1', company: 'C1' }];
+        const mockPagination = { page: 1, pages: 2, total: 40 };
+        const onPageChange = vi.fn();
+        
+        render(<JobTable jobs={mockJobs} pagination={mockPagination} onPageChange={onPageChange} />);
+        
+        // Find next button by icon class
+        const nextBtn = document.querySelector('.bi-chevron-right').closest('button');
+        fireEvent.click(nextBtn);
+        expect(onPageChange).toHaveBeenCalledWith(2);
     });
 });

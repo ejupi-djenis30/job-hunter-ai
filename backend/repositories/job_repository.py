@@ -1,16 +1,25 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, case, func
 from backend.repositories.base import BaseRepository
-from backend.models import Job
+from backend.models import Job, ScrapedJob
 
 
 class JobRepository(BaseRepository[Job]):
     def __init__(self, db: Session):
         super().__init__(Job, db)
 
-    def get_by_url(self, url: str) -> Optional[Job]:
-        return self.db.query(self.model).filter(self.model.url == url).first()
+    def get_by_external_url(self, url: str) -> Optional[Job]:
+        return self.db.query(self.model).join(self.model.scraped_job).filter(ScrapedJob.external_url == url).first()
+
+    def get_by_platform_id(self, platform: str, platform_job_id: str) -> Optional[Job]:
+        return (
+            self.db.query(self.model)
+            .join(self.model.scraped_job)
+            .filter(ScrapedJob.platform == platform)
+            .filter(ScrapedJob.platform_job_id == platform_job_id)
+            .first()
+        )
 
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> List[Job]:
         return (
@@ -21,14 +30,15 @@ class JobRepository(BaseRepository[Job]):
             .all()
         )
 
-    def get_user_job_identifiers(self, user_id: int):
-        """Returns lightweight tuples of (platform, platform_job_id, url) for all user jobs."""
+    def get_user_job_identifiers(self, user_id: int) -> List[Tuple[str, str, str]]:
+        """Returns lightweight tuples of (platform, platform_job_id, external_url) for all user jobs."""
         return (
             self.db.query(
-                self.model.platform,
-                self.model.platform_job_id,
-                self.model.url
+                ScrapedJob.platform,
+                ScrapedJob.platform_job_id,
+                ScrapedJob.external_url
             )
+            .join(self.model.scraped_job)
             .filter(self.model.user_id == user_id)
             .all()
         )
@@ -96,10 +106,14 @@ class JobRepository(BaseRepository[Job]):
             "created_at": self.model.created_at,
             "affinity_score": self.model.affinity_score,
             "distance_km": self.model.distance_km,
-            "title": self.model.title,
-            "publication_date": self.model.publication_date,
         }
+        
         col = allowed_sort.get(sort_by, self.model.created_at)
+        
+        if sort_by in ["title", "publication_date"]:
+            q = q.join(self.model.scraped_job)
+            col = getattr(ScrapedJob, sort_by)
+
         order_fn = desc if sort_order == "desc" else asc
         q = q.order_by(order_fn(col))
 
@@ -142,7 +156,6 @@ class JobRepository(BaseRepository[Job]):
         search_profile_id: Optional[int] = None,
     ) -> dict:
         """Get aggregate stats for filtered jobs."""
-        from sqlalchemy import func, case
         
         q = self._build_filter_query(
             user_id,

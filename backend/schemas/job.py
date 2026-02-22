@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 
 # ═══════════════════════════════════════
@@ -11,11 +11,13 @@ class JobBase(BaseModel):
     company: str
     description: Optional[str] = None
     location: Optional[str] = None
-    url: str
-    jobroom_url: Optional[str] = None
+    external_url: str
+    application_url: Optional[str] = None
     application_email: Optional[str] = None
     workload: Optional[str] = None
     publication_date: Optional[datetime] = None
+    platform: Optional[str] = None
+    platform_job_id: Optional[str] = None
 
 
 class JobCreate(JobBase):
@@ -26,6 +28,7 @@ class JobCreate(JobBase):
     affinity_analysis: Optional[str] = None
     worth_applying: Optional[bool] = False
     distance_km: Optional[float] = None
+    raw_metadata: Optional[Dict[str, Any]] = None
 
 
 class JobUpdate(BaseModel):
@@ -34,6 +37,8 @@ class JobUpdate(BaseModel):
     title: Optional[str] = None
     company: Optional[str] = None
     description: Optional[str] = None
+    external_url: Optional[str] = None
+    application_url: Optional[str] = None
 
 
 class Job(JobBase):
@@ -49,7 +54,8 @@ class Job(JobBase):
     distance_km: Optional[float] = None
     applied: bool
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime
+    raw_metadata: Optional[Dict[str, Any]] = None
 
 
 class JobPaginationResponse(BaseModel):

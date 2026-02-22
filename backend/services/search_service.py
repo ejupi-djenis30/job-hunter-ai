@@ -9,6 +9,7 @@ from backend.services.search.search_validator import build_search_request
 from backend.services.search.search_executor import process_job_listing
 from backend.providers.jobs.jobroom.client import JobRoomProvider
 from backend.providers.jobs.swissdevjobs.client import SwissDevJobsProvider
+from backend.providers.jobs.localdb.client import LocalDbProvider
 from backend.providers.jobs.models import JobSearchRequest, SortOrder, RadiusSearchRequest, Coordinates
 from backend.models import Job
 from backend.core.config import settings
@@ -28,196 +29,207 @@ class SearchService:
 
     async def run_search(self, profile_id: int):
         """Run the full search workflow for a saved profile."""
-        profile = self.profile_repo.get(profile_id)
-        if not profile:
-            logger.error(f"Profile {profile_id} not found")
-            return
-
-        profile_dict = {
-            "cv_content": profile.cv_content or "",
-            "role_description": profile.role_description or "",
-            "search_strategy": profile.search_strategy or "",
-        }
-
-        # Initialize status tracker immediately so frontend sees progress
-        init_status(profile_id)
-
-        # Map available providers
-        available_providers = {
-            "job_room": JobRoomProvider(),
-            "swissdevjobs": SwissDevJobsProvider()
-        }
-        
-        provider_infos = [p.get_provider_info() for p in available_providers.values()]
-
-        # ── Step 1: Generate keywords using LLM (run in thread to avoid blocking) ──
-        add_log(profile_id, "Generating search plan with AI…")
+        from backend.services.search_status import register_task, unregister_task
+        register_task(profile_id, asyncio.current_task())
 
         try:
-            searches = await asyncio.to_thread(
-                llm_service.generate_search_plan, profile_dict, provider_infos, profile.max_queries
-            )
-        except Exception as e:
-            logger.error(f"LLM keyword generation failed: {e}")
-            update_status(profile_id, state="error", error=str(e))
-            return
+            profile = self.profile_repo.get(profile_id)
+            if not profile:
+                logger.error(f"Profile {profile_id} not found")
+                return
 
-        if not searches:
-            add_log(profile_id, "No search keywords generated")
-            update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
-            return
+            profile_dict = {
+                "id": profile.id,
+                "user_id": profile.user_id,
+                "cv_content": profile.cv_content or "",
+                "role_description": profile.role_description or "",
+                "search_strategy": profile.search_strategy or "",
+                "latitude": profile.latitude,
+                "longitude": profile.longitude,
+            }
 
-        # Deduplicate searches based on query string and provider
-        unique_searches = []
-        seen_queries = set()
-        for s in searches:
-            q_str = s.get("query", "").lower().strip()
-            p_str = s.get("provider", "").strip()
-            key = f"{q_str}:{p_str}"
-            if q_str and p_str and key not in seen_queries:
-                seen_queries.add(key)
-                unique_searches.append(s)
+            # Initialize status tracker immediately so frontend sees progress
+            init_status(profile_id)
 
-        init_status(profile_id, total_searches=len(unique_searches), searches=unique_searches)
-        add_log(profile_id, f"Generated {len(searches)} queries -> {len(unique_searches)} unique")
-        
-        searches = unique_searches
-
-        # ── Step 2: Execute searches ──
-        update_status(profile_id, state="searching")
-        
-        all_jobs: list = []
-
-        for idx, search in enumerate(searches):
-            query = search.get("query", "")
-            provider_name = search.get("provider", "")
+            # Map available providers
+            available_providers = {
+                "job_room": JobRoomProvider(),
+                "swissdevjobs": SwissDevJobsProvider(),
+                "local_db": LocalDbProvider(self.job_repo.db)
+            }
             
-            add_log(profile_id, f"Searching {provider_name}: «{query}» ({idx + 1}/{len(searches)})")
-            
-            profile = self.profile_repo.get(profile_id) # Re-fetch to get latest state
-            if profile and profile.is_stopped:
-                logger.info(f"Search profile {profile_id} was stopped by user.")
-                update_status(profile_id, state="stopped", error="Search stopped by user.")
-                break
+            provider_infos = [p.get_provider_info() for p in available_providers.values()]
 
-            update_status(profile_id, current_search_index=idx + 1)
-            
-            provider = available_providers.get(provider_name)
-            if not provider:
-                logger.warning(f"AI requested unknown provider: {provider_name}")
-                add_log(profile_id, f"⚠ Skipped unknown provider: {provider_name}")
-                continue
+            # ── Step 1: Generate keywords using LLM (run in thread to avoid blocking) ──
+            add_log(profile_id, "Generating search plan with AI…")
 
             try:
-                request = build_search_request(profile, query)
-                
-                # Execute search on specific provider
-                result = await provider.search(request)
-                
-                jobs_found_for_query = len(result.items)
-                all_jobs.extend(result.items)
-                        
-                add_log(
-                    profile_id,
-                    f"Found {jobs_found_for_query} jobs total for «{query}» on {provider_name}",
+                searches = await asyncio.to_thread(
+                    llm_service.generate_search_plan, profile_dict, provider_infos, profile.max_queries
                 )
             except Exception as e:
-                logger.warning(f"Search query «{query}» on {provider_name} failed: {e}")
-                add_log(profile_id, f"⚠ Search «{query}» on {provider_name} failed: {e}")
+                logger.error(f"LLM keyword generation failed: {e}")
+                update_status(profile_id, state="error", error=str(e))
+                return
 
-        if not all_jobs:
-            add_log(profile_id, "No jobs found across all queries")
-            update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
-            return
+            if not searches:
+                add_log(profile_id, "No search keywords generated")
+                update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
+                return
 
-        add_log(profile_id, f"Total raw results: {len(all_jobs)}")
+            # Deduplicate searches based on query string and provider
+            unique_searches = []
+            seen_queries = set()
+            for s in searches:
+                q_str = s.get("query", "").lower().strip()
+                p_str = s.get("provider", "").strip()
+                key = f"{q_str}:{p_str}"
+                if q_str and p_str and key not in seen_queries:
+                    seen_queries.add(key)
+                    unique_searches.append(s)
 
-        # ── Step 3: Deduplicate ──
-        seen_keys: set = set()
-        unique_jobs: list = []
-        
-        # We need a robust way to identify existing jobs. We will use a composite string pattern "platform:id"
-        # Fetch ALL lightweight job identifiers for the user to ensure deduplication scales past 100
-        existing_identifiers = self.job_repo.get_user_job_identifiers(profile.user_id)
-        existing_keys = {
-            f"{row.platform}:{row.platform_job_id}" for row in existing_identifiers
-            if row.platform and row.platform_job_id
-        }
-        
-        # Fallback to URLs for older jobs that didn't have platform tags
-        existing_urls = {row.url for row in existing_identifiers if row.url}
-
-        for listing in all_jobs:
-            # listing is a JobListing which has `.source` (e.g. "job_room") and `.id`
-            platform = getattr(listing, "source", "unknown")
-            platform_id = str(getattr(listing, "id", ""))
+            init_status(profile_id, total_searches=len(unique_searches), searches=unique_searches)
+            add_log(profile_id, f"Generated {len(searches)} queries -> {len(unique_searches)} unique")
             
-            key = f"{platform}:{platform_id}"
-            url = getattr(listing, "external_url", None) or getattr(listing, "url", None) or platform_id
+            searches = unique_searches
+
+            # ── Step 2: Execute searches ──
+            update_status(profile_id, state="searching")
             
-            if (platform and platform_id and (key in seen_keys or key in existing_keys)) or \
-               (url and (url in existing_urls and key not in existing_keys)):
-                   continue
-                   
-            if platform and platform_id:
-                seen_keys.add(key)
-            if url:
-                existing_urls.add(url) # Track temporarily for this session
+            all_jobs: list = []
+
+            for idx, search in enumerate(searches):
+                query = search.get("query", "")
+                provider_name = search.get("provider", "")
                 
-            unique_jobs.append(listing)
+                add_log(profile_id, f"Searching {provider_name}: «{query}» ({idx + 1}/{len(searches)})")
+                
+                profile = self.profile_repo.get(profile_id) # Re-fetch to get latest state
+                if profile and profile.is_stopped:
+                    logger.info(f"Search profile {profile_id} was stopped by user.")
+                    update_status(profile_id, state="stopped", error="Search stopped by user.")
+                    break
 
-        duplicates = len(all_jobs) - len(unique_jobs)
-        add_log(
-            profile_id,
-            f"After dedup: {len(unique_jobs)} new, {duplicates} duplicates",
-        )
-        update_status(
-            profile_id,
-            state="analyzing",
-            jobs_found=len(all_jobs),
-            jobs_new=len(unique_jobs),
-            jobs_duplicates=duplicates,
-        )
+                update_status(profile_id, current_search_index=idx + 1)
+                
+                provider = available_providers.get(provider_name)
+                if not provider:
+                    logger.warning(f"AI requested unknown provider: {provider_name}")
+                    add_log(profile_id, f"⚠ Skipped unknown provider: {provider_name}")
+                    continue
 
-        # ── Step 4: Analyze & save each unique job (Parallel) ──
-        # Process jobs in parallel chunks to speed up LLM analysis
-        # Limit concurrency to avoid rate limits (e.g., 10 concurrent requests)
-        semaphore = asyncio.Semaphore(10)
-
-        async def process_with_limit(job, idx, total):
-            async with semaphore:
-                # Re-fetch profile to check if aborted during analysis
-                current_profile = self.profile_repo.get(profile_id)
-                if current_profile and current_profile.is_stopped:
-                    logger.info(f"Skipping job analysis for {job.id} as search was stopped.")
-                    return False
-                    
-                add_log(profile_id, f"Analyzing {idx + 1}/{total}: {job.title}")
                 try:
-                    return await process_job_listing(job, profile, profile_dict, self.job_repo.db)
+                    request = build_search_request(profile, query)
+                    
+                    # Execute search on specific provider
+                    result = await provider.search(request)
+                    
+                    jobs_found_for_query = len(result.items)
+                    all_jobs.extend(result.items)
+                            
+                    add_log(
+                        profile_id,
+                        f"Found {jobs_found_for_query} jobs total for «{query}» on {provider_name}",
+                    )
                 except Exception as e:
-                    logger.warning(f"Failed to process job {job.id}: {e}")
-                    add_log(profile_id, f"⚠ Failed: {job.title} – {e}")
-                    return False
+                    logger.warning(f"Search query «{query}» on {provider_name} failed: {e}")
+                    add_log(profile_id, f"⚠ Search «{query}» on {provider_name} failed: {e}")
 
-        tasks = [
-            process_with_limit(job, idx, len(unique_jobs))
-            for idx, job in enumerate(unique_jobs)
-        ]
-        
-        results = await asyncio.gather(*tasks)
-        saved_count = sum(1 for r in results if r is True)
-        skipped_count = sum(1 for r in results if r is False)
+            if not all_jobs:
+                add_log(profile_id, "No jobs found across all queries")
+                update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
+                return
 
-        add_log(profile_id, f"✓ Search complete – {saved_count} jobs saved, {skipped_count} skipped")
-        update_status(
-            profile_id,
-            state="done",
-            jobs_found=len(all_jobs),
-            jobs_new=saved_count,
-            jobs_duplicates=duplicates,
-            jobs_skipped=skipped_count
-        )
+            add_log(profile_id, f"Total raw results: {len(all_jobs)}")
+
+            # ── Step 3: Deduplicate ──
+            seen_keys: set = set()
+            unique_jobs: list = []
+            
+            # We need a robust way to identify existing jobs. We will use a composite string pattern "platform:id"
+            # Fetch ALL lightweight job identifiers for the user to ensure deduplication scales past 100
+            existing_identifiers = self.job_repo.get_user_job_identifiers(profile.user_id)
+            existing_keys = {
+                f"{row.platform}:{row.platform_job_id}" for row in existing_identifiers
+                if row.platform and row.platform_job_id
+            }
+            
+            # Fallback to URLs for older jobs that didn't have platform tags
+            existing_urls = {row.external_url for row in existing_identifiers if row.external_url}
+
+            for listing in all_jobs:
+                # listing is a JobListing which has `.source` (e.g. "job_room") and `.id`
+                platform = getattr(listing, "source", "unknown")
+                platform_id = str(getattr(listing, "id", ""))
+                
+                key = f"{platform}:{platform_id}"
+                url = getattr(listing, "external_url", None) or getattr(listing, "url", None) or platform_id
+                
+                if (platform and platform_id and (key in seen_keys or key in existing_keys)) or \
+                   (url and (url in existing_urls and key not in existing_keys)):
+                       continue
+                       
+                if platform and platform_id:
+                    seen_keys.add(key)
+                if url:
+                    existing_urls.add(url) # Track temporarily for this session
+                    
+                unique_jobs.append(listing)
+
+            duplicates = len(all_jobs) - len(unique_jobs)
+            add_log(
+                profile_id,
+                f"After dedup: {len(unique_jobs)} new, {duplicates} duplicates",
+            )
+            update_status(
+                profile_id,
+                state="analyzing",
+                jobs_found=len(all_jobs),
+                jobs_new=len(unique_jobs),
+                jobs_duplicates=duplicates,
+            )
+
+            # ── Step 4: Analyze & save each unique job (Parallel) ──
+            # Process jobs in parallel chunks to speed up LLM analysis
+            # Limit concurrency to avoid rate limits (e.g., 10 concurrent requests)
+            semaphore = asyncio.Semaphore(10)
+
+            async def process_with_limit(job, idx, total):
+                async with semaphore:
+                    # Re-fetch profile to check if aborted during analysis
+                    current_profile = self.profile_repo.get(profile_id)
+                    if current_profile and current_profile.is_stopped:
+                        logger.info(f"Skipping job analysis for {job.id} as search was stopped.")
+                        return False
+                        
+                    add_log(profile_id, f"Analyzing {idx + 1}/{total}: {job.title}")
+                    try:
+                        return await process_job_listing(job, profile_dict, self.job_repo.db)
+                    except Exception as e:
+                        logger.warning(f"Failed to process job {job.id}: {e}")
+                        add_log(profile_id, f"⚠ Failed: {job.title} – {e}")
+                        return False
+
+            tasks = [
+                process_with_limit(job, idx, len(unique_jobs))
+                for idx, job in enumerate(unique_jobs)
+            ]
+            
+            results = await asyncio.gather(*tasks)
+            saved_count = sum(1 for r in results if r is True)
+            skipped_count = sum(1 for r in results if r is False)
+
+            add_log(profile_id, f"✓ Search complete – {saved_count} jobs saved, {skipped_count} skipped")
+            update_status(
+                profile_id,
+                state="done",
+                jobs_found=len(all_jobs),
+                jobs_new=saved_count,
+                jobs_duplicates=duplicates,
+                jobs_skipped=skipped_count
+            )
+        finally:
+            unregister_task(profile_id)
 
 
 

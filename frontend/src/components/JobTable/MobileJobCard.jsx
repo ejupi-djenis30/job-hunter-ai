@@ -2,8 +2,7 @@ import React from "react";
 import { ScoreBadge, DistanceBadge } from "./Badges";
 
 export function MobileJobCard({ job, isGlobalView, onToggleApplied, onCopy }) {
-    const isJobRoomOnly = job.jobroom_url && (!job.url || job.url === job.jobroom_url);
-    const applyUrl = isJobRoomOnly ? null : job.url;
+    const applyUrl = job.application_url || job.external_url;
 
     return (
         <div className="glass-panel p-3 mb-3 position-relative hover-card">
@@ -12,6 +11,19 @@ export function MobileJobCard({ job, isGlobalView, onToggleApplied, onCopy }) {
                     <h6 className="fw-bold mb-1 text-white text-break">{job.title}</h6>
                     <div className="text-secondary x-small d-flex align-items-center flex-wrap gap-2 mt-1">
                         <span className="text-white-50"><i className="bi bi-building me-1"></i>{job.company}</span>
+                        {job.application_email && (
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(job.application_email);
+                                }}
+                                className="btn btn-sm btn-icon border-0 p-0"
+                                style={{ width: 'auto', height: 'auto', minHeight: 'auto' }}
+                                title={`Copy Email: ${job.application_email}`}
+                            >
+                                <i className="bi bi-envelope text-info opacity-75"></i>
+                            </button>
+                        )}
                     </div>
                 </div>
                 <div className="d-flex flex-column align-items-end gap-2">
@@ -19,6 +31,7 @@ export function MobileJobCard({ job, isGlobalView, onToggleApplied, onCopy }) {
                         <ScoreBadge score={Math.round(job.affinity_score)} />
                     )}
                     <span className="badge-pill bg-white-10 text-secondary border border-white-10">
+                         <i className="bi bi-clock x-small me-1"></i>
                          {new Date(job.created_at).toLocaleDateString()}
                     </span>
                 </div>
@@ -58,8 +71,8 @@ export function MobileJobCard({ job, isGlobalView, onToggleApplied, onCopy }) {
                             <i className="bi bi-envelope"></i>
                         </a>
                     )}
-                    {(job.jobroom_url) && (
-                        <a href={job.jobroom_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary rounded-circle btn-icon" title="View on Job Room">
+                    {job.external_url && (
+                        <a href={job.external_url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary rounded-circle btn-icon" title="View Source">
                             <i className="bi bi-link-45deg fs-5"></i>
                         </a>
                     )}
