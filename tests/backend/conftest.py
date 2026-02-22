@@ -1,3 +1,5 @@
+import os
+os.environ["TESTING"] = "1"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -27,24 +29,24 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def setup_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def client(setup_database):
     with TestClient(app) as c:
         yield c
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def db_session(setup_database):
     session = TestingSessionLocal()
     yield session
     session.close()
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def test_user(db_session):
     user = User(
         username="globaladmin",
@@ -55,7 +57,7 @@ def test_user(db_session):
     db_session.refresh(user)
     yield user
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def auth_headers(client, test_user):
     response = client.post(
         "/api/v1/auth/login",

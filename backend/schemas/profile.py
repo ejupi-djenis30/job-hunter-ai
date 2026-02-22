@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, field_validator
+from typing import Optional, Any
 from datetime import datetime
 
 # ═══════════════════════════════════════
@@ -13,6 +13,7 @@ class SearchProfileBase(BaseModel):
     search_strategy: Optional[str] = None
     location_filter: Optional[str] = None
     workload_filter: Optional[str] = None
+    contract_type: Optional[str] = "any"
     posted_within_days: Optional[int] = 30
     max_distance: Optional[int] = 50
     latitude: Optional[float] = None
@@ -25,10 +26,37 @@ class SearchProfileBase(BaseModel):
     # Schedule
     schedule_enabled: Optional[bool] = False
     schedule_interval_hours: Optional[int] = 24
+    
+    @field_validator("max_queries", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, v: Any) -> Optional[int]:
+        if v == "" or v == -1 or v == "-1":
+            return None
+        return v
 
 
 class SearchProfileCreate(SearchProfileBase):
     pass
+
+
+class SearchProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    cv_content: Optional[str] = None
+    role_description: Optional[str] = None
+    search_strategy: Optional[str] = None
+    location_filter: Optional[str] = None
+    workload_filter: Optional[str] = None
+    contract_type: Optional[str] = None
+    posted_within_days: Optional[int] = None
+    max_distance: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    scrape_mode: Optional[str] = None
+    max_queries: Optional[int] = None
+    is_history: Optional[bool] = None
+    is_stopped: Optional[bool] = None
+    schedule_enabled: Optional[bool] = None
+    schedule_interval_hours: Optional[int] = None
 
 
 class StartSearchRequest(SearchProfileBase):

@@ -26,6 +26,15 @@ class ProfileService:
         self.repo.delete(profile_id)
         return {"message": "Profile deleted"}
 
+    def update_profile(self, user_id: int, profile_id: int, profile_in: "SearchProfileUpdate"):
+        profile = self.repo.get(profile_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        if profile.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        return self.repo.update(profile, profile_in)
+
     def toggle_schedule(self, user_id: int, profile_id: int, schedule: ScheduleToggle):
         profile = self.repo.get(profile_id)
         if not profile:

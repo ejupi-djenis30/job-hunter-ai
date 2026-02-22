@@ -56,11 +56,7 @@ export function History({ onStartSearch, onEdit, onSaveAsSchedule }) {
 
     return (
         <div className="animate-fade-in h-100 d-flex flex-column">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h3 className="mb-1 text-white fw-bold tracking-tight">Recent Activity</h3>
-                    <p className="text-secondary small mb-0 opacity-75">Manage your past search configurations</p>
-                </div>
+            <div className="d-flex justify-content-end align-items-center mb-4">
                 <button 
                     onClick={loadProfiles} 
                     className="btn btn-icon btn-secondary rounded-circle shadow-sm"

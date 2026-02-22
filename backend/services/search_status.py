@@ -8,6 +8,7 @@ import threading
 
 _lock = threading.Lock()
 _statuses: Dict[int, Dict[str, Any]] = {}
+_active_tasks: Dict[int, Any] = {} # profile_id -> asyncio.Task
 
 
 def init_status(profile_id: int, total_searches: int = 0, searches: List[Dict] = None):
@@ -71,3 +72,25 @@ def clear_status(profile_id: int):
     """Remove status (optional cleanup)."""
     with _lock:
         _statuses.pop(profile_id, None)
+
+
+def register_task(profile_id: int, task: Any):
+    """Register an active search task."""
+    with _lock:
+        _active_tasks[profile_id] = task
+
+
+def unregister_task(profile_id: int):
+    """Remove a finished or cancelled task from registry."""
+    with _lock:
+        _active_tasks.pop(profile_id, None)
+
+
+def cancel_task(profile_id: int):
+    """Explicitly cancel the background search task for a profile."""
+    with _lock:
+        task = _active_tasks.get(profile_id)
+        if task:
+            task.cancel()
+            return True
+    return False

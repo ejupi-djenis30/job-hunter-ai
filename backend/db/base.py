@@ -15,9 +15,9 @@ else:
         max_overflow=getattr(settings, "DB_MAX_OVERFLOW", 10),
         pool_pre_ping=True,
     )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from backend.models.base_model import Base
 
-Base = declarative_base()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 
 def get_db():
     db = SessionLocal()

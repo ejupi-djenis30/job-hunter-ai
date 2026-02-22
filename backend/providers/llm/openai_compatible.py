@@ -17,11 +17,39 @@ class OpenAICompatibleProvider(LLMProvider):
 
     def _clean_json(self, text: str) -> str:
         text = text.strip()
+        
+        # Strip markdown code blocks
         if text.startswith("```"):
             lines = text.split("\n")
-            lines = [l for l in lines[1:] if not l.strip() == "```"]
-            text = "\n".join(lines)
-        return text
+            if len(lines) > 2 and lines[-1].strip().startswith("```"):
+                text = "\n".join(lines[1:-1])
+            else:
+                lines = [l for l in lines[1:] if not l.strip() == "```"]
+                text = "\n".join(lines)
+                
+        # Deepseek often wraps its thought process in <think> tags before the JSON.
+        # Find the first { or [ to locate the JSON payload.
+        start_idx_dict = text.find("{")
+        start_idx_list = text.find("[")
+        
+        start_idx = -1
+        if start_idx_dict != -1 and start_idx_list != -1:
+            start_idx = min(start_idx_dict, start_idx_list)
+        else:
+            start_idx = max(start_idx_dict, start_idx_list)
+            
+        if start_idx > 0:
+            text = text[start_idx:]
+            
+        # Clean up any trailing text after the JSON ends
+        end_idx_dict = text.rfind("}")
+        end_idx_list = text.rfind("]")
+        
+        end_idx = max(end_idx_dict, end_idx_list)
+        if end_idx != -1 and end_idx < len(text) - 1:
+            text = text[:end_idx + 1]
+            
+        return text.strip()
 
     def generate_text(self, system_prompt: str, user_prompt: str, max_tokens: Optional[int] = None) -> str:
         params = {
@@ -71,7 +99,12 @@ class OpenAICompatibleProvider(LLMProvider):
         try:
             completion = self.client.chat.completions.create(**params)
             content = completion.choices[0].message.content or "{}"
-            return json.loads(self._clean_json(content))
+            clean_text = self._clean_json(content)
+            try:
+                return json.loads(clean_text)
+            except Exception as parse_err:
+                logger.error(f"Failed to parse JSON. Raw LLM output:\n{content}\nCleaned text:\n{clean_text}")
+                raise parse_err
         except Exception as e:
             logger.error(f"LLM JSON Error: {e}")
             raise

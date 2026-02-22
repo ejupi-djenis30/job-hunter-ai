@@ -38,6 +38,19 @@ export function SearchFormAdvanced({ profile, handleChange, setProfile }) {
                 )}
             </div>
 
+            <div className="mb-2">
+                <label className="form-label text-white small fw-bold text-uppercase x-small mb-2">Search Title</label>
+                <input
+                    type="text"
+                    name="name"
+                    value={profile.name}
+                    onChange={handleChange}
+                    placeholder="E.g. Senior Python Remote"
+                    className="form-control form-control-sm bg-black-20 border-white-10 text-white"
+                />
+                <div className="x-small text-secondary mt-1 opacity-75">Leave empty for auto-naming</div>
+            </div>
+
             <div className="row g-3">
                 <div className="col-6">
                     <label className="form-label text-white small fw-bold text-uppercase x-small mb-2">Scrape Speed</label>

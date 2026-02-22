@@ -36,12 +36,48 @@ class JobService:
         }
 
     def create_job(self, user_id: int, job_in: dict):
-        job_in["user_id"] = user_id
-        if "applied" not in job_in:
-            job_in["applied"] = False
-        if "is_scraped" not in job_in:
-            job_in["is_scraped"] = False
-        return self.repo.create(job_in)
+        from backend.models import ScrapedJob
+        
+        # Split fields: scraped-job fields vs user-relationship fields
+        scraped_fields = {
+            "title": job_in.get("title", ""),
+            "company": job_in.get("company", ""),
+            "platform": job_in.get("platform", "manual"),
+            "platform_job_id": job_in.get("platform_job_id", None) or str(hash(
+                str(job_in.get("title", "")) + str(job_in.get("company", ""))
+            )),
+            "external_url": job_in.get("external_url", None),
+            "description": job_in.get("description", None),
+            "location": job_in.get("location", None),
+            "workload": job_in.get("workload", None),
+        }
+        
+        # Upsert or create ScrapedJob
+        existing_scraped = (
+            self.repo.db.query(ScrapedJob)
+            .filter(
+                ScrapedJob.platform == scraped_fields["platform"],
+                ScrapedJob.platform_job_id == scraped_fields["platform_job_id"],
+            )
+            .first()
+        )
+        if not existing_scraped:
+            scraped_job = ScrapedJob(**{k: v for k, v in scraped_fields.items() if v is not None})
+            self.repo.db.add(scraped_job)
+            self.repo.db.flush()
+        else:
+            scraped_job = existing_scraped
+        
+        # Create the user-specific Job record
+        job_data = {
+            "user_id": user_id,
+            "scraped_job_id": scraped_job.id,
+            "applied": job_in.get("applied", False),
+            "is_scraped": job_in.get("is_scraped", False),
+            "affinity_score": job_in.get("affinity_score", None),
+            "search_profile_id": job_in.get("search_profile_id", None),
+        }
+        return self.repo.create(job_data)
 
     def update_job(self, user_id: int, job_id: int, updates: JobUpdate):
         job = self.repo.get(job_id)

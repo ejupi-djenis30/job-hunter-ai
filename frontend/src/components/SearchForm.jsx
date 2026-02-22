@@ -6,7 +6,7 @@ import { SearchFormAdvanced } from "./SearchForm/SearchFormAdvanced";
 
 export function SearchForm({ onStartSearch, isLoading, prefill }) {
     const [profile, setProfile] = useState({
-        name: "My Profile",
+        name: "",
         role_description: "",
         search_strategy: "",
         location_filter: "",
@@ -77,7 +77,12 @@ export function SearchForm({ onStartSearch, isLoading, prefill }) {
             return;
         }
 
-        onStartSearch(profile);
+        const searchProfile = {
+            ...profile,
+            max_queries: profile.max_queries === "" ? -1 : profile.max_queries
+        };
+
+        onStartSearch(searchProfile);
     };
 
     return (
