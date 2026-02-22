@@ -26,7 +26,7 @@ class LocalDbProvider(JobProvider):
     def get_provider_info(self) -> ProviderInfo:
         return ProviderInfo(
             name="local_db",
-            description="Searches the application database for previously scraped jobs.",
+            description="Searches the local application database for previously scraped jobs.",
             domain="internal",
         )
 
