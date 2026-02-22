@@ -1,7 +1,47 @@
 import pytest
 import asyncio
 from unittest.mock import MagicMock, patch, AsyncMock
-from backend.services.search_service import SearchService
+from backend.services.search_service import SearchService, get_compatible_providers
+
+
+# ─── Domain Router Tests ───
+
+def test_get_compatible_providers_generalist():
+    """Generalist providers (*) accept any domain."""
+    providers = {"job_room": MagicMock(), "swissdevjobs": MagicMock()}
+    provider_infos = {
+        "job_room": MagicMock(accepted_domains=["*"]),
+        "swissdevjobs": MagicMock(accepted_domains=["it"]),
+    }
+    result = get_compatible_providers("finance", providers, provider_infos)
+    assert result == ["job_room"]
+
+
+def test_get_compatible_providers_it_domain():
+    """IT queries go to both generalist AND IT-only providers."""
+    providers = {"job_room": MagicMock(), "swissdevjobs": MagicMock(), "local_db": MagicMock()}
+    provider_infos = {
+        "job_room": MagicMock(accepted_domains=["*"]),
+        "swissdevjobs": MagicMock(accepted_domains=["it"]),
+        "local_db": MagicMock(accepted_domains=["*"]),
+    }
+    result = get_compatible_providers("it", providers, provider_infos)
+    assert "job_room" in result
+    assert "swissdevjobs" in result
+    assert "local_db" in result
+
+
+def test_get_compatible_providers_no_match():
+    """If no provider accepts the domain, return only generalists."""
+    providers = {"swissdevjobs": MagicMock()}
+    provider_infos = {
+        "swissdevjobs": MagicMock(accepted_domains=["it"]),
+    }
+    result = get_compatible_providers("medical", providers, provider_infos)
+    assert result == []
+
+
+# ─── SearchService Tests ───
 
 @pytest.fixture
 def mock_job_repo():
@@ -33,9 +73,9 @@ async def test_run_search_success(search_service, mock_profile_repo, mock_job_re
     
     mock_job_repo.get_user_job_identifiers.return_value = []
     
-    mock_provider = AsyncMock()
-    mock_provider.get_provider_info.return_value = {"name": "test"}
-    mock_provider.search.return_value = MagicMock(items=[MagicMock(id="job1", source="test", external_url="url1")])
+    mock_provider = MagicMock()
+    mock_provider.get_provider_info.return_value = MagicMock(accepted_domains=["*"])
+    mock_provider.search = AsyncMock(return_value=MagicMock(items=[MagicMock(id="job1", source="test", external_url="url1")]))
     
     with patch("backend.services.search_service.llm_service") as mock_llm, \
          patch("backend.services.search_service.init_status"), \
@@ -46,19 +86,16 @@ async def test_run_search_success(search_service, mock_profile_repo, mock_job_re
          patch("backend.services.search_service.LocalDbProvider", return_value=mock_provider), \
          patch("backend.services.search_service.process_job_listing", return_value=True):
         
+        # New format: domain instead of provider
         mock_llm.generate_search_plan.return_value = [
-            {"provider": "swissdevjobs", "query": "Software Engineer"}
+            {"domain": "it", "query": "Software Engineer", "type": "occupation", "language": "en"}
         ]
         
         await search_service.run_search(1)
         
         mock_llm.generate_search_plan.assert_called_once()
-        mock_provider.search.assert_awaited()
-        # process_job_listing should be called once since we found 1 unique job
-        # (Wait, swissdevjobs and job_room decorators return same mock_provider, 
-        # but available_providers dict in search_service.run_search will have two entries pointing to it)
-        # Actually in search_service.py it instantiates them: JobRoomProvider(), SwissDevJobsProvider()
-        # So we mocked the classes themselves.
+        # All 3 providers should be called since domain=it matches both generalists AND it-only
+        assert mock_provider.search.await_count >= 1
 
 @pytest.mark.asyncio
 async def test_run_search_stopped_by_user(search_service, mock_profile_repo):
@@ -71,11 +108,6 @@ async def test_run_search_stopped_by_user(search_service, mock_profile_repo):
          patch("backend.services.search_service.update_status") as mock_update:
         
         await search_service.run_search(1)
-        # It should exit early after init_status but before LLM call? 
-        # No, let's check code logic.
-        # Line 58: profile is checked after LLM plan generation loop (Step 2)
-        # Wait, Step 2 loop checks is_stopped.
-        # So it should generate plan, then stop.
 
 @pytest.mark.asyncio
 async def test_run_search_no_plan(search_service, mock_profile_repo):

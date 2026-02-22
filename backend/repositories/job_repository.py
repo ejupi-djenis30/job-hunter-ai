@@ -43,6 +43,19 @@ class JobRepository(BaseRepository[Job]):
             .all()
         )
 
+    def get_profile_job_identifiers(self, profile_id: int) -> List[Tuple[str, str, str]]:
+        """Returns lightweight tuples of (platform, platform_job_id, external_url) for jobs in a specific profile."""
+        return (
+            self.db.query(
+                ScrapedJob.platform,
+                ScrapedJob.platform_job_id,
+                ScrapedJob.external_url
+            )
+            .join(self.model.scraped_job)
+            .filter(self.model.search_profile_id == profile_id)
+            .all()
+        )
+
     def _build_filter_query(
         self,
         user_id: int,

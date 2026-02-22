@@ -139,6 +139,24 @@ def test_job_repository_get_by_identifiers(job_repo, test_user, db_session):
     ids = job_repo.get_user_job_identifiers(test_user.id)
     assert ("generic", "pj-123", "http://id-corp.com") in ids
 
+def test_job_repository_get_profile_job_identifiers(job_repo, profile_repo, test_user, db_session):
+    p1 = profile_repo.create({"user_id": test_user.id, "name": "P1"})
+    p2 = profile_repo.create({"user_id": test_user.id, "name": "P2"})
+    
+    sj1 = _create_scraped_job(db_session, platform="p1", platform_job_id="j1", external_url="url1")
+    sj2 = _create_scraped_job(db_session, platform="p2", platform_job_id="j2", external_url="url2")
+    
+    job_repo.create({"user_id": test_user.id, "search_profile_id": p1.id, "scraped_job_id": sj1.id})
+    job_repo.create({"user_id": test_user.id, "search_profile_id": p2.id, "scraped_job_id": sj2.id})
+    
+    ids_p1 = job_repo.get_profile_job_identifiers(p1.id)
+    assert ("p1", "j1", "url1") in ids_p1
+    assert ("p2", "j2", "url2") not in ids_p1
+    
+    ids_p2 = job_repo.get_profile_job_identifiers(p2.id)
+    assert ("p2", "j2", "url2") in ids_p2
+    assert ("p1", "j1", "url1") not in ids_p2
+
 def test_job_repository_get_by_user_pagination(job_repo, test_user, db_session):
     for i in range(5):
         sj = _create_scraped_job(db_session, platform_job_id=f"pj-pag-{i}",

@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from typing import List, Any
+from typing import List, Any, Dict
 from datetime import datetime
 from backend.repositories.job_repository import JobRepository
 from backend.repositories.profile_repository import ProfileRepository
@@ -18,6 +18,28 @@ from backend.services.search_status import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ─────────────────────── Domain Router ───────────────────────
+
+def get_compatible_providers(
+    query_domain: str,
+    providers: Dict[str, Any],
+    provider_infos: Dict[str, Any],
+) -> List[str]:
+    """Return provider names whose accepted_domains match the query domain.
+    
+    Rules:
+    - "*" in accepted_domains → accepts everything (generalist)
+    - query_domain in accepted_domains → exact domain match
+    - query_domain == "general" → only generalist providers
+    """
+    compatible = []
+    for name, info in provider_infos.items():
+        domains = info.accepted_domains
+        if "*" in domains or query_domain in domains:
+            compatible.append(name)
+    return compatible
 
 
 class SearchService:
@@ -51,21 +73,23 @@ class SearchService:
             # Initialize status tracker immediately so frontend sees progress
             init_status(profile_id)
 
-            # Map available providers
+            # Map available providers and their infos
             available_providers = {
                 "job_room": JobRoomProvider(),
                 "swissdevjobs": SwissDevJobsProvider(),
                 "local_db": LocalDbProvider(self.job_repo.db)
             }
             
-            provider_infos = [p.get_provider_info() for p in available_providers.values()]
+            provider_infos = {
+                name: p.get_provider_info() for name, p in available_providers.items()
+            }
 
-            # ── Step 1: Generate keywords using LLM (run in thread to avoid blocking) ──
+            # ── Step 1: Generate search plan using LLM ──
             add_log(profile_id, "Generating search plan with AI…")
 
             try:
                 searches = await asyncio.to_thread(
-                    llm_service.generate_search_plan, profile_dict, provider_infos, profile.max_queries
+                    llm_service.generate_search_plan, profile_dict, list(provider_infos.values()), profile.max_queries
                 )
             except Exception as e:
                 logger.error(f"LLM keyword generation failed: {e}")
@@ -77,63 +101,83 @@ class SearchService:
                 update_status(profile_id, state="done", jobs_found=0, jobs_new=0)
                 return
 
-            # Deduplicate searches based on query string and provider
+            # Deduplicate searches based on query string (domain-agnostic dedup)
             unique_searches = []
             seen_queries = set()
             for s in searches:
                 q_str = s.get("query", "").lower().strip()
-                p_str = s.get("provider", "").strip()
-                key = f"{q_str}:{p_str}"
-                if q_str and p_str and key not in seen_queries:
+                key = q_str
+                if q_str and key not in seen_queries:
                     seen_queries.add(key)
                     unique_searches.append(s)
 
-            init_status(profile_id, total_searches=len(unique_searches), searches=unique_searches)
-            add_log(profile_id, f"Generated {len(searches)} queries -> {len(unique_searches)} unique")
+            # Count total provider calls for progress tracking
+            total_provider_calls = 0
+            for s in unique_searches:
+                domain = s.get("domain", "general")
+                compatible = get_compatible_providers(domain, available_providers, provider_infos)
+                total_provider_calls += len(compatible)
+
+            init_status(profile_id, total_searches=total_provider_calls, searches=unique_searches)
+            add_log(profile_id, f"Generated {len(searches)} queries → {len(unique_searches)} unique → {total_provider_calls} provider calls")
             
             searches = unique_searches
 
-            # ── Step 2: Execute searches ──
+            # ── Step 2: Execute searches with domain routing ──
             update_status(profile_id, state="searching")
             
             all_jobs: list = []
+            call_index = 0
 
             for idx, search in enumerate(searches):
                 query = search.get("query", "")
-                provider_name = search.get("provider", "")
+                domain = search.get("domain", "general")
                 
-                add_log(profile_id, f"Searching {provider_name}: «{query}» ({idx + 1}/{len(searches)})")
-                
-                profile = self.profile_repo.get(profile_id) # Re-fetch to get latest state
+                # Check if stopped
+                profile = self.profile_repo.get(profile_id)
                 if profile and profile.is_stopped:
                     logger.info(f"Search profile {profile_id} was stopped by user.")
                     update_status(profile_id, state="stopped", error="Search stopped by user.")
                     break
 
-                update_status(profile_id, current_search_index=idx + 1)
+                # Find compatible providers for this query's domain
+                compatible = get_compatible_providers(domain, available_providers, provider_infos)
                 
-                provider = available_providers.get(provider_name)
-                if not provider:
-                    logger.warning(f"AI requested unknown provider: {provider_name}")
-                    add_log(profile_id, f"⚠ Skipped unknown provider: {provider_name}")
+                if not compatible:
+                    add_log(profile_id, f"⚠ No providers accept domain '{domain}' for «{query}»")
                     continue
 
-                try:
-                    request = build_search_request(profile, query)
+                add_log(profile_id, f"[{idx+1}/{len(searches)}] «{query}» (domain={domain}) → {', '.join(compatible)}")
+
+                # Build search request once, reuse for all providers
+                request = build_search_request(profile, query)
+
+                # Execute on all compatible providers in parallel
+                async def search_provider(provider_name: str, req: JobSearchRequest, q: str):
+                    provider = available_providers[provider_name]
+                    try:
+                        result = await provider.search(req)
+                        return provider_name, result.items, None
+                    except Exception as e:
+                        return provider_name, [], e
+
+                tasks = [
+                    search_provider(p_name, request, query)
+                    for p_name in compatible
+                ]
+
+                results = await asyncio.gather(*tasks)
+
+                for p_name, items, error in results:
+                    call_index += 1
+                    update_status(profile_id, current_search_index=call_index)
                     
-                    # Execute search on specific provider
-                    result = await provider.search(request)
-                    
-                    jobs_found_for_query = len(result.items)
-                    all_jobs.extend(result.items)
-                            
-                    add_log(
-                        profile_id,
-                        f"Found {jobs_found_for_query} jobs total for «{query}» on {provider_name}",
-                    )
-                except Exception as e:
-                    logger.warning(f"Search query «{query}» on {provider_name} failed: {e}")
-                    add_log(profile_id, f"⚠ Search «{query}» on {provider_name} failed: {e}")
+                    if error:
+                        logger.warning(f"Search «{query}» on {p_name} failed: {error}")
+                        add_log(profile_id, f"⚠ Search «{query}» on {p_name} failed: {error}")
+                    else:
+                        all_jobs.extend(items)
+                        add_log(profile_id, f"  ↳ {p_name}: {len(items)} jobs")
 
             if not all_jobs:
                 add_log(profile_id, "No jobs found across all queries")
@@ -146,19 +190,15 @@ class SearchService:
             seen_keys: set = set()
             unique_jobs: list = []
             
-            # We need a robust way to identify existing jobs. We will use a composite string pattern "platform:id"
-            # Fetch ALL lightweight job identifiers for the user to ensure deduplication scales past 100
-            existing_identifiers = self.job_repo.get_user_job_identifiers(profile.user_id)
+            # Use profile-specific identifiers instead of user-wide to allow re-analysis for different searches
+            existing_identifiers = self.job_repo.get_profile_job_identifiers(profile.id)
             existing_keys = {
                 f"{row.platform}:{row.platform_job_id}" for row in existing_identifiers
                 if row.platform and row.platform_job_id
             }
-            
-            # Fallback to URLs for older jobs that didn't have platform tags
             existing_urls = {row.external_url for row in existing_identifiers if row.external_url}
 
             for listing in all_jobs:
-                # listing is a JobListing which has `.source` (e.g. "job_room") and `.id`
                 platform = getattr(listing, "source", "unknown")
                 platform_id = str(getattr(listing, "id", ""))
                 
@@ -172,7 +212,7 @@ class SearchService:
                 if platform and platform_id:
                     seen_keys.add(key)
                 if url:
-                    existing_urls.add(url) # Track temporarily for this session
+                    existing_urls.add(url)
                     
                 unique_jobs.append(listing)
 
@@ -190,13 +230,10 @@ class SearchService:
             )
 
             # ── Step 4: Analyze & save each unique job (Parallel) ──
-            # Process jobs in parallel chunks to speed up LLM analysis
-            # Limit concurrency to avoid rate limits (e.g., 10 concurrent requests)
             semaphore = asyncio.Semaphore(10)
 
             async def process_with_limit(job, idx, total):
                 async with semaphore:
-                    # Re-fetch profile to check if aborted during analysis
                     current_profile = self.profile_repo.get(profile_id)
                     if current_profile and current_profile.is_stopped:
                         logger.info(f"Skipping job analysis for {job.id} as search was stopped.")
