@@ -21,12 +21,12 @@ export function HistoryCard({ profile, onStartSearch, onEdit, onSaveAsSchedule, 
                         </span>
                         <span className="d-flex align-items-center" title="Time range">
                             <i className="bi bi-calendar me-1 text-primary"></i>
-                            {profile.posted_within_days}d
+                            {`Last ${profile.posted_within_days} days`}
                         </span>
                         {profile.schedule_enabled && (
                             <span className="text-success fw-medium d-flex align-items-center">
                                 <i className="bi bi-check-circle-fill me-1"></i>
-                                Auto-runs every {profile.schedule_interval_hours}h
+                                {`Auto-runs every ${profile.schedule_interval_hours}h`}
                             </span>
                         )}
                     </div>

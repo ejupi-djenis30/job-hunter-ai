@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch, AsyncMock
 
 class TestAdvancedProfilesAPI:
     def test_get_profiles_empty_or_populated(self, client, auth_headers):
@@ -18,7 +19,12 @@ class TestAdvancedProfilesAPI:
             "max_queries": 5,
             "scrape_mode": "sequential"
         }
-        response = client.post("/api/v1/search/start", json=payload, headers=auth_headers)
+        # Patch out the background search so it doesn't attempt a real DB/LLM call
+        with patch(
+            "backend.services.search_service.SearchService.run_search",
+            new_callable=AsyncMock,
+        ):
+            response = client.post("/api/v1/search/start", json=payload, headers=auth_headers)
         assert response.status_code == 200
         assert "profile_id" in response.json()
     
