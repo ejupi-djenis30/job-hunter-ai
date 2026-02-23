@@ -2,6 +2,7 @@ from typing import List, Union, Any, Optional
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Job Hunter AI"
@@ -39,7 +40,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
-    # LLM
+    # ─── Global LLM (used as fallback for all steps) ───────────────────────────
     LLM_PROVIDER: str = "groq"
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = ""
@@ -48,6 +49,31 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.7
     LLM_THINKING: bool = False
     LLM_THINKING_LEVEL: str = "MEDIUM"
+
+    # ─── Per-step LLM overrides (all optional — empty string = use global) ─────
+    # Step: PLAN  (generate_search_plan — typically benefits from creative model)
+    LLM_PLAN_PROVIDER: str = ""
+    LLM_PLAN_MODEL: str = ""
+    LLM_PLAN_API_KEY: str = ""
+    LLM_PLAN_BASE_URL: str = ""
+    LLM_PLAN_TEMPERATURE: float = 0.0    # 0.0 = use global
+    LLM_PLAN_MAX_TOKENS: int = 0          # 0 = use global
+
+    # Step: RELEVANCE  (check_title_relevance — binary yes/no, cheap model works)
+    LLM_RELEVANCE_PROVIDER: str = ""
+    LLM_RELEVANCE_MODEL: str = ""
+    LLM_RELEVANCE_API_KEY: str = ""
+    LLM_RELEVANCE_BASE_URL: str = ""
+    LLM_RELEVANCE_TEMPERATURE: float = 0.0
+    LLM_RELEVANCE_MAX_TOKENS: int = 0
+
+    # Step: MATCH  (analyze_job_match — deep reasoning, benefits from larger model)
+    LLM_MATCH_PROVIDER: str = ""
+    LLM_MATCH_MODEL: str = ""
+    LLM_MATCH_API_KEY: str = ""
+    LLM_MATCH_BASE_URL: str = ""
+    LLM_MATCH_TEMPERATURE: float = 0.0
+    LLM_MATCH_MAX_TOKENS: int = 0
 
     # Scraping
     JOB_ROOM_USER_AGENT: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

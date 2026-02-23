@@ -2,18 +2,41 @@ import json
 import logging
 from typing import Dict, Any, Optional
 from openai import OpenAI
-from backend.core.config import settings
 from backend.providers.llm.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
+
 class OpenAICompatibleProvider(LLMProvider):
-    def __init__(self):
-        self.client = OpenAI(
-            api_key=settings.LLM_API_KEY,
-            base_url=settings.LLM_BASE_URL,
-        )
-        self.model = settings.LLM_MODEL
+    """Provider for any OpenAI-compatible API (Groq, DeepSeek, OpenAI, etc.).
+
+    All settings are injected via the constructor — this class never reads
+    from ``backend.core.config.settings`` directly.
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        model: str,
+        temperature: float = 0.7,
+        max_tokens: int = 16384,
+        thinking: bool = False,
+        provider_name: str = "openai",
+    ):
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.thinking = thinking
+        self.provider_name = provider_name
+
+    # ── helpers ────────────────────────────────────────────────────────────
+
+    @property
+    def model_id(self) -> str:
+        return f"{self.provider_name}/{self.model}"
 
     def _clean_json(self, text: str) -> str:
         text = text.strip()
@@ -51,6 +74,8 @@ class OpenAICompatibleProvider(LLMProvider):
             
         return text.strip()
 
+    # ── public API ─────────────────────────────────────────────────────────
+
     def generate_text(self, system_prompt: str, user_prompt: str, max_tokens: Optional[int] = None) -> str:
         params = {
             "model": self.model,
@@ -58,12 +83,12 @@ class OpenAICompatibleProvider(LLMProvider):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "max_tokens": max_tokens or settings.LLM_MAX_TOKENS,
-            "temperature": settings.LLM_TEMPERATURE,
+            "max_tokens": max_tokens or self.max_tokens,
+            "temperature": self.temperature,
         }
         
         # Deepseek thinking mode specific adjustments
-        if settings.LLM_PROVIDER == "deepseek" and settings.LLM_THINKING:
+        if self.provider_name == "deepseek" and self.thinking:
             # Deepseek reasoner might not support temperature
             params.pop("temperature", None)
 
@@ -78,7 +103,7 @@ class OpenAICompatibleProvider(LLMProvider):
             
             return content
         except Exception as e:
-            logger.error(f"LLM Error: {e}")
+            logger.error(f"LLM Error ({self.model_id}): {e}")
             raise
 
     def generate_json(self, system_prompt: str, user_prompt: str, max_tokens: Optional[int] = None) -> Dict[str, Any]:
@@ -88,12 +113,12 @@ class OpenAICompatibleProvider(LLMProvider):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "max_tokens": max_tokens or settings.LLM_MAX_TOKENS,
-            "temperature": settings.LLM_TEMPERATURE,
+            "max_tokens": max_tokens or self.max_tokens,
+            "temperature": self.temperature,
         }
 
-        # JSON Mode
-        if settings.LLM_PROVIDER != "deepseek" or not settings.LLM_THINKING:
+        # JSON Mode — skip for deepseek thinking where it's not supported
+        if not (self.provider_name == "deepseek" and self.thinking):
              params["response_format"] = {"type": "json_object"}
 
         try:
@@ -103,8 +128,8 @@ class OpenAICompatibleProvider(LLMProvider):
             try:
                 return json.loads(clean_text)
             except Exception as parse_err:
-                logger.error(f"Failed to parse JSON. Raw LLM output:\n{content}\nCleaned text:\n{clean_text}")
+                logger.error(f"Failed to parse JSON from {self.model_id}. Raw output:\n{content}\nCleaned:\n{clean_text}")
                 raise parse_err
         except Exception as e:
-            logger.error(f"LLM JSON Error: {e}")
+            logger.error(f"LLM JSON Error ({self.model_id}): {e}")
             raise

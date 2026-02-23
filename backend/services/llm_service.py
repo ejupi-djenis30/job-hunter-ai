@@ -1,117 +1,148 @@
 import logging
 from typing import Dict, Any, List
-from backend.providers.llm.factory import get_llm_provider
+from backend.providers.llm.factory import get_provider_for_step
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class LLMService:
-    def __init__(self):
-        self.provider = get_llm_provider()
 
-    def generate_search_plan(self, profile: Dict[str, Any], providers_info: List[Any], max_queries: int | None = None) -> List[Dict[str, Any]]:
+class LLMService:
+    """Orchestrates all LLM calls for the job-hunting pipeline.
+
+    Each method resolves its own provider via ``get_provider_for_step``
+    so that different steps can transparently use different models/providers.
+    """
+
+    # ─── Step 1: Search Plan Generation ───────────────────────────────────
+
+    def generate_search_plan(
+        self,
+        profile: Dict[str, Any],
+        providers_info: List[Any],
+        max_queries: int | None = None,
+    ) -> List[Dict[str, Any]]:
+        provider = get_provider_for_step("plan")
+        logger.info(f"[PLAN] Using {provider.model_id}")
+
         system_prompt = (
             "You are an expert Job Hunter AI specialized in the Swiss job market. "
             "You are fluent in English, German, French, and Italian. "
-            "Your goal is to generate HIGHLY DETAILED and COMPREHENSIVE search queries to find the best possible job matches."
+            "Your task is to generate HIGHLY DETAILED and COMPREHENSIVE search queries "
+            "to find the best possible job matches for the user."
         )
-        
+
         limit_instruction = (
-            f"Generate as MANY queries as needed to ensure comprehensive coverage. There is NO limit on the total number of queries."
-            if max_queries is None else
-            f"Generate at most {max_queries} queries total. prioritize the most relevant occupation queries first."
+            "Generate as MANY queries as needed to ensure comprehensive coverage. "
+            "There is NO limit on the total number of queries."
+            if max_queries is None
+            else f"Generate at most {max_queries} queries total. "
+                 "Prioritize the most relevant occupation queries first."
         )
 
-        user_prompt = f"""
-        Analyze the user's profile and strategies to generate an optimal search plan.
-        You do NOT need to assign queries to specific job boards — the system will route them automatically.
-        
-        PROFILE CONTENT:
-        Role/What they are looking for: {profile.get('role_description')}
-        Strategy/AI Instructions: {profile.get('search_strategy')}
-        CV Summary: {profile.get('cv_content')}
-        
-        STRICT QUERY GENERATION RULES:
-        1. DOMAIN TAGGING: For each query, specify its professional domain (e.g. "it", "finance", "medical", "engineering", "hospitality", "general"). The system uses this to route queries to the right job boards.
-        2. NO "OR" OPERATORS: Never use "OR" or any other boolean operator in the query field.
-        3. ONE OCCUPATION: Each query must contain ONLY ONE specific job title/occupation.
-        4. QUERY TYPES:
-           - "occupation": Exactly ONE occupation title, translated. ABSOLUTELY NO keywords in this type.
-           - "keyword": Single specific skill or technology.
-        5. DIVERSITY & ACCURACY:
-           - Use synonyms and different languages (DE, FR, EN) to maximize coverage.
-           - Ensure queries are distinct and high-quality.
+        user_prompt = f"""Analyze the user's profile and generate an optimal search plan.
+You do NOT need to assign queries to specific job boards — the system routes them automatically.
 
-        {limit_instruction}
-        Do NOT worry about token limits. 
-        
-        Return pure JSON with a 'searches' list.
-        Format example: 
-        {{ 
-            "searches": [ 
-                {{ "domain": "it", "language": "en", "type": "occupation", "query": "Software Engineer" }},
-                {{ "domain": "it", "language": "de", "type": "keyword", "query": "React" }},
-                {{ "domain": "finance", "language": "en", "type": "occupation", "query": "Financial Analyst" }}
-            ] 
-        }}
-        """
-        
+PROFILE:
+- Role / What they are looking for: {profile.get('role_description')}
+- Strategy / AI Instructions: {profile.get('search_strategy')}
+- CV Summary: {profile.get('cv_content')}
+
+QUERY GENERATION RULES:
+1. DOMAIN TAGGING: For each query, specify its professional domain (e.g. "it", "finance", "medical", "engineering", "hospitality", "general"). The system uses this to route queries to the right job boards.
+2. NO "OR" OPERATORS: Never use "OR" or any other boolean operator in the query field.
+3. ONE OCCUPATION PER QUERY: Each query must contain ONLY ONE specific job title/occupation.
+4. QUERY TYPES:
+   - "occupation": Exactly ONE occupation title, translated. No keywords in this type.
+   - "keyword": A single specific skill or technology.
+5. DIVERSITY & ACCURACY:
+   - Use synonyms and different languages (DE, FR, EN) to maximize coverage.
+   - Ensure queries are distinct and high-quality.
+
+{limit_instruction}
+
+Return ONLY pure JSON with a 'searches' list. Example:
+{{
+    "searches": [
+        {{"domain": "it", "language": "en", "type": "occupation", "query": "Software Engineer"}},
+        {{"domain": "it", "language": "de", "type": "keyword", "query": "React"}},
+        {{"domain": "finance", "language": "en", "type": "occupation", "query": "Financial Analyst"}}
+    ]
+}}"""
+
         try:
-            result = self.provider.generate_json(system_prompt, user_prompt)
+            result = provider.generate_json(system_prompt, user_prompt)
             searches = result.get("searches", [])
-            
+
             # Application-side enforcement of the limit just in case LLM goes over
             if max_queries is not None:
                 searches = searches[:max_queries]
-                
+
             return searches
         except Exception as e:
             logger.error(f"Error generating keywords: {e}")
             return []
 
+    # ─── Step 2: Title Relevance Check ────────────────────────────────────
+
     def check_title_relevance(self, title: str, role_description: str) -> Dict[str, Any]:
-        system_prompt = "You are a helpful assistant that outputs JSON. Be concise."
-        user_prompt = f"""Determine if job title '{title}' is relevant to role '{role_description}'. Return JSON: {{ "relevant": bool, "reason": "..." }}"""
-        
+        provider = get_provider_for_step("relevance")
+
+        system_prompt = (
+            "You are a concise classification assistant that outputs JSON. "
+            "Determine whether a job title is relevant to the user's target role."
+        )
+        user_prompt = (
+            f'Is the job title "{title}" relevant to a candidate looking for "{role_description}"?\n\n'
+            f'Return JSON: {{ "relevant": true/false, "reason": "one-sentence explanation" }}'
+        )
+
         try:
-            return self.provider.generate_json(system_prompt, user_prompt)
+            return provider.generate_json(system_prompt, user_prompt)
         except Exception as e:
             logger.error(f"Error checking relevance: {e}")
             return {"relevant": True, "reason": "Error checking relevance"}
 
-    def analyze_job_match(self, job_metadata: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
+    # ─── Step 3: Job Match Analysis ───────────────────────────────────────
+
+    def analyze_job_match(
+        self,
+        job_metadata: Dict[str, Any],
+        profile: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        provider = get_provider_for_step("match")
+
         system_prompt = (
             "You are a strict and precise Career Coach AI. "
-            "Your goal is to evaluate the match between a candidate's profile and a specific job listing."
+            "Your goal is to evaluate the match between a candidate's profile "
+            "and a specific job listing. Be realistic and data-driven."
         )
-        
-        user_prompt = f"""
-        Analyze the match between this profile and job.
-        
-        PROFILE:
-        Expected Role: {profile.get('role_description')}
-        Experience Context: {profile.get('cv_content')}
-        
-        JOB METADATA (Title, Location, Metadata):
-        {job_metadata}
-        
-        CRITICAL RULES:
-        1. SENIORITY MISMATCH: If the user is a Junior/Entry-level and the job title or description palesently expects a "Senior", "Lead", "Staff", or "Principal" (with 5+ years experience), the 'affinity_score' MUST NOT exceed 50. You may still marks 'worth_applying' as true if the candidate has most skills.
-        2. MULTI-FACTOR: Consider the title, the full description, and available metadata (like language or workload) together.
-        3. STRICTNESS: Be realistic. 100% is only for a perfect resume-to-job match.
-        
-        Return JSON ONLY:
-        {{
-            "affinity_score": 0-100,
-            "affinity_analysis": "Concise 2-3 sentence explanation focusing on why the score was given and mentioning seniority if applicable.",
-            "worth_applying": bool (true if it's worth a shot even if the score is lower)
-        }}
-        """
-        
+
+        user_prompt = f"""Analyze the match between this profile and job.
+
+PROFILE:
+- Expected Role: {profile.get('role_description')}
+- Experience Context: {profile.get('cv_content')}
+
+JOB METADATA:
+{job_metadata}
+
+SCORING RULES:
+1. SENIORITY MISMATCH: If the candidate is Junior/Entry-level and the job requires Senior/Lead/Staff/Principal (5+ years), the affinity_score MUST NOT exceed 50. You may still mark worth_applying as true if the candidate has most required skills.
+2. MULTI-FACTOR: Consider title, full description, and all metadata (language requirements, workload) together.
+3. STRICTNESS: Be realistic. Score 100 only for a perfect resume-to-job match.
+
+Return ONLY JSON:
+{{
+    "affinity_score": 0-100,
+    "affinity_analysis": "Concise 2-3 sentence explanation focusing on why the score was given, mentioning seniority if applicable.",
+    "worth_applying": true/false
+}}"""
+
         try:
-            return self.provider.generate_json(system_prompt, user_prompt)
+            return provider.generate_json(system_prompt, user_prompt)
         except Exception as e:
             logger.error(f"Error analyzing affinity: {e}")
             return {"affinity_score": 0, "affinity_analysis": "Error during analysis", "worth_applying": False}
+
 
 llm_service = LLMService()
