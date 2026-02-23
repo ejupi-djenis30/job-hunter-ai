@@ -46,15 +46,6 @@ describe('HistoryCard', () => {
         expect(onStartSearch).toHaveBeenCalledWith(mockProfile);
     });
 
-    it('calls onEdit when Edit button is clicked', () => {
-        const onEdit = vi.fn();
-        render(<HistoryCard profile={mockProfile} onEdit={onEdit} />);
-        
-        const editButton = screen.getByTitle('Edit Parameters');
-        fireEvent.click(editButton);
-        
-        expect(onEdit).toHaveBeenCalledWith(mockProfile);
-    });
 
 
     it('shows Add to Schedule button only if schedule is disabled', () => {

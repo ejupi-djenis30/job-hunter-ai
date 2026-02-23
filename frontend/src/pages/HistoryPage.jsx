@@ -17,7 +17,7 @@ export function HistoryPage() {
     }
   };
 
-  const handleEditHistory = (profile) => {
+  const handleUseAsTemplate = (profile) => {
     navigate('/new', { state: { prefillProfile: profile } });
   };
 
@@ -32,10 +32,10 @@ export function HistoryPage() {
 
   return (
     <div className="animate-slide-up">
-      <History 
-        onStartSearch={handleStartSearch} 
-        onEdit={handleEditHistory} 
-        onSaveAsSchedule={handleSaveAsSchedule} 
+      <History
+        onStartSearch={handleStartSearch}
+        onUseAsTemplate={handleUseAsTemplate}
+        onSaveAsSchedule={handleSaveAsSchedule}
       />
     </div>
   );

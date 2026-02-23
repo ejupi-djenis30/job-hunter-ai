@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function HistoryCard({ profile, onStartSearch, onEdit, onSaveAsSchedule }) {
+export function HistoryCard({ profile, onStartSearch, onUseAsTemplate, onSaveAsSchedule }) {
     return (
         <div className="glass-panel p-3 px-md-4 py-md-3 hover-bg-white-5 transition-colors group">
             <div className="d-flex flex-column flex-md-row align-items-md-center gap-3">
@@ -45,10 +45,10 @@ export function HistoryCard({ profile, onStartSearch, onEdit, onSaveAsSchedule }
 
                         <button
                             className="btn btn-sm btn-icon btn-secondary rounded-circle d-flex align-items-center justify-content-center"
-                            onClick={() => onEdit?.(profile)}
-                            title="Edit Parameters"
+                            onClick={() => onUseAsTemplate?.(profile)}
+                            title="New Search from this"
                         >
-                            <i className="bi bi-pencil"></i>
+                            <i className="bi bi-copy"></i>
                         </button>
 
                         {!profile.schedule_enabled && (
