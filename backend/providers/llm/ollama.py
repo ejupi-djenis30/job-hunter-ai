@@ -19,6 +19,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         base_url: str = "http://localhost:11434/v1",
         model: str = "llama3",
         temperature: float = 0.7,
+        top_p: float = 0.95,
         max_tokens: int = 16384,
         **kwargs,
     ):
@@ -27,6 +28,7 @@ class OllamaProvider(OpenAICompatibleProvider):
             base_url=base_url,
             model=model,
             temperature=temperature,
+            top_p=top_p,
             max_tokens=max_tokens,
             thinking=False,
             provider_name="ollama",

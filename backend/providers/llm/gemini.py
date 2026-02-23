@@ -19,6 +19,7 @@ class GeminiProvider(LLMProvider):
         api_key: str,
         model: str,
         temperature: float = 0.7,
+        top_p: float = 0.95,
         max_tokens: int = 16384,
         thinking_level: str = "OFF",
     ):
@@ -33,6 +34,7 @@ class GeminiProvider(LLMProvider):
 
         self.model = model
         self.temperature = temperature
+        self.top_p = top_p
         self.max_tokens = max_tokens
         self.thinking_level = thinking_level
 
@@ -46,7 +48,7 @@ class GeminiProvider(LLMProvider):
         gen_config_kwargs = {
             "temperature": self.temperature,
             "max_output_tokens": max_tokens or self.max_tokens,
-            "top_p": 0.95,
+            "top_p": self.top_p,
         }
 
         # Thinking

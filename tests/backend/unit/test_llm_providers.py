@@ -109,6 +109,7 @@ def test_factory_default_returns_global_provider():
         mock_settings.LLM_BASE_URL = "https://api.groq.com/openai/v1"
         mock_settings.LLM_MODEL = "llama3-70b"
         mock_settings.LLM_TEMPERATURE = 0.7
+        mock_settings.LLM_TOP_P = 0.95
         mock_settings.LLM_MAX_TOKENS = 8192
         mock_settings.LLM_THINKING = False
         mock_settings.LLM_THINKING_LEVEL = "OFF"
@@ -119,7 +120,10 @@ def test_factory_default_returns_global_provider():
         mock_settings.LLM_PLAN_API_KEY = ""
         mock_settings.LLM_PLAN_BASE_URL = ""
         mock_settings.LLM_PLAN_TEMPERATURE = 0.0
+        mock_settings.LLM_PLAN_TOP_P = 0.0
         mock_settings.LLM_PLAN_MAX_TOKENS = 0
+        mock_settings.LLM_PLAN_THINKING = False
+        mock_settings.LLM_PLAN_THINKING_LEVEL = ""
 
         provider = get_provider_for_step("plan")
         assert isinstance(provider, OpenAICompatibleProvider)
@@ -142,6 +146,7 @@ def test_factory_per_step_overrides():
         mock_settings.LLM_BASE_URL = "https://api.groq.com/openai/v1"
         mock_settings.LLM_MODEL = "llama3-70b"
         mock_settings.LLM_TEMPERATURE = 0.7
+        mock_settings.LLM_TOP_P = 0.95
         mock_settings.LLM_MAX_TOKENS = 8192
         mock_settings.LLM_THINKING = False
         mock_settings.LLM_THINKING_LEVEL = "OFF"
@@ -152,7 +157,10 @@ def test_factory_per_step_overrides():
         mock_settings.LLM_RELEVANCE_API_KEY = ""  # fallback to global
         mock_settings.LLM_RELEVANCE_BASE_URL = ""  # fallback to global
         mock_settings.LLM_RELEVANCE_TEMPERATURE = 0.1
+        mock_settings.LLM_RELEVANCE_TOP_P = 0.0
         mock_settings.LLM_RELEVANCE_MAX_TOKENS = 1024
+        mock_settings.LLM_RELEVANCE_THINKING = False
+        mock_settings.LLM_RELEVANCE_THINKING_LEVEL = ""
 
         provider = get_provider_for_step("relevance")
         assert isinstance(provider, OpenAICompatibleProvider)
@@ -170,6 +178,7 @@ def test_factory_gemini_provider():
         mock_settings.LLM_BASE_URL = ""
         mock_settings.LLM_MODEL = "gemini-2.0-flash"
         mock_settings.LLM_TEMPERATURE = 0.5
+        mock_settings.LLM_TOP_P = 0.95
         mock_settings.LLM_MAX_TOKENS = 4096
         mock_settings.LLM_THINKING = False
         mock_settings.LLM_THINKING_LEVEL = "OFF"
@@ -179,7 +188,10 @@ def test_factory_gemini_provider():
         mock_settings.LLM_MATCH_API_KEY = ""
         mock_settings.LLM_MATCH_BASE_URL = ""
         mock_settings.LLM_MATCH_TEMPERATURE = 0.0
+        mock_settings.LLM_MATCH_TOP_P = 0.0
         mock_settings.LLM_MATCH_MAX_TOKENS = 0
+        mock_settings.LLM_MATCH_THINKING = False
+        mock_settings.LLM_MATCH_THINKING_LEVEL = ""
 
         with patch("backend.providers.llm.gemini.genai", create=True):
             with patch("backend.providers.llm.gemini.GeminiProvider.__init__", return_value=None) as mock_init:

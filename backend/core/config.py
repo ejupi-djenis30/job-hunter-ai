@@ -47,33 +47,44 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "moonshotai/kimi-k2-instruct-0905"
     LLM_MAX_TOKENS: int = 16384
     LLM_TEMPERATURE: float = 0.7
+    LLM_TOP_P: float = 0.95
     LLM_THINKING: bool = False
-    LLM_THINKING_LEVEL: str = "MEDIUM"
+    LLM_THINKING_LEVEL: str = "OFF"
 
-    # ─── Per-step LLM overrides (all optional — empty string = use global) ─────
-    # Step: PLAN  (generate_search_plan — typically benefits from creative model)
+    # ─── Per-step LLM overrides (all optional — empty/zero = use global) ───────
+    #
+    # Step: PLAN  (generate_search_plan)
     LLM_PLAN_PROVIDER: str = ""
     LLM_PLAN_MODEL: str = ""
     LLM_PLAN_API_KEY: str = ""
     LLM_PLAN_BASE_URL: str = ""
-    LLM_PLAN_TEMPERATURE: float = 0.0    # 0.0 = use global
-    LLM_PLAN_MAX_TOKENS: int = 0          # 0 = use global
+    LLM_PLAN_TEMPERATURE: float = 0.0
+    LLM_PLAN_TOP_P: float = 0.0
+    LLM_PLAN_MAX_TOKENS: int = 0
+    LLM_PLAN_THINKING: bool = False
+    LLM_PLAN_THINKING_LEVEL: str = ""
 
-    # Step: RELEVANCE  (check_title_relevance — binary yes/no, cheap model works)
+    # Step: RELEVANCE  (check_title_relevance)
     LLM_RELEVANCE_PROVIDER: str = ""
     LLM_RELEVANCE_MODEL: str = ""
     LLM_RELEVANCE_API_KEY: str = ""
     LLM_RELEVANCE_BASE_URL: str = ""
     LLM_RELEVANCE_TEMPERATURE: float = 0.0
+    LLM_RELEVANCE_TOP_P: float = 0.0
     LLM_RELEVANCE_MAX_TOKENS: int = 0
+    LLM_RELEVANCE_THINKING: bool = False
+    LLM_RELEVANCE_THINKING_LEVEL: str = ""
 
-    # Step: MATCH  (analyze_job_match — deep reasoning, benefits from larger model)
+    # Step: MATCH  (analyze_job_match)
     LLM_MATCH_PROVIDER: str = ""
     LLM_MATCH_MODEL: str = ""
     LLM_MATCH_API_KEY: str = ""
     LLM_MATCH_BASE_URL: str = ""
     LLM_MATCH_TEMPERATURE: float = 0.0
+    LLM_MATCH_TOP_P: float = 0.0
     LLM_MATCH_MAX_TOKENS: int = 0
+    LLM_MATCH_THINKING: bool = False
+    LLM_MATCH_THINKING_LEVEL: str = ""
 
     # Scraping
     JOB_ROOM_USER_AGENT: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

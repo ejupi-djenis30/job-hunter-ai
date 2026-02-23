@@ -25,31 +25,41 @@ def _resolve_step_config(step: str) -> dict:
     """Build a resolved config dict for the given pipeline *step*.
 
     Returns a flat dict with keys:
-        provider, model, api_key, base_url, temperature, max_tokens
+        provider, model, api_key, base_url, temperature, top_p,
+        max_tokens, thinking, thinking_level
     """
     step = step.lower()
 
     if step in _KNOWN_STEPS:
         prefix = f"LLM_{step.upper()}_"
-        step_provider  = getattr(settings, f"{prefix}PROVIDER", "")
-        step_model     = getattr(settings, f"{prefix}MODEL", "")
-        step_api_key   = getattr(settings, f"{prefix}API_KEY", "")
-        step_base_url  = getattr(settings, f"{prefix}BASE_URL", "")
-        step_temp      = getattr(settings, f"{prefix}TEMPERATURE", 0.0)
-        step_max_tok   = getattr(settings, f"{prefix}MAX_TOKENS", 0)
+        step_provider       = getattr(settings, f"{prefix}PROVIDER", "")
+        step_model           = getattr(settings, f"{prefix}MODEL", "")
+        step_api_key         = getattr(settings, f"{prefix}API_KEY", "")
+        step_base_url        = getattr(settings, f"{prefix}BASE_URL", "")
+        step_temp            = getattr(settings, f"{prefix}TEMPERATURE", 0.0)
+        step_top_p           = getattr(settings, f"{prefix}TOP_P", 0.0)
+        step_max_tok         = getattr(settings, f"{prefix}MAX_TOKENS", 0)
+        step_thinking        = getattr(settings, f"{prefix}THINKING", False)
+        step_thinking_level  = getattr(settings, f"{prefix}THINKING_LEVEL", "")
     else:
         # Unknown step or "default" — everything falls through to globals
         step_provider = step_model = step_api_key = step_base_url = ""
         step_temp = 0.0
+        step_top_p = 0.0
         step_max_tok = 0
+        step_thinking = False
+        step_thinking_level = ""
 
     return {
-        "provider":    step_provider or settings.LLM_PROVIDER,
-        "model":       step_model or settings.LLM_MODEL,
-        "api_key":     step_api_key or settings.LLM_API_KEY,
-        "base_url":    step_base_url or settings.LLM_BASE_URL,
-        "temperature": step_temp if step_temp > 0 else settings.LLM_TEMPERATURE,
-        "max_tokens":  step_max_tok if step_max_tok > 0 else settings.LLM_MAX_TOKENS,
+        "provider":       step_provider or settings.LLM_PROVIDER,
+        "model":          step_model or settings.LLM_MODEL,
+        "api_key":        step_api_key or settings.LLM_API_KEY,
+        "base_url":       step_base_url or settings.LLM_BASE_URL,
+        "temperature":    step_temp if step_temp > 0 else settings.LLM_TEMPERATURE,
+        "top_p":          step_top_p if step_top_p > 0 else settings.LLM_TOP_P,
+        "max_tokens":     step_max_tok if step_max_tok > 0 else settings.LLM_MAX_TOKENS,
+        "thinking":       step_thinking if step_thinking else settings.LLM_THINKING,
+        "thinking_level": step_thinking_level or settings.LLM_THINKING_LEVEL,
     }
 
 
@@ -62,8 +72,9 @@ def _build_provider(cfg: dict) -> LLMProvider:
             api_key=cfg["api_key"],
             model=cfg["model"],
             temperature=cfg["temperature"],
+            top_p=cfg["top_p"],
             max_tokens=cfg["max_tokens"],
-            thinking_level=settings.LLM_THINKING_LEVEL,
+            thinking_level=cfg["thinking_level"],
         )
 
     if provider_name == "ollama":
@@ -75,6 +86,7 @@ def _build_provider(cfg: dict) -> LLMProvider:
             base_url=base_url,
             model=model,
             temperature=cfg["temperature"],
+            top_p=cfg["top_p"],
             max_tokens=cfg["max_tokens"],
         )
 
@@ -84,8 +96,9 @@ def _build_provider(cfg: dict) -> LLMProvider:
         base_url=cfg["base_url"],
         model=cfg["model"],
         temperature=cfg["temperature"],
+        top_p=cfg["top_p"],
         max_tokens=cfg["max_tokens"],
-        thinking=settings.LLM_THINKING,
+        thinking=cfg["thinking"],
         provider_name=provider_name,
     )
 
@@ -102,7 +115,7 @@ def get_provider_for_step(step: str = "default") -> LLMProvider:
     provider = _build_provider(cfg)
     logger.debug(
         f"[LLM Factory] step={step!r} → {provider.model_id} "
-        f"(temp={cfg['temperature']}, max_tok={cfg['max_tokens']})"
+        f"(temp={cfg['temperature']}, top_p={cfg['top_p']}, max_tok={cfg['max_tokens']})"
     )
     return provider
 

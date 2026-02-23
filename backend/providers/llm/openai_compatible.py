@@ -21,6 +21,7 @@ class OpenAICompatibleProvider(LLMProvider):
         base_url: str,
         model: str,
         temperature: float = 0.7,
+        top_p: float = 0.95,
         max_tokens: int = 16384,
         thinking: bool = False,
         provider_name: str = "openai",
@@ -28,6 +29,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
         self.temperature = temperature
+        self.top_p = top_p
         self.max_tokens = max_tokens
         self.thinking = thinking
         self.provider_name = provider_name
@@ -85,12 +87,13 @@ class OpenAICompatibleProvider(LLMProvider):
             ],
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": self.temperature,
+            "top_p": self.top_p,
         }
         
         # Deepseek thinking mode specific adjustments
         if self.provider_name == "deepseek" and self.thinking:
-            # Deepseek reasoner might not support temperature
             params.pop("temperature", None)
+            params.pop("top_p", None)
 
         try:
             completion = self.client.chat.completions.create(**params)
@@ -115,6 +118,7 @@ class OpenAICompatibleProvider(LLMProvider):
             ],
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": self.temperature,
+            "top_p": self.top_p,
         }
 
         # JSON Mode — skip for deepseek thinking where it's not supported
