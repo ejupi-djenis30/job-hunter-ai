@@ -1,11 +1,11 @@
 # Direct production dependencies. Regenerate requirements.lock with:
 # pip-compile --generate-hashes --output-file requirements.lock requirements.txt
 
-fastapi==0.140.7
+fastapi==0.141.1
 # Keep the loopback sidecar portable across Windows ARM64 and Linux runners.
 # The optional ``standard`` extra pulls platform-specific event loops that are not
 # required by CareerOS and make a single hash-locked dependency set impossible.
-uvicorn==0.51.0
+uvicorn==0.52.1
 python-multipart==0.0.32
 
 SQLAlchemy==2.0.51
@@ -33,4 +33,4 @@ python-dotenv==1.2.2
 slowapi==0.1.10
 
 # Official Model Context Protocol SDK for the local, stdio-only agent interface.
-mcp==1.28.1
+mcp==1.29.0
